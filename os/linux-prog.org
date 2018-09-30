@@ -1,0 +1,112 @@
+* File I/O
+** File Descriptors
+A file descriptor is a non-negative integer. When we want to read or write a file, we
+identify the file with the file descriptor that was returned by =open= or =creat= as an
+argument to either =read= or =write=.
+
+By convention, UNIX System shells associate file descriptor:
+- 0(=STDIN_FILENO=): the standard input of a process
+- 1(=STDOUT_FILENO=): the standard output of a process
+- 2(=STDERR_FILENO=): the standard error of a process
+
+File descriptors range from 0 through =OPEN_MAX - 1=.
+** Opening Files
+[[man:open(2)][open(2)]]
+*** =open= and =openat= Functions
+A file is opened or created by calling either the =open= function or the =openat= function.
+#+BEGIN_SRC C
+  #include <fcntl.h>
+  #include <sys/types.h>
+  #include <sys/stat.h>
+
+  int open(const char *path, int oflag, ... /* mode_t mode */ );
+  int openat(int fd, const char *path, int oflag, ... /* mode_t mode */ );
+  // Both return: file descriptor if OK, −1 on error
+#+END_SRC
+
+- =path=: the name of the file to open or create
+  - =open=: absolute pathname
+  - =openat=: relative pathname
+- =oflag=: determines the type of access used, the prefix name is O_* (e.g. =O_RDONLY, O_WRONLY_O_RDWR=)
+- =mode_t=: provide the permissions of the newly created file 
+- *return*: the file descriptor returned by =open= and =openat= is guaranteed to be the lowest-numbered unused descriptor
+- =fd=: is a file descriptor or =AT_FDCWD=
+  - file descriptor: specifies the starting location in the file system where the relative pathname is to be evaluated. It is obtained by opening the directory where the relative pathname is to be evaluated.
+  - =AT_FDCWD=: current working directory
+
+** Reading
+[[man:read(2)]]
+
+size limits on =read=: According to POSIX.1, if count is greater than =SSIZE_MAX=, the result is implementation-defined
+
+** Writing
+[[man:write(2)]]
+When a user-space application issues a =write()= system call, the Linux kernel performs a few checks and the simply copies the dada into a buffer. Later, in the background, the kernel fathers up all of the dirty buffer, which are buffers that contain data newer than what is on disk, sorts them optimally and writes them out to dist(a process known as *writeback*)
+
+delayed writes has the following problem
+- an application may believe that a write has occurred successfully, in the event of a system crash, the data will never make it to disk
+- the inability to enforce *write ordering*
+- Any I/O error that occurs during writeback cannot be reported back to the process that issued the write request
+
+To ensure that data is written out in a timely manner, the kernel institutes a *maximum buffer age* and write out all dirty buffers before they mature past the given value. Users can configure this value via =/proc/sys/vm/dirty_expire_centisecs= (one hundredths of a second)
+
+** Synchronized I/O
+<<synchronized_I/O>>
+[[man:fsync(2)]]
+=fdatasync= is similar to =fsync=, but does not flush modified metadata unless that metadata is needed in order to allow a subsequent data retrieval to be  correctly handled, *so =datasync= is an easy performance win*.
+
+Neither function guarantees that any updated directory entries containing the file are synchronized to disk. To ensure that any updates to the directory entry are also committed to disk, =fsync= must also be called on a file descriptor opened against the file's directory.
+
+[[man:sync(2)]]
+commit filesystem caches to disk
+
+oflag:
+- =O_SYNC=: an implicit =fsync=, but performance lower than =fsync=
+- =O_DSYNC=: an implicit =fdatasync=, but performance lower than =fdatasync=
+- =O_RSYNC=: 
+
+** Direct I/O
+Providing the =O_DIRECT= flag to =open()= instructs the kernel to minimize the presence of I/O management. When this flag is provided, I/O will initiate directly from user-space buffers to the device, bypassing the page cache. All I/O will be synchronous; operations will not return until completed.
+
+When performing direct I/o, the request length, buffer alignment, and file offsets must all be integer multiples of the underlying device's sector size---generally, this is 512 bytes. To remain compatible, applications should align to the larger logical block size.
+
+** Closing Files
+[[man:close(2)]]
+After a program has finished working with a file descriptor, it can unmap the file descriptor from the associated file via the =close()= system call.
+
+Note: Typically, filesystem do not flush buffers when a closed. If you need to be sure that the data is physically stored on the underlying disk, use [[synchronized_I/O]]
+
+** Seeking
+[[man:lseek(2)]]
+
+Seeking past the end of a file dose nothing
+- read request: return =EOF=
+- write request: new space will be created between the old length of the file and the new length, and it will be padded with zeros.
+  This zero padding is called a *hole*. On Unix-style filesystems, holes do not occupy any physical disk space. This implies that This implies that the total size of all files on a file system can add up to more than the physical size of the disk. Files with holes are called *spares files*. Sparse files can save considerable space and enhance performance because manipulating the holes dose not initiate any physical I/O.
+  A read request to the part of a file in a hole will return the appropriate number of zeros.
+
+** Positional Reads and Writes
+[[man:pread(2)]]
+- these calls are easier to use
+- they do note update the file pointer upon completion
+- they avoid any potential races that might occur when using =lseek= (e.g., race conditions can be avoided )
+
+** Truncating Files
+[[man:truncate(2)]]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

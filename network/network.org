@@ -1,0 +1,84 @@
+* Security
+** Data Link Layer
+*** DHCP-snooping
+作用: 抵御DHCP地址池耗尽的攻击(保护合法的 DHCP 服务器)
+
+*** PVLAN(Private VLAN)
+*** DAI
+*** IP source Guard
+*** ACL+route-map(策略工具)
+**** ACL
+作用: 标记流量或者路由条目(为策略实施做准备)
+
+特点:
+- 一系列的运行和拒绝条目的集合
+- 从上至下依次匹配
+- 一旦匹配将不再往下执行
+- 任何ACL最后都有一条默认隐含的拒绝条目!
+  *强烈建议的配置: =access-list 1 deny any log=*
+- 自身发起的流量将不接受 ACL 的控制, 解决方案(PBR, policy-base routing)
+
+种类:
+- IPv4
+- IPv6
+- 2层(MAC-ACL)
+
+表示方式:
+- 标准: 只匹配(检查)源(靠近目的位置调用)
+  - 数字: 1-99
+  - 命名: 符合命名字符串的要求
+- 扩展: 可以匹配源目IP、源目接口以及协议(靠近源的位置调用)
+  - 数字: 100-199
+  - 命名: 符合命名字符串的要求
+
+调用规则: 在接口下 IN/OUT 方向皆可调用 ACL(根据网络具体环境)
+*严重提醒：相同的方向、相同接口只能调用一个相同类型的ACL*
+
+**** route-map
+概述: Route maps are similar to a scripting language for these reasons:
+- They work like a more sophisticated access list
+  - They offer top-down processing
+  - Once there is a match, leave the route map
+- Lines are sequence-numbered for easier editing
+  - Insertion of lines
+  - Deletion of lines
+- Route maps are named rather than numbered for easier documentation
+- Match criteria and set criteria can be used, similar to the "if, then" logic in a scripting language
+
+作用: The common uses of route maps are as follows:
+- Redistribution route filtering: a more sophisticated alternative to distribute lists
+- Policy-based routeing: the ability to determine routing policy based on criteria other than the destination network
+- BGP policy implementation: the primary tool for defining BGP routing policies
+
+规则:
+#+BEGIN_EXAMPLE
+|----------------------------|
+| route-map my_bgp permit 10 |
+| match ip address x y z     |
+|                  ---->     |
+|                Logical OR  |
+|----------------------------|
+
+|--------------------------------|
+|       route-map my_bgp deny 20 |
+|          |                     |
+| Logical  |  match ...a         |
+|   AND    |  match ...b         |
+|          v  match ...c         |
+|--------------------------------|
+#+END_EXAMPLE
+
+注: 和 ACL 类似, 默认有 deny 语句
+#+BEGIN_EXAMPLE
+  route-map xx per 10
+  route-map xx per 20
+  route-map xx deny 30---default
+#+END_EXAMPLE
+如果是一个空 map(match any/set nothing)
+
+**** Prefix-list(前缀列表)
+作用: *只能* 标记路由条目
+
+特点:
+- 只能匹配路由
+- 前缀列表既可以匹配网络号，也可以匹配掩码

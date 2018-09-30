@@ -1,0 +1,2340 @@
+#+Latex_HEADER: \usepackage{tikz}
+#+LATEX_HEADER: \usepackage{multirow}
+#+PROPERTY: header-args:latex+ :packages '(("" "tikz"))
+#+PROPERTY: header-args:latex+ :imagemagick yes :fit yes
+
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="http://www.pirilampo.org/styles/readtheorg/css/htmlize.css"/>
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="http://www.pirilampo.org/styles/readtheorg/css/readtheorg.css"/>
+#+HTML_HEAD: <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+#+HTML_HEAD: <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+#+HTML_HEAD: <script type="text/javascript" src="http://www.pirilampo.org/styles/lib/js/jquery.stickytableheaders.js"></script>
+#+HTML_HEAD: <script type="text/javascript" src="http://www.pirilampo.org/styles/readtheorg/js/readtheorg.js"></script>
+
+* Machine learning
+** 广义线性模型
+*** 指数族(exponential family)
+如果一个分布能用下面的方式来写出来,我们就说这类分布属于指数族:
+
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{equation}
+    p(y;\eta)=b(y)\exp^{(\eta^{T}T(y)-a(\eta))}
+  \end{equation}
+#+END_SRC 
+
+#+RESULTS:
+\begin{equation}
+  p(y;\eta)=b(y)\exp^{(\eta^{T}T(y)-a(\eta))}
+\end{equation}
+
+- $\eta$: 叫做自然参数(natural parameter), 也叫典范参数(canonical parameter)
+- $T(y)$: 叫做充分统计分量(sufficient statistic), 通常 $T(y)=y$
+- $a(\eta)$: 对数分割函数(log partition function)
+- $e^{-a(\eta)}$: 归一化常数, 确保 $p(y;\eta)$ 的总和等于 1
+对 $T$, $a$ 和 $b$ 的固定选择, 就定义了一个用 $\eta$ 进行参数化的分布族; *通过改变 $\eta$ 就能得到这个分布族的不同分布*
+
+*** 构建广义线性模型
+设想一个分类或者回归问题,要预测一些随机变量 $y$ 的值,作为 $x$ 的一个函数。要导出适用于这个问题的广义线性模型, 就要对模型、给定 $x$ 下 $y$ 的条件分布来做出以下三个假设:
+- $y|x;\theta \sim Exponential\ Family(\eta)$: 给定 $x$ 和 $\theta,y$ 的分布属于指数分布族, 是一个参数为 $\eta$ 的指数分布。
+- 给定 $x$ , 目的是要预测对应这个给定 $x$ 的 $T(y)$ 的期望值。 *即学习假设 $h$ 输出的预测值 $h(x)$ 要满足 $h(x)=E[T(y)|x]$*
+- 自然参数 $\eta$ 和输入值 $x$ 是线性相关的, $\eta=\theta^{T}x$ , 或者如果 $\eta$ 是有值的向量, 则有 $\eta_{i}=\theta_{i}^{T}x$
+
+*** 普通最小二乘法
+Gaussian 分布的指数族为:
+
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{align}
+    p(y;\mu)&=\frac{1}{\sqrt{2\pi}}\exp^{-\frac{1}{2}(y-\mu)^{2}}\\
+            &=\frac{1}{\sqrt{2\pi}}\exp^{-\frac{1}{2}y^{2}}\cdot\exp^{\mu-\frac{1}{2}\mu^{2}}\\
+    \\
+    \eta&=\mu\\
+    T(y)&=y\\
+    a(\eta)&=\frac{\mu^{2}}{2}=\frac{\eta^{2}}{2}\\
+    b(y)&=\frac{1}{\sqrt{2\pi}}\exp^{-\frac{y^{2}}{2}}
+  \end{align}
+#+END_SRC 
+
+#+RESULTS:
+\begin{align}
+  p(y;\mu)&=\frac{1}{\sqrt{2\pi}}\exp^{-\frac{1}{2}(y-\mu)^{2}}\\
+          &=\frac{1}{\sqrt{2\pi}}\exp^{-\frac{1}{2}y^{2}}\cdot\exp^{\mu-\frac{1}{2}\mu^{2}}\\
+  \\
+  \eta&=\mu\\
+  T(y)&=y\\
+  a(\eta)&=\frac{\mu^{2}}{2}=\frac{\eta^{2}}{2}\\
+  b(y)&=\frac{1}{\sqrt{2\pi}}\exp^{-\frac{y^{2}}{2}}
+\end{align}
+
+假设 $y|x;\theta \sim N(\mu,\sigma^{2})$, $y$ 属于连续的变量, 即 $\eta=\theta^{T}x$ , 那么假设函数 $h(x)$ 为:
+
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{align}
+    h_{\theta}(x)&=E[y|x;\theta]\\
+                 &=\mu\\
+                 &=\eta\\
+                 &=\theta^{T}x
+  \end{align}
+#+END_SRC 
+
+#+RESULTS:
+\begin{align}
+  h_{\theta}(x)&=E[y|x;\theta]\\
+               &=\mu\\
+               &=\eta\\
+               &=\theta^{T}x
+\end{align}
+
+*** 逻辑回归
+Bernoulli 分布的指数族为:
+#+BEGIN_SRC latex :results value raw :exports none
+  \begin{align}
+    p(y;\phi)&=\phi^{y}(1-\phi)^{1-y}\\
+             &=\exp(y\log\phi+(1-y)\log(1-\phi))\\
+             &=\exp^{\log(\frac{\phi}{1-\phi})y+log(1-\phi)}\\
+    \\
+    \eta&=\log(\frac{\phi}{1-\phi})\\
+    T(y)&=y\\
+    a(\eta)&=-\log(1-\phi)\\
+           &=\log(1+\exp^{\eta})\\
+    b(y)&=1
+  \end{align}
+#+END_SRC
+
+#+RESULTS:
+\begin{align}
+  p(y;\phi)&=\phi^{y}(1-\phi)^{1-y}\\
+           &=\exp(y\log\phi+(1-y)\log(1-\phi))\\
+           &=\exp^{\log(\frac{\phi}{1-\phi})y+log(1-\phi)}\\
+  \\
+  \eta&=\log(\frac{\phi}{1-\phi})\\
+  T(y)&=y\\
+  a(\eta)&=-\log(1-\phi)\\
+         &=\log(1+\exp^{\eta})\\
+  b(y)&=1
+\end{align}
+
+假设 $y|x;\theta \sim Bernoulli(\phi),\ y\in \{0,1\}$ , 那么假设函数 $h(x)$ 为:
+
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{align}
+    h_{\theta}&=E[y|x;\theta]\\
+              &=\phi\\
+              &=\frac{1}{1+\exp^{-\eta}}\\
+              &=\frac{1}{1+e^{-\theta^{T}x}}
+  \end{align}
+#+END_SRC 
+
+#+RESULTS:
+\begin{align}
+  h_{\theta}&=E[y|x;\theta]\\
+            &=\phi\\
+            &=\frac{1}{1+\exp^{-\eta}}\\
+            &=\frac{1}{1+e^{-\theta^{T}x}}
+\end{align}
+*** Softmax 回归
+Multinomial 分布的分布族为:设 $\phi_{i}=p(y=i;\phi),\ y\in\{1,\dots,k\}$
+
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{align}
+    p(y;\phi)&=\phi_{1}^{1\{y=1\}}\phi_{2}^{1\{y=2\}}\cdots\phi_{k}^{1\{y=k\}}\\
+             &=\phi_{1}^{1\{y=1\}}\phi_{2}^{1\{y=2\}}\cdots\phi_{k}^{1-\sum_{i=1}^{k-1}1\{y=i\}}\\
+             &=\exp^{1\{y=1\}\log(\phi_{1})+1\{y=2\}\log(\phi_{2})+\cdots+1-\sum_{i=1}^{k-1}1\{y=i\}\log(\phi_{i})}\\
+             &=\exp^{1\{y=1\}\log(\frac{\phi_{1}}{\phi_{k}})+1\{y=2\}\log(\frac{\phi_{2}}{\phi_{k}})+\cdots+1\{y=k-1\}\log(\frac{\phi_{k-1}}{\phi_{k}})+\log(\phi_{k})}\\
+             &=b(y)\exp(\eta^{T}T(y)-a(\eta))\\
+    \\
+    \eta&=\left[\begin{array}{c}
+                  \log(\frac{\phi_{1}}{\phi_{k}})\\
+                  \log(\frac{\phi_{2}}{\phi_{k}})\\
+                  \vdots\\
+                  \log(\frac{\phi_{k-1}}{\phi_{k}})
+                \end{array}\right]\\
+    T(y)&=\left[\begin{array}{c}
+                  1\{y=1\}\\
+                  1\{y=2\}\\
+                  \vdots\\
+                  1\{y=k-1\}
+                \end{array}\right]\\
+    a(\eta)&=-\log(\phi_k)\\
+    b(y)&=1
+  \end{align}
+#+END_SRC
+
+#+RESULTS:
+\begin{align}
+  p(y;\phi)&=\phi_{1}^{1\{y=1\}}\phi_{2}^{1\{y=2\}}\cdots\phi_{k}^{1\{y=k\}}\\
+           &=\phi_{1}^{1\{y=1\}}\phi_{2}^{1\{y=2\}}\cdots\phi_{k}^{1-\sum_{i=1}^{k-1}1\{y=i\}}\\
+           &=\exp^{1\{y=1\}\log(\phi_{1})+1\{y=2\}\log(\phi_{2})+\cdots+1-\sum_{i=1}^{k-1}1\{y=i\}\log(\phi_{i})}\\
+           &=\exp^{1\{y=1\}\log(\frac{\phi_{1}}{\phi_{k}})+1\{y=2\}\log(\frac{\phi_{2}}{\phi_{k}})+\cdots+1\{y=k-1\}\log(\frac{\phi_{k-1}}{\phi_{k}})+\log(\phi_{k})}\\
+           &=b(y)\exp(\eta^{T}T(y)-a(\eta))\\
+  \\
+  \eta&=\left[\begin{array}{c}
+                \log(\frac{\phi_{1}}{\phi_{k}})\\
+                \log(\frac{\phi_{2}}{\phi_{k}})\\
+                \vdots\\
+                \log(\frac{\phi_{k-1}}{\phi_{k}})
+              \end{array}\right]\\
+  T(y)&=\left[\begin{array}{c}
+                1\{y=1\}\\
+                1\{y=2\}\\
+                \vdots\\
+                1\{y=k-1\}
+              \end{array}\right]\\
+  a(\eta)&=-\log(\phi_k)\\
+  b(y)&=1
+\end{align}
+
+其中可以得出 $\eta$ 和 $\phi$ 的映射, 称为 Softmax 函数:
+
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{align}
+    \eta_{i}&=\log(\frac{\phi_{i}}{\phi_{k}})\\
+    \exp^{\eta_{i}}&=\frac{\phi_{i}}{\phi_{k}}\\
+    \phi_{k}\exp^{\eta_{i}}&=\phi_{i}\\
+    \phi_{k}\sum_{i=1}^{k}\exp^{\eta_{i}}&=\sum_{i=1}^{k}\phi_{i}=1\\
+    \phi_{k}&=\frac{1}{\sum_{i=1}^{k}\exp^{\eta_{i}}}\\
+    Softmax=\phi_{i}&=\frac{\exp^{\eta_{i}}}{\sum_{j=1}^{k}\exp^{\eta_{j}}}
+  \end{align}
+#+END_SRC 
+
+#+RESULTS:
+\begin{align}
+  \eta_{i}&=\log(\frac{\phi_{i}}{\phi_{k}})\\
+  \exp^{\eta_{i}}&=\frac{\phi_{i}}{\phi_{k}}\\
+  \phi_{k}\exp^{\eta_{i}}&=\phi_{i}\\
+  \phi_{k}\sum_{i=1}^{k}\exp^{\eta_{i}}&=\sum_{i=1}^{k}\phi_{i}=1\\
+  \phi_{k}&=\frac{1}{\sum_{i=1}^{k}\exp^{\eta_{i}}}\\
+  Softmax=\phi_{i}&=\frac{\exp^{\eta_{i}}}{\sum_{j=1}^{k}\exp^{\eta_{j}}}
+\end{align}
+
+假设 $T(y)|x;\theta \sim multinomial(\phi),\ y\in \{1,\cdots,k\}$ , 那么假设函数 $h(x)$ 为:
+
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{align}
+    h_{\theta}(x)&=E[T(y)|x;\theta]\\
+                 &=\left[\begin{array}{c|c}
+                           1\{y=1\}\\
+                           \vdots&x;\theta\\
+                           1\{y=k-1\}
+                         \end{array}\right]\\
+                 &=\left[\begin{array}{c}
+                           \phi_{1}\\
+                           \vdots\\
+                           \phi_{k-1}
+                         \end{array}\right]\\
+                 &=\left[\begin{array}{c}
+                           \frac{\exp^{\theta_{1}^{T}x}}{\sum_{j=1}^{k}\exp^{\theta_{j}^{T}x}}\\
+                           \vdots\\
+                           \frac{\exp^{\theta_{k-1}^{T}x}}{\sum_{j=1}^{k}\exp^{\theta_{j}^{T}x}}
+                         \end{array}\right]
+  \end{align}
+#+END_SRC 
+
+#+RESULTS:
+\begin{align}
+  h_{\theta}(x)&=E[T(y)|x;\theta]\\
+               &=\left[\begin{array}{c|c}
+                         1\{y=1\}\\
+                         \vdots&x;\theta\\
+                         1\{y=k-1\}
+                       \end{array}\right]\\
+               &=\left[\begin{array}{c}
+                         \phi_{1}\\
+                         \vdots\\
+                         \phi_{k-1}
+                       \end{array}\right]\\
+               &=\left[\begin{array}{c}
+                         \frac{\exp^{\theta_{1}^{T}x}}{\sum_{j=1}^{k}\exp^{\theta_{j}^{T}x}}\\
+                         \vdots\\
+                         \frac{\exp^{\theta_{k-1}^{T}x}}{\sum_{j=1}^{k}\exp^{\theta_{j}^{T}x}}
+                       \end{array}\right]
+\end{align}
+
+** SVM
+假设 $h_{w,b}(x)=g(w^{T}x+b)$ 当 $z\geq0$ , 则 $g(z)=1$ , 反之若 $z<0$ , 则 $g(z)=-1$
+
+*** 函数边界和几何边界
+给定一个训练集 $S={(x^{(i)},y^{(i)});i=1,\dots,m}$
+- 函数边界
+  - 训练样本的函数边界 $(w,b)$ : $\hat{\gamma}^{(i)}=y^{(i)}(w^{T}x+b)$
+  - 训练集 $S$ 的函数边界 $(w,b)$ : $\hat{\gamma}=\min\limits_{i=1,\dots,m}\hat{\gamma}^{(i)}$
+- 几何边界
+  - 训练样本的几何边界 $(w,b)$ : $\gamma^{(i)}=y^{(i)} \left( \left(\frac{w}{\Vert w \Vert}\right)^{T}x^{(i)}+\frac{b}{\Vert w \Vert} \right)$
+  - 训练集 $S$ 的几何边界 $(w,b)$ : $\gamma=\min\limits_{i=1,\dots,m}\gamma^{(i)}$
+  [[file:image/Machine learning/screenshot_2018-08-15_19-52-17.png]]
+
+#+BEGIN_QUOTE
+对 $\hat{\gamma}$ 进行缩放, 当 $\Vert w \Vert = 1$ 时 $\frac{\hat{\gamma}}{\Vert w \Vert} = \gamma$
+#+END_QUOTE
+*** 最优边界分类器(optimal margin classifier)
+定义一个优化问题: 其中 $\gamma=\frac{\hat{\gamma}}{\Vert w \Vert}$ 保证函数边界和几何边界联系起来 让 $\frac{\hat{\gamma}}{\Vert w \Vert}$ 取最大值，即使每个训练样本的函数边界和几何边界至少为 $\gamma$
+
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{align}
+    max_{\gamma,w,b} &\ \ \frac{\hat{\gamma}}{\Vert w \Vert}\\
+    s.t. &\ \ y^{(i)}(w^{T}x^{(i)}+b)\geq \gamma,i=1,\dots,m\\
+  \end{align}
+#+END_SRC 
+
+#+RESULTS:
+\begin{align}
+  max_{\gamma,w,b} &\ \ \frac{\hat{\gamma}}{\Vert w \Vert}\\
+  s.t. &\ \ y^{(i)}(w^{T}x^{(i)}+b)\geq \gamma,i=1,\dots,m\\
+\end{align}
+
+对 $\hat{\gamma}$ 进行缩放使 $\hat{\gamma}=1$ , 因为只对 $w,b$ 进行缩放, $max\frac{\hat{\gamma}}{\Vert w \Vert}=max\frac{1}{\Vert w \Vert} = min\frac{1}{2}\Vert w \Vert^{2}$ (方便下面的推导)
+
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{align}
+    min_{w,b} &\ \ \frac{1}{2}\Vert w \Vert^{2}\\
+    s.t. &\ \ y^{(i)}(w^{T}x^{(i)}+b)\geq 1,i=1,\dots,m\\
+  \end{align}
+#+END_SRC 
+
+#+RESULTS:
+\begin{align}
+  min_{w,b} &\ \ \frac{1}{2}\Vert w \Vert^{2}\\
+  s.t. &\ \ y^{(i)}(w^{T}x^{(i)}+b)\geq 1,i=1,\dots,m\\
+\end{align}
+
+针对上式的优化问题, 可以使用 *拉格朗日乘数法* 进行求解, 构建拉格朗日函数 $l(w,b,\alpha)$, 根据拉格朗日对偶性, 即可的出下面的极大极小问题:
+
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{align}
+    \ell\left(w,b,\alpha\right)&=\frac{1}{2}\left\Vert w \right\Vert^{2}-\sum_{i=1}^{m}\alpha_{i}\left[y^{\left(i\right)}\left(w^{T}x^{\left(i\right)}+b\right)-1\right]\\
+    &\max\limits_{\alpha}\min\limits_{w,b}\ell(w,b,\alpha)
+  \end{align}
+#+END_SRC 
+
+#+RESULTS:
+\begin{align}
+  \ell\left(w,b,\alpha\right)&=\frac{1}{2}\left\Vert w \right\Vert^{2}-\sum_{i=1}^{m}\alpha_{i}\left[y^{\left(i\right)}\left(w^{T}x^{\left(i\right)}+b\right)-1\right]\\
+  &\max\limits_{\alpha}\min\limits_{w,b}\ell(w,b,\alpha)
+\end{align}
+
+首先求 $\min\limits_{w,b}\ell(w,b,\alpha)$, 即对 $w,b$ 求偏导令其等于 0。
+
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{align}
+    \bigtriangledown_{w}\ell\left(w,b,\alpha\right)&=w-\sum_{i=1}^{m}\alpha_{i}y^{\left(i\right)}x^{\left(i\right)}=0\\
+    w&=\sum_{i=1}^{m}\alpha_{i}y^{\left(i\right)}x^{\left(i\right)}\\
+    \frac{\partial}{\partial{b}}\ell\left(w,b,\alpha\right)&=\sum_{i=1}^{m}\alpha_{i}y^{\left(i\right)}=0\\
+  \end{align}
+#+END_SRC
+
+#+RESULTS:
+\begin{align}
+  \bigtriangledown_{w}\ell\left(w,b,\alpha\right)&=w-\sum_{i=1}^{m}\alpha_{i}y^{\left(i\right)}x^{\left(i\right)}=0\\
+  w&=\sum_{i=1}^{m}\alpha_{i}y^{\left(i\right)}x^{\left(i\right)}\\
+  \frac{\partial}{\partial{b}}\ell\left(w,b,\alpha\right)&=\sum_{i=1}^{m}\alpha_{i}y^{\left(i\right)}=0\\
+\end{align}
+
+将其带回 $l(w,b,\alpha)$ 得到
+
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{align}
+    \ell\left(w,b,\alpha\right)&=\frac{1}{2}\left\Vert\sum_{i=1}^{m}\alpha_{i}y^{\left(i\right)}x^{\left(i\right)}\right\Vert^{2}-\sum_{i=1}^{m}\alpha_{i}\left[y^{\left(i\right)}\left(\left(\sum_{j=1}^{m}\alpha_{j}y^{\left(j\right)}x^{\left(j\right)}\right)^{T}x^{\left(i\right)}+b\right)-1\right]\\
+                               &=\frac{1}{2}\left\vert\sum_{i=1}^{m}\sum_{j=1}^{m}\alpha_{i}\alpha_{j}y^{\left(i\right)}y^{\left(j\right)}x^{\left(i\right)}x^{\left(j\right)}\right\vert-\sum_{i=1}^{m}\alpha_{i}\left[y^{\left(i\right)}\left(\left(\sum_{j=1}^{m}\alpha_{j}y^{\left(j\right)}x^{\left(j\right)}\right)^{T}x^{\left(i\right)}+b\right)-1\right]\\
+                               &=\frac{1}{2}\sum_{i=1}^{m}\sum_{j=1}^{m}\alpha_{i}\alpha_{j}y^{\left(i\right)}y^{\left(j\right)}\left(x^{\left(i\right)}\right)^{T}x^{\left(j\right)}-\sum_{i=1}^{m}\sum_{j=1}^{m}\alpha_{i}\alpha_{j}y^{\left(i\right)}y^{\left(j\right)}\left(x^{\left(i\right)}\right)^{T}x^{\left(j\right)}-b\sum_{i=1}^{m}\alpha_{i}y^{\left(i\right)}+\sum_{i=1}^{m}\alpha_{i}\\
+                               &=-\frac{1}{2}\sum_{i=1}^{m}\sum_{j=1}^{m}\alpha_{i}\alpha_{j}y^{\left(i\right)}y^{\left(j\right)}\left(x^{\left(i\right)}\right)^{T}x^{\left(j\right)}-b\sum_{i=1}^{m}\alpha_{i}y^{\left(i\right)}+\sum_{i=1}^{m}\alpha_{i}\\
+                               &=-\frac{1}{2}\sum_{i=1}^{m}\sum_{j=1}^{m}\alpha_{i}\alpha_{j}y^{\left(i\right)}y^{\left(j\right)}\left(x^{\left(i\right)}\right)^{T}x^{\left(j\right)}+\sum_{i=1}^{m}\alpha_{i}
+  \end{align}
+#+END_SRC 
+
+#+RESULTS:
+\begin{align}
+  \ell\left(w,b,\alpha\right)&=\frac{1}{2}\left\Vert\sum_{i=1}^{m}\alpha_{i}y^{\left(i\right)}x^{\left(i\right)}\right\Vert^{2}-\sum_{i=1}^{m}\alpha_{i}\left[y^{\left(i\right)}\left(\left(\sum_{j=1}^{m}\alpha_{j}y^{\left(j\right)}x^{\left(j\right)}\right)^{T}x^{\left(i\right)}+b\right)-1\right]\\
+                             &=\frac{1}{2}\left\vert\sum_{i=1}^{m}\sum_{j=1}^{m}\alpha_{i}\alpha_{j}y^{\left(i\right)}y^{\left(j\right)}x^{\left(i\right)}x^{\left(j\right)}\right\vert-\sum_{i=1}^{m}\alpha_{i}\left[y^{\left(i\right)}\left(\left(\sum_{j=1}^{m}\alpha_{j}y^{\left(j\right)}x^{\left(j\right)}\right)^{T}x^{\left(i\right)}+b\right)-1\right]\\
+                             &=\frac{1}{2}\sum_{i=1}^{m}\sum_{j=1}^{m}\alpha_{i}\alpha_{j}y^{\left(i\right)}y^{\left(j\right)}\left(x^{\left(i\right)}\right)^{T}x^{\left(j\right)}-\sum_{i=1}^{m}\sum_{j=1}^{m}\alpha_{i}\alpha_{j}y^{\left(i\right)}y^{\left(j\right)}\left(x^{\left(i\right)}\right)^{T}x^{\left(j\right)}-b\sum_{i=1}^{m}\alpha_{i}y^{\left(i\right)}+\sum_{i=1}^{m}\alpha_{i}\\
+                             &=-\frac{1}{2}\sum_{i=1}^{m}\sum_{j=1}^{m}\alpha_{i}\alpha_{j}y^{\left(i\right)}y^{\left(j\right)}\left(x^{\left(i\right)}\right)^{T}x^{\left(j\right)}-b\sum_{i=1}^{m}\alpha_{i}y^{\left(i\right)}+\sum_{i=1}^{m}\alpha_{i}\\
+                             &=-\frac{1}{2}\sum_{i=1}^{m}\sum_{j=1}^{m}\alpha_{i}\alpha_{j}y^{\left(i\right)}y^{\left(j\right)}\left(x^{\left(i\right)}\right)^{T}x^{\left(j\right)}+\sum_{i=1}^{m}\alpha_{i}
+\end{align}
+
+再求 $\max\limits_{\alpha}\ell(w,b,\alpha)$ 为满足 KKT 条件即 $a_{i}\geq0$
+
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{align}
+    max_{\alpha}\ \ &W(\alpha)=\sum_{i=1}^{m}\alpha_{i}-\frac{1}{2}\sum_{i=1}^{m}\sum_{j=1}^{m}\alpha_{i}\alpha_{j}y^{\left(i\right)}y^{\left(j\right)}\left(x^{\left(i\right)}\right)^{T}x^{\left(j\right)}\\
+    s.t.\ \ &\alpha_{i}\geq 0,\ i=1,\dots,m\\
+            &\sum_{i=1}^{m}\alpha_{i}y^{(i)}=0
+  \end{align}
+#+END_SRC 
+
+#+RESULTS:
+\begin{align}
+  max_{\alpha}\ \ &W(\alpha)=\sum_{i=1}^{m}\alpha_{i}-\frac{1}{2}\sum_{i=1}^{m}\sum_{j=1}^{m}\alpha_{i}\alpha_{j}y^{\left(i\right)}y^{\left(j\right)}\left(x^{\left(i\right)}\right)^{T}x^{\left(j\right)}\\
+  s.t.\ \ &\alpha_{i}\geq 0,\ i=1,\dots,m\\
+          &\sum_{i=1}^{m}\alpha_{i}y^{(i)}=0
+\end{align}
+
+求得 $\alpha$ 即可得到 $w,b$ 的解:
+
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{align}
+    w&=\sum_{i=1}^{m}\alpha_{i}y^{\left(i\right)}x^{\left(i\right)}\\
+    b&=\frac{1}{y_{i}}-\sum_{i}^{m}\alpha_{i}y_{i}x_{i}^{T}x_{j}
+  \end{align}
+#+END_SRC 
+
+#+RESULTS:
+\begin{align}
+  w&=\sum_{i=1}^{m}\alpha_{i}y^{\left(i\right)}x^{\left(i\right)}\\
+  b&=\frac{1}{y_{i}}-\sum_{i}^{m}\alpha_{i}y_{i}x_{i}^{T}x_{j}
+\end{align}
+
+预测的解为:
+
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{align}
+    w^{T}x+b&=\left(\sum_{i=1}^{m}a_{i}y^{(i)}x^{(i)}\right)^{T}x+b\\
+            &=\sum_{i=1}^{m}a_{i}y^{(i)}\left\langle x^{(i)},x \right\rangle+b
+  \end{align}
+#+END_SRC 
+
+#+RESULTS:
+\begin{align}
+  w^{T}x+b&=\left(\sum_{i=1}^{m}a_{i}y^{(i)}x^{(i)}\right)^{T}x+b\\
+          &=\sum_{i=1}^{m}a_{i}y^{(i)}\left\langle x^{(i)},x \right\rangle+b
+\end{align}
+
+*** 拉格郎日对偶(lagrange duality)
+**** 单约束优化问题
+
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{align}
+    min_{w}\ \ &f(w)\\
+    s.t. \ \ &h_{i}(w)=0,\ i=1,\dots,l
+  \end{align}
+#+END_SRC 
+
+#+RESULTS:
+\begin{align}
+  min_{w}\ \ &f(w)\\
+  s.t. \ \ &h_{i}(w)=0,\ i=1,\dots,l
+\end{align}
+
+定义拉格朗日函数为, 其中 $\beta_{i}$ 叫做拉格朗日乘数(lagrange multipliers)
+
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{equation}
+    \ell(w,\beta)=f(w)+\sum_{i=1}^{l}\beta_{i}h_{i}(w)
+  \end{equation}
+#+END_SRC 
+
+#+RESULTS:
+\begin{equation}
+  \ell(w,\beta)=f(w)+\sum_{i=1}^{l}\beta_{i}h_{i}(w)
+\end{equation}
+
+对 $\ell$ 取偏导，使其为零，解出对应的 $w$ 和 $\beta$:
+
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{equation}
+    \frac{\partial\ell}{\partial w_{i}}=0;\ \frac{\partial\ell}{\partial\beta_{i}}=0
+  \end{equation}
+#+END_SRC 
+
+#+RESULTS:
+\begin{equation}
+  \frac{\partial\ell}{\partial w_{i}}=0;\ \frac{\partial\ell}{\partial\beta_{i}}=0
+\end{equation}
+
+**** 主最优化问题
+
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{align}
+    min_{w}\ \ &f(w)\\
+    s.t. \ \ &g_{i}(w)\leq 0,\ i=1,\dots,k\\
+               &h_{i}(w)=0,\ i=1,\dots,l
+  \end{align}
+#+END_SRC 
+
+#+RESULTS:
+\begin{align}
+  min_{w}\ \ &f(w)\\
+  s.t. \ \ &g_{i}(w)\leq 0,\ i=1,\dots,k\\
+             &h_{i}(w)=0,\ i=1,\dots,l
+\end{align}
+
+定义广义拉格朗日函数(generalized Lagrangian), 其中 $\alpha_{i}$ 和 $\beta_{i}$ 为拉格朗日乘数:
+
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{equation}
+    \ell(w,\alpha,\beta)=f(w)+\sum_{i=1}^{k}\alpha_{i}g_{i}(w)+\sum_{i=1}^{l}\beta_{i}h_{i}(w)
+  \end{equation}
+#+END_SRC 
+
+#+RESULTS:
+\begin{equation}
+  \ell(w,\alpha,\beta)=f(w)+\sum_{i=1}^{k}\alpha_{i}g_{i}(w)+\sum_{i=1}^{l}\beta_{i}h_{i}(w)
+\end{equation}
+
+设 $\theta_{p}(w)=\max\limits_{\alpha,\beta}\ell(w,\alpha,\beta)$, 其中 $p$ 是对 "primal" 的简写, 可以得到:如果 $w$ 不满足主要约束则为 $\infty$
+
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{equation}
+    \theta_{p}(w)=
+      \begin{cases}
+        f(w)& \text{if w satisfies primal constraints}\\
+        \infty& \text{otherwise}
+      \end{cases}
+  \end{equation}
+#+END_SRC
+
+#+RESULTS:
+\begin{equation}
+  \theta_{p}(w)=
+    \begin{cases}
+      f(w)& \text{if w satisfies primal constraints}\\
+      \infty& \text{otherwise}
+    \end{cases}
+\end{equation}
+
+即可引出下面的最小化问题, 同时定义一个目标量的最优值 $p^{*}=\min\limits_{w}\theta_{p}(w)$
+
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{equation}
+    \min\limits_{w}\theta_{p}(w)=\min\limits_{w}\max\limits_{\alpha,\beta}\ell(w,\alpha,\beta)
+  \end{equation}
+#+END_SRC 
+
+#+RESULTS:
+\begin{equation}
+  \min\limits_{w}\theta_{p}(w)=\min\limits_{w}\max\limits_{\alpha,\beta}\ell(w,\alpha,\beta)
+\end{equation}
+
+设 $\theta_{D}(\alpha,\beta)=\min\limits_{w}\ell(w,\alpha,\beta)$, $D$ 是 "dual" 的缩写, 注意这是找 $w$ 的最小值，即可得出对偶优化问题:
+
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{equation}
+    d^{*}=\max\limits_{\alpha,\beta}\theta_{D}(\alpha,\beta)=\max\limits_{\alpha,\beta}\min\limits_{w}\ell(w,\alpha,\beta)
+  \end{equation}
+#+END_SRC 
+
+#+RESULTS:
+\begin{equation}
+  d^{*}=\max\limits_{\alpha,\beta}\theta_{D}(\alpha,\beta)=\max\limits_{\alpha,\beta}\min\limits_{w}\ell(w,\alpha,\beta)
+\end{equation}
+
+即可得出以下关系: 当符合 KKT 条件时 $d^{*}=p^{*}$, 即可替代原来的主要约束问题
+
+#+BEGIN_SRC #+BEGIN_SRC latex :results raw :exports none
+  \begin{equation}
+    d^{*}=\max\limits_{\alpha,\beta}\min\limits_{w}\ell(w,\alpha,\beta)\leq\min\limits_{w}\max\limits_{\alpha,\beta}\ell(w,\alpha,\beta)=p^{*}
+  \end{equation}
+#+END_SRC 
+
+#+RESULTS:
+\begin{equation}
+  d^{*}=\max\limits_{\alpha,\beta}\min\limits_{w}\ell(w,\alpha,\beta)\leq\min\limits_{w}\max\limits_{\alpha,\beta}\ell(w,\alpha,\beta)=p^{*}
+\end{equation}
+
+**** KKT
+假设 $f$ 和 $g_{i}$ 都是凸的, $h_{i}$ 是仿射的。进一步设 $g$ 是严格可行的; 这就意味着会存在某个 $w$, 使得对所有的 $i$ 都有 $g_{i}(w)<0$ 。
+基于上面的假设, 可知必然存在 $w^{*},\alpha^{*},\beta^{*}$ 满足 $w^{*}$ 为主要约束问题(primal problem)的解, 而 $\alpha^{*},\beta^{*}$ 为对偶问题的解, 此外存在一个 $p^{*}=d^{*}=\ell(w^{*},\alpha^{*},\beta^{*})$ 。另外, $w^{*},\alpha^{*},\beta^{*}$ 这三个还会满足卡罗需-库恩-塔克条件(Karush-Kuhn-Tucker conditions, 缩写为 KKT),如下所示:
+
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{align}
+    \frac{\partial}{\partial w_{i}}\ell(w^{*},\alpha^{*},\beta^{*})&=0,\ i=1,\dots,n\\
+    \frac{\partial}{\partial\beta_{i}}\ell(w^{*},\alpha^{*},\beta^{*})&=0,\ i=1,\dots,l\\
+    \alpha_{i}^{*}g_{i}(w^{*})&= 0,i=1,\dots,k\\
+    g_{i}(w^{*})&\leq 0,i=1,\dots,k\\
+    \alpha^{*}&\geq 0,i=1,\dots,k\\
+  \end{align}
+#+END_SRC 
+
+#+RESULTS:
+\begin{align}
+  \frac{\partial}{\partial w_{i}}\ell(w^{*},\alpha^{*},\beta^{*})&=0,\ i=1,\dots,n\\
+  \frac{\partial}{\partial\beta_{i}}\ell(w^{*},\alpha^{*},\beta^{*})&=0,\ i=1,\dots,l\\
+  \alpha_{i}^{*}g_{i}(w^{*})&= 0,i=1,\dots,k\\
+  g_{i}(w^{*})&\leq 0,i=1,\dots,k\\
+  \alpha^{*}&\geq 0,i=1,\dots,k\\
+\end{align}
+*** 核技巧
+利用核技巧解决非线性支持向量机
+定义:(核函数)设 $\chi$ 是输入空间(欧式空间 $R^{n}$ 的子集或离散集合), 又设 $H$ 为特征空间(希尔伯特空间)，如果存在一个从 $\chi$ 到 $H$ 的映射
+<<Eqn.(1.1.4.1)>>
+#+BEGIN_SRC latex :results raw :exports none
+\begin{equation}
+\label{eq:1}
+\phi(\chi):\chi\to\H
+\end{equation}
+#+END_SRC 
+
+#+RESULTS:
+\begin{equation}
+\phi(\chi):\chi\to H
+\end{equation}
+
+使得对所有 $x,z\in\chi$, 函数 $K(x,z)$ 满足条件
+
+<<Eqn.(1.1.4.2)>>
+#+BEGIN_SRC latex :results raw :exports none
+\begin{equation}
+\label{eq:2}
+  K(x,z)=\phi(x)\cdot\phi(z)
+\end{equation}
+#+END_SRC 
+
+#+RESULTS:
+\begin{equation}
+\label{eq:2}
+  K(x,z)=\phi(x)\cdot\phi(z)
+\end{equation}
+
+则称 $K(x,z)$ 为核函数, $\phi(x)$ 为映射函数，式中 $\phi(x)\cdot\phi(z)$ 为 $\phi(x)$ 和 $\phi(z)$ 的内积。
+核技巧的想法是, 在学习与预测中只定义核函数 $K(x,z)$, 而不显式地定义映射函数 $\phi(x)$ 。因为直接计算 $k(x,z)$ 比较容易，而通过 $\phi(x)$ 和 $\phi(z)$ 计算 $K(x,z)$ 并不容易。
+
+常用的核函数:
+- 正定核:
+- 多项式核函数:
+- 高斯核函数:
+- 字符串核函数:
+
+*** SMO 优化算法(sequential minimal optimization)
+为 SVM 推导出的对偶问题提供了一种有效解法
+SMO 算法是一种启发式算法,其基本思路是: 如果所有变量的解都满足此最优化问题的KKT条件, 那么这个最优化问题的解就得到了。若使用坐标上升算法进行求解由于约束条件若固定 $a_{i}$ 以外的值则无法修改 $a_{i}$ 即需要同时更新两个, 如下所示: $a_{1}$ 由其他 $a_{i}$ 决定
+
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{equation}
+    a_{1}=-y^{(1)}\sum_{i=2}^{m}a_{i}y^{(i)}
+  \end{equation}
+#+END_SRC 
+
+#+RESULTS:
+\begin{equation}
+  a_{1}=-y^{(1)}\sum_{i=2}^{m}a_{i}y^{(i)}
+\end{equation}
+
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{align}
+    &Loop\ until\ convergence: \{\\
+    &\ \ For\ i=1,\dots,m \{\\
+    &\ \ \ \ \alpha_{i},\alpha_{j}:=arg\max\limits_{\hat{\alpha_{i}},\hat{\alpha_{j}}}w(\alpha_{1},\dots,\hat{\alpha_{i}},\dots,\alpha_{j},\dots,\alpha_{m})\\
+    &\ \ \}\\
+    &\}
+  \end{align}
+#+END_SRC
+
+#+RESULTS:
+\begin{align}
+  &Loop\ until\ convergence: \{\\
+  &\ \ For\ i=1,\dots,m \{\\
+  &\ \ \ \ \alpha_{i},\alpha_{j}:=arg\max\limits_{\hat{\alpha_{i}},\hat{\alpha_{j}}}w(\alpha_{1},\dots,\hat{\alpha_{i}},\dots,\alpha_{j},\dots,\alpha_{m})\\
+  &\ \ \}\\
+  &\}
+\end{align}
+
+根据约束条件 $\sum_{i=1}^{m}\alpha_{i}y^{(i)}=0$, 可以得到:$\alpha_{i},\alpha_{j}$ 必须在 $\left[0,C\right]\times\left[0,C\right]$ 所构成的方框里，必须在 $\alpha_{i}y^{(i)}+\alpha_{j}y^{(j)}=\xi$ 线条上, 则 $0\leq\alpha_{i}\leq C ,L\leq\alpha_{j}\leq H$
+
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{equation}
+    \alpha_{i}y^{(i)}+\alpha_{j}y^{(j)}=-\sum_{k\neq i,j}^{m}\alpha_{k}y^{(k)}=\xi
+  \end{equation}
+#+END_SRC
+
+#+RESULTS:
+\begin{equation}
+  \alpha_{i}y^{(i)}+\alpha_{j}y^{(j)}=-\sum_{k\neq i,j}^{m}\alpha_{k}y^{(k)}=\xi
+\end{equation}
+
+[[file:image/Machine learning/screenshot_2018-08-21_20-09-02.png]]
+
+**** 坐标上升算法
+设 $\max\limits_{\alpha_{i}}w(\alpha_{1},\alpha_{2},\dots,\alpha_{m})$
+
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{align}
+    &Loop\ until\ convergence: \{\\
+    &\ \ For\ i=1,\dots,m\ \{\\
+    &\ \ \ \ \alpha_{i}:=arg\max\limits_{\hat{\alpha_{i}}}w(\alpha_{1},\dots,\hat{\alpha_{i}},\dots,\alpha_{m})\\
+    &\ \ \}\\
+    &\}
+  \end{align}
+#+END_SRC
+
+#+RESULTS:
+\begin{align}
+&Loop\ until\ convergence: \{\\
+&\ \ For\ i=1,\dots,m\ \{\\
+&\ \ \ \ \alpha_{i}:=arg\max\limits_{\hat{\alpha_{i}}}w(\alpha_{1},\dots,\hat{\alpha_{i}},\dots,\alpha_{m})\\
+&\ \ \}\\
+&\}
+\end{align}
+
+#+caption: 坐标上升算法示意图
+[[file:image/Deep learning/screenshot_2018-08-20_20-32-20.png]]
+
+** 决策树
+分类决策树模型是一种描述对实例进行分类的树形结构。决策树由结(node)和有向边(directed edge)组成。结点有两种类型:
+- 内部结点(internal node): 表示一个特征或属性
+- 叶点(leaf node): 表示一个类
+
+1. 用决策树分类, 从根结点开始, 对实例的某一特征进行测试([[特征选择]])
+2. 根据测试结果, 将实例分配到其子点, 每一个子结点对应着该特征的一个取值。
+3. 如此递归地对实例进行测试并分配, 直至达叶结点。
+4. 最后将实例分到叶结点的类中。
+
+*** 特征选择
+<<特征选择>>
+通常特征选择的准则是 [[KL散度]] 和 [[KL散度比]]
+
+*** 剪枝
+在决策树学习中将已生成得树进行简化得过程称为剪枝(pruning)。具体地，剪枝从已生成的树上裁掉一些子树或叶结点，并将其根结点或父结点作为新的叶结点，从而简化分类树模型, 从而降低过拟合。
+
+决策树的剪枝往往通过极小化决策树整体的损失函数(loss function)或代价函数(cost function)来实现。设树 $T$ 的叶结点个数为 $T$, $t$ 是树 $T$ 的叶结点, 该叶结点有 $N_{t}$ 个样本点,其中类的样本点有 $N_{tk}$ 个, $k=1,2,\dots,K$, $H_{t}(T)$ 为叶结点 $t$ 上的 KL散度, $a\geq 0$ 为参数, 则 *决策树学习的损失函数* 可以定义为:
+
+<<Eqn.(1.3.2.1)>>
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{equation}
+    C_{\alpha}(T)=\sum_{t=1}^{T}N_{t}H_{t}(T)+\alpha|T|
+  \end{equation}
+#+END_SRC 
+
+#+RESULTS:
+\begin{equation}
+  C_{\alpha}(T)=\sum_{t=1}^{T}N_{t}H_{t}(T)+\alpha|T|
+\end{equation}
+
+其中 KL 散度为:
+<<Eqn.(1.3.2.2)>>
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{equation}
+    H_{t}(T)=-\sum_{k}\frac{N_{tk}}{N_{t}}\log\frac{N_{tk}}{N_{t}}
+  \end{equation}
+#+END_SRC 
+
+#+RESULTS:
+\begin{equation}
+  H_{t}(T)=-\sum_{k}\frac{N_{tk}}{N_{t}}\log\frac{N_{tk}}{N_{t}}
+\end{equation}
+
+- $C(T)$ 表示模型对训练数据的预测误差, 即模型与训练数据的拟合程度
+- $|T|$ 表示模复杂度
+- 参数 $\alpha\geq0$ 控制两者之间的影响。较大的 $\alpha$ 促使选择较简单的模型(树), 较小的 $\alpha$ 促使择较复杂的模型(树)。
+  - $\alpha=0$ 意味着只考虑模型与训练数据的拟合程度, 不考虑模型的复杂度。
+剪枝, 就是当 $\alpha$ 确定时, 选择损失函数最小的模型, 即损失函数最小的子树。当 $\alpha$ 值确定时, 子树越大, 往往与训练数据的拟合越好, 但是模型的复杂度就越高;相反, 子树越小, 模型的复杂度越低, 但是往往与训练数据的拟合不好。损失函数正好表示了对两者的平衡。
+
+
+树的剪枝算法:
+输入: 生成算法产生得整个树 $T$, 参数 $\alpha$
+输出: 修剪后的子树 $T$
+1. 计算每个结点得 KL 散度
+2. 递归地从树的叶结点向上回缩
+设一组叶结点回缩到其父结点之前与之后的整体树分别为 $T_{B}$ 与 $T_{A}$, 其对应的损失函数值分别是 $C_{\alpha}(T_{B})$ 与 $C_{\alpha}(T_{A})$, 如果
+<<Eqn.(1.3.2.3)>>
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{equation}
+    C_{\alpha}(T_{A}) \leq C_{\alpha}(T_{B})
+  \end{equation}
+#+END_SRC 
+
+#+RESULTS:
+\begin{equation}
+  C_{\alpha}(T_{A}) \leq C_{\alpha}(T_{B})
+\end{equation}
+
+则进行剪枝，即将父节点变为新的叶结点。
+3. 返回 2, 直至不能继续为止, 得到损失函数最小的子树 $T_{\alpha}$
+
+*** 决策树学习常用算法
+**** ID3
+ID3 算法的核心是在决策树各个结点上应用选择特征, 递归地构建决策树。
+具体方是: 
+1. 从根结点(root node)开始, 对结点计算所有可能的特征的 KL 散度, 选择 KL 散度最大。特征作为结点的特征, 由该特征的不同取值建立子结点
+2. 再对子结点递归地调用以上方法, 构建策树
+3. 直到所有特征的 KL 散度均很小或没有特征可以选择为止。最后得到一个决策树。
+ID3相当于用极大似然法进行概率模型的选择。
+
+**** C4.5
+C4.5在生成的过程中, 用 KL 散度来选择特征。
+**** CART(Classification and Regression Tree)
+CART 是在给定输入随机变量 $X$ 条件下输出随机变量 $Y$ 的条件概率分布的学习方法。CART 假设决策树是二叉树, 内部结点特征的取值为 "是" 和 "否", 左分支是取值为 "是" 的分支,右分支是取为 "否" 的分支。这样的决策树等价于递归地二分每个特征, 将输入空间即特征空间划分为有限单元, 并在这些单元上确定预测的概率分布, 也就是在输入给定的条件下输出的条件概率分布。 
+CART 算法由以下两步组成:
+1. 决策树生成: 基于训练数据集生成决策树, 生成的决策树要尽量大
+2. 决策树剪枝: 用验证数据集对已生成的树进行剪枝并选择最优子树, 这时用损失函数最小作为剪枝的标准。
+
+***** CART 生成
+决策树的生成就是递归地构建二叉决策树的过程。对回归树用平方误差最小化准则, 对分类树用基尼指数(Gini index)最小化准则, 进行特征选择, 生成二叉树。
+- 回归树的生成:
+  假设 $X$ 与 $Y$ 分别为输入和输出变量, 并且 $Y$ 是连续变量, 给定训练数据集:
+  <<Eqn.(1.3.3.1)>>
+  #+BEGIN_SRC latex :results raw :exports none
+    \begin{equation}
+      D=\{(x_{1},y_{1},(x_{2},y_{2},\dots,(x_{N},y_{N}))\}
+    \end{equation}
+  #+END_SRC 
+
+  #+RESULTS:
+  \begin{equation}
+    D=\{(x_{1},y_{1},(x_{2},y_{2},\dots,(x_{N},y_{N}))\}
+  \end{equation}
+
+  一个回归树对应着输入空间(即特征空间)的一个划分以及在划分的单元上的输出值。假设已将输入空间划分为 $M$ 个单元 $R_{1},R_{2},\dots,R_{M}$, 并且在每个单元 $R_{m}$ 上有一个固定的输出值 $c_{m} , 于是回归树模型可表示为:
+
+  <<Eqn.(1.3.3.2)>>
+  #+BEGIN_SRC latex :results raw :exports none
+    \begin{equation}
+      f(x)=\sum_{m=1}^{M}C_{m}I(x\inR_{m})
+    \end{equation}
+  #+END_SRC 
+
+  #+RESULTS:
+  \begin{equation}
+    f(x)=\sum_{m=1}^{M}C_{m}I(x\inR_{m})
+  \end{equation}
+
+  算法: 最小二乘回归树生成算法
+  输入: 训练数据集 $D$
+  输出: 回归树 $f(x)$
+  在训练数据集所在的输入空间中, 递归地将每个区域划分为两个子区域并决定每个子区域上的输出值, 构建二叉决策树:
+  1. 选择最优切分变量 $j$ 与切分点 $s$, 求解
+     <<Eqn.(1.3.3.3)>>
+     #+BEGIN_SRC latex :results raw :exports none
+       \begin{align}
+         &\min\limits_{j,s} \left[ \min\limits_{C_{1}}\sum_{x_{i\in R_{1}(j,s)}}(y_{i}-C_{1})^{2}+\min\limits_{C_{2}}\sum_{x_{i}\in R_{2}(j,s)}(y_{i}-C_{2})^{2} \right]\\
+         &C_{m}=ave(y_{i}|x_{i}\in R_{m}(j,s))=\sum_{x_{i}\in R_{m}}(y_{i}-f(x_{i}))^{2}\\
+         &R_{1}(j,s)=\{x|x^{j}\leq s\}\ \ R_{2}(j,s)=\{x|x^{j}>s\}\\
+       \end{align}
+     #+END_SRC 
+
+     #+RESULTS:
+     \begin{align}
+       &\min\limits_{j,s} \left[ \min\limits_{C_{1}}\sum_{x_{i\in R_{1}(j,s)}}(y_{i}-C_{1})^{2}+\min\limits_{C_{2}}\sum_{x_{i}\in R_{2}(j,s)}(y_{i}-C_{2})^{2} \right]\\
+       &C_{m}=ave(y_{i}|x_{i}\in R_{m}(j,s))=\sum_{x_{i}\in R_{m}}(y_{i}-f(x_{i}))^{2}\\
+       &R_{1}(j,s)=\{x|x^{j}\leq s\}\ \ R_{2}(j,s)=\{x|x^{j}>s\}\\
+     \end{align}
+
+     遍历变量 $j$, 对固定的切分变量 $j$ 扫描切分点 $s$, 选择使 [[Eqn,(1.3.3.3)]] 达到最小值的对 $j,s$
+  2. 用选定的对 $(j,s)$ 划分区域并决定相应的输出值:
+     <<Eqn.(1.3.3.4)>>
+     #+BEGIN_SRC latex :results raw :exports none
+       \begin{align}
+         R_{1}(j,s)=\{x|x^{(j)}\leq s\}&,\ R_{2}(j,s)=\{x|x^{(j)}>s\}\\
+         \hat{C}_{m}=\frac{1}{N_{m}}\sum_{x_{i}\in R_{m}(j,s)}y_{i}&,\ x\in R_{m},\ m=1,2
+       \end{align}
+     #+END_SRC
+
+     #+RESULTS:
+     \begin{align}
+       R_{1}(j,s)=\{x|x^{(j)}\leq s\}&,\ R_{2}(j,s)=\{x|x^{(j)}>s\}\\
+       \hat{C}_{m}=\frac{1}{N_{m}}\sum_{x_{i}\in R_{m}(j,s)}y_{i}&,\ x\in R_{m},\ m=1,2
+     \end{align}
+
+  3. 继续对两个子区域调用步骤 1,2 直至满足停止条件。
+  4. 将输入空间划分为 $M$ 个区域 $R_{1},R_{2},\dots,R_{M}$, 生成决策树:
+     <<Eqn.(1.3.3.5)>>
+     #+BEGIN_SRC latex :results raw :exports none
+       \begin{equation}
+         f(x)=\sum_{m=1}^{M}\hat{C}_{m}I(x\in R_{m})
+       \end{equation}
+     #+END_SRC 
+
+     #+RESULTS:
+     \begin{equation}
+       f(x)=\sum_{m=1}^{M}\hat{C}_{m}I(x\in R_{m})
+     \end{equation}
+- 分类树的生成:
+  
+
+* Deep learning
+** 前馈神经网络
+*** 神经网络的表示
+所谓神经网络就是将许多个单一"神经元"联结在一起。这样，一个"神经元"的输出就可以是另一个"神经元"的输入。例如，下图就是一个简单的神经网络：
+
+[[file:image/Deep learning/image1_2018-08-02_19-27-06.png]]
+
+[[file:image/Deep learning/image2_2018-08-02_19-27-33.png]]
+
+上图神经网络中有3个输入单元(偏置单元不计在内)，3个隐藏单元及一个输出单元。
+- 输入层：最左边的一层
+- 输出层：最右边的一层(上图只有两个节点）
+- 隐藏层：中间所有节点(不能在训练样本集中观测到它们的值）
+- 神经元：使用圆圈来表示
+- 偏置节点：标上"b"的圆圈，也就是截距项。
+
+#+BEGIN_QUOTE
+符号说明：
+#+END_QUOTE
+- $L$ ：网络的层数(上图， $L=3$ )
+- $L_{l}$ ：表示第几层(上图， $L_{1}$ 是输入层、 $L_{2}$ 是隐藏层、 $L_{3}$ 是输出层)
+- $n^{l}$ ：第 $l$ 层的神经元个数
+- $W_{jk}^{l}$ ：第 $l$ 层第 $j$ 单元与第 $l-1$ 层第 $k$ 单元之间的联接参数(其实就是连接线上的权重，注意标号顺序)
+- $b_{j}^{l}$ ：第 $l$ 层第 $j$ 单元的偏置项
+- $w^{l}$ ：第 $l$ 层神经元的权重系数矩阵(由 $w_{jk}^{l}$ 构成的矩阵)
+- $b^{l}$ ：第 $l$ 层神经元的截距向量(由 $b_{j}^{l}$ 构成的向量)
+- $z_{j}^{l}$ ：表示第 $l$ 层第 $j$ 单元输入加权和(包括偏置单元)，如
+
+  \begin{equation}
+    z_{j}^{l}=\sum_{k=1}^{k=n^{l-1}}w_{jk}^{l}a_{k}^{l-1}+b_{j}^{l},l=2,3,...,L
+  \end{equation}
+
+  向量形式：
+
+  \begin{equation}
+    z^{l}=w^{l}a^{l-1}+b^{l},l=2,3,...,L
+  \end{equation}
+
+- $z^{l}$ ：第 $l$ 层神经元的加权输入向量，其每个元素为 $z_{j}^{l}$ 。
+- $\sigma(\cdot)$ ：神经网络采用的激活函数。
+- $a_{j}^{l}$ ：第 $l$ 层第 $j$ 单元的激活值(输出值)
+
+  \begin{equation}
+    a_{j}^{l}=\sigma(z_{j}^{l}),l=2,3,...,L
+  \end{equation}
+
+  向量形式：
+
+  \begin{equation}
+    a^{l}=\sigma(z^{l}),l=2,3,...L
+  \end{equation}
+
+- $a^{l}$ ：第 $l$ 层神经元的激活函数输出向量，其每个元素为 $a_{j}^{l}$ 。
+- $\frac{C}{J}$ ：表示整个神经网络的代价函数，其应是关于最后一层的输出 $a^{L}$ 的函数：
+
+  \begin{equation}
+    cost{C}=C(a^{L})
+  \end{equation}
+
+[[file:image/Deep learning/image8_2018-08-02_20-08-56.png]]
+
+*** 神经网络的求解
+假设有一个固定样本集 $\{(x(1),y(1)),\dots,(x(m),y(m))\}$, 包含 m 个样例，用批量梯度下降法来求解神经网络。具体来讲，对于单个样例 $(x,y)$, 其代价函数为：
+
+<<Eqn.(2.1.2.1)>>
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{equation}
+  \label{eq:1}
+  J(W,b;x,y)=\frac{1}{2}\Vert h_{W,b}(x)-y \Vert^{2}
+  \end{equation}
+#+END_SRC 
+
+#+RESULTS:
+\begin{equation}
+\label{eq:1}
+J(W,b;x,y)=\frac{1}{2}\Vert h_{W,b}(x)-y \Vert^{2}
+\end{equation}
+
+这是一个(二分之一的)方差代价函数。给定一个包含 $m$ 个样例的数据集, 我们可以定义整体代价函数为:
+
+<<Eqn.(2.1.2.2)>>
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{align}
+    J(W,b)&= \left[ \frac{1}{m}\sum_{i=1}^{m}J\left(W,b;x^{(i)},y^{(i)}\right) \right]+\frac{\lambda}{2}\sum_{l=1}^{n_{t}-1}\sum_{j=1}^{s_{t+1}} \left( W_{ji}^{(l)} \right) ^{2}\\
+          &= \left[ \frac{1}{m}\sum_{i=1}^{m} \left( \frac{1}{2}\left\Vert h_{W,b} \left( x^{(i)} \right) -y^{(i)}\right\Vert^{2}\right)\right]+\frac{\lambda}{2}\sum_{l=1}^{n_{t}-1}\sum_{j=1}^{s_{t+1}} \left( W_{ji}^{(l)} \right) ^{2}
+  \end{align}
+#+END_SRC
+
+#+RESULTS:
+\begin{align}
+  J(W,b)&= \left[ \frac{1}{m}\sum_{i=1}^{m}J\left(W,b;x^{(i)},y^{(i)}\right) \right]+\frac{\lambda}{2}\sum_{l=1}^{n_{t}-1}\sum_{j=1}^{s_{t+1}} \left( W_{ji}^{(l)} \right) ^{2}\\
+        &= \left[ \frac{1}{m}\sum_{i=1}^{m} \left( \frac{1}{2}\left\Vert h_{W,b} \left( x^{(i)} \right) -y^{(i)}\right\Vert^{2}\right)\right]+\frac{\lambda}{2}\sum_{l=1}^{n_{t}-1}\sum_{j=1}^{s_{t+1}} \left( W_{ji}^{(l)} \right) ^{2}
+\end{align}
+
+以上关于 $J(W，b)$ 定义中的第一项是一个均方差项。第二项是一个正则化项(也叫权重衰减项)，其目的是减小权重的幅度，防止过度拟合。
+
+#+BEGIN_QUOTE
+目标：针对参数 $W$ 和 $b$ 来求其函数 $J(W,b)$ 的最小值。
+#+END_QUOTE
+- 为了求解神经网络，我们需要将每一个参数 $W_{ij}^{(l)}$ 和 $b_{i}^{(l)}$ 初始化为一个很小的、接近零的随机值(比如说，使用正态分布 $Normal(0,\epsilon^{2})$ 生成的随机值，其中 $\epsilon$ 设置为 0.01)。
+- 之后对目标函数使用诸如批量梯度下降法的最优化算法。因为 $J(W,b)$ 是一个非凸函数，梯度下降法很可能会收敛到局部最优解。(但是在实际应用中，梯度下降法通常能得到令人满意的结果)
+- 最后，需要再次强调的是，要将参数进行随机初始化，而不是全部置为 0。如果所有参数都用相同的值作为初始值，那么所有隐藏层单元最终会得到与输入值有关的、相同的函数(也就是说，对于所有 $i,W_{ij}((1))$ 都会取相同的值，那么对于任何输入 $x$ 都会有：$a_{1}^{(2)}=a_{2}^{(2)}=\dots$)。 *随机初始化的目的是使对称失效* 。
+
+梯度下降法中每一次迭代都按照如下公式对参数 $W$ 和 $b$ 进行更新:
+
+<<Eqn.(2.1.2.3)>>
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{align}
+  \label{eq:3}
+    W_{ij}^{(l)}&=W_{ij}^{(l)}-\alpha \frac{\partial}{\partial W_{ij}^{(l)}}J(W,b)\\
+    b_{i}^{(l)}&=b_{i}^{(l)}-\alpha \frac{\partial}{\partial b_{i}^{(l)}}J(W,b)
+  \end{align}
+#+END_SRC 
+
+#+RESULTS:
+\begin{align}
+\label{eq:3}
+  W_{ij}^{(l)}&=W_{ij}^{(l)}-\alpha \frac{\partial}{\partial W_{ij}^{(l)}}J(W,b)\\
+  b_{i}^{(l)}&=b_{i}^{(l)}-\alpha \frac{\partial}{\partial b_{i}^{(l)}}J(W,b)
+\end{align}
+
+其中 $\alpha$ 是学习速率。其中关键步骤是计算偏导数(使用反向传播)
+
+*** 代价函数
+代价函数的两种选择:
+- 基于最大似然原理, 即用训练数据和模型预测间的交叉熵作为代价函数。
+- 不是预测 $y$ 的完整概率分布, 而是仅仅预测在给定 $x$ 的条件下 $y$ 的某种统计量。某些专门的损失函数允许我们来训练这些估计量的预测器。
+
+**** 使用最大似然学习条件分布
+<<Eqn.(2.1.3.1)>>
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{equation}
+    \label{eq:4}
+    J(\theta)=-\mathbb{E}_{x,y\backsim\hat{P}_{data}} \log{P_{model} \left( y|x \right)}
+  \end{equation}
+#+END_SRC
+
+#+RESULTS:
+\begin{equation}
+  \label{eq:4}
+  J(\theta)=-\mathbb{E}_{x,y\backsim\hat{P}_{data}} \log{P_{model} \left( y|x \right)}
+\end{equation}
+
+代价函数的具体形式随着模型而改变,取决于 $\log\left(P_{model}\right)$ 的具体形式,如:
+
+<<Eqn.(2.1.3.2)>>
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{equation}
+    P_{model} \left( y|x \right) = \mathcal{N} \left( y;f(x;\theta,I) \right)
+  \end{equation}
+#+END_SRC 
+
+#+RESULTS:
+\begin{equation}
+  P_{model} \left( y|x \right) = \mathcal{N} \left( y;f(x;\theta,I) \right)
+\end{equation}
+
+
+即为均方误差代价函数
+
+<<Eqn.(2.1.3.3)>>
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{equation}
+    \label{eq:5}
+    J(\theta)=\frac{1}{2}\mathbb{E}_{x,y\backsim\hat{P}_{data}} \left\Vert y-f(x;\theta) \right\Vert ^{2}+const
+  \end{equation}
+#+END_SRC 
+
+#+RESULTS:
+\begin{equation}
+  \label{eq:5}
+  J(\theta)=\frac{1}{2}\mathbb{E}_{x,y\backsim\hat{P}_{data}} \left\Vert y-f(x;\theta) \right\Vert ^{2}+const
+\end{equation}
+
+**** 交叉熵(cross-Entropy)
+假设有两个分布 $p,q$ , 则它们在给定样本集上的交叉熵定义如下:
+
+<<Eqn.(2.1.3.4)>>
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{equation}
+    CEH(p,q)=E_{p} \left[ -\log{q} \right] =-\sum_{x\in X}p(x)\log{q(x)}=H(p)+D_{KL}(p||q)
+  \end{equation}
+#+END_SRC 
+
+#+RESULTS:
+\begin{equation}
+  CEH(p,q)=E_{p} \left[ -\log{q} \right] =-\sum_{x\in X}p(x)\log{q(x)}=H(p)+D_{KL}(p||q)
+\end{equation}
+当 $p$ 已知时,可以把 $H(p)$ 看做一个常数, 此时交叉熵与 $KL$ 距离在行为上是等价的, 都反映了分布 $p,q$ 的相似程度。最小化交叉熵等于最小化 $KL$ 距离。它们都将在 $p=q$ 时取得最小值 $H(p)$($p=q$ 时 $KL$ 距离为 0), 因此有的工程文献中将最小化 $KL$ 距离的方法称为 Principle of Minimum Cross-Entropy(MCE) 或 Minxent 方法。
+
+***** logistic regression 的交叉熵
+- $p$: 真实样本分布，服从参数为 $p$ 得 $0-1$ 分布，即 $X\sim B(1,p)$
+- $q$: 待估计得模型，服从参数为 $q$ 得 $0-1$ 分布，即 $X\sim B(1,q)$
+
+两者得交叉熵为:
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{align}
+    CEH(p,q)&=-\sum_{x\in X}p(x)\log{q(x)}\\
+            &=- \left[ P_{p}(x=1)\log{P_{q}(x=1)}+P_{p}(x=0)\log{P_{q}(x=0)} \right]\\
+            &=- \left[ p\log{q}+(1-p)\log(1-q) \right]\\
+            &=- \left[ y\log{h_{\theta}(x)}+(1-y)\log\left(1-h_{\theta}(x)\right) \right]
+  \end{align}
+#+END_SRC 
+
+#+RESULTS:
+\begin{align}
+  CEH(p,q)&=-\sum_{x\in X}p(x)\log{q(x)}\\
+          &=- \left[ P_{p}(x=1)\log{P_{q}(x=1)}+P_{p}(x=0)\log{P_{q}(x=0)} \right]\\
+          &=- \left[ p\log{q}+(1-p)\log(1-q) \right]\\
+          &=- \left[ y\log{h_{\theta}(x)}+(1-y)\log\left(1-h_{\theta}(x)\right) \right]
+\end{align}
+
+对所有训练样本取均值得:
+
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{equation}
+    -\frac{1}{m}\sum_{i=1}^{m} \left[ y^{(i)}\log{h_{\theta}(x^{(i)})}+\left(1-y^{(i)}\right)\log\left( 1-h_{theta}(x^{(i)}) \right) \right] 
+  \end{equation}
+#+END_SRC 
+
+#+RESULTS:
+\begin{equation}
+  -\frac{1}{m}\sum_{i=1}^{m} \left[ y^{(i)}\log{h_{\theta}(x^{(i)})}+\left(1-y^{(i)}\right)\log\left( 1-h_{theta}(x^{(i)}) \right) \right] 
+\end{equation}
+***** 信息论
+信息论的基本想法是一个不太可能的事件居然发生了, 要比一个非常可能的事件发生, 能提供更多的信息。消息说: "今天早上太阳升起" 信息量是如此之少以至于没有必要发送,但一条消息说："今天早上有日食" 信息量就很丰富。
+
+***** 信息量
+- 非常可能发生的事件信息量要比较少, 并且极端情况下, 确保能够发生的事件应该没有信息量。
+- 较不可能发生的事件具有更高的信息量。
+- 独立事件应具有增量的信息。例如, 投掷的硬币两次正面朝上传递的信息量, 应该是投掷一次硬币正面朝上的信息量的两倍。
+为了满足上述三个性质,我们定义一个事件 $X=x$ 的自信息(self-information)为:
+
+<<Eqn.(2.1.3.5)>>
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{equation}
+    I(X)= - \log{P\left( x \right)}
+  \end{equation}
+#+END_SRC 
+
+#+RESULTS:
+\begin{equation}
+  I(X)= - \log{P\left( x \right)}
+\end{equation}
+
+用 $log$ 来表示自然对数, 其底数为 $e$ 。因此我们定义的 $I(x)$ 单位是奈特(nats)。一奈特是以 $1/e$ 的概率观测到一个事件时获得的信息量。
+
+***** 香农熵和微分熵
+香农熵是指对整个概率分布中的不确定性总量进行量化。
+设随机变量 $X={x_{1},\dots,x_{n}}$ , $P$ 为 $X$ 得概率质量分布，香农熵记为 $H(X)$ (当 $x$ 时连续的,香农熵被称为微分熵)
+
+<<Eqn.(2.1.3.6)>>
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{align}
+    H(X)&=E \left[ I(X) \right]\\
+        &=E \left[ -\ln{ \left( P(X) \right)  } \right]\\
+        &=-\sum_{i=1}^{n}P(x_{i})\log{P(x_{i})}
+  \end{align}
+#+END_SRC
+
+#+RESULTS:
+\begin{align}
+  H(X)&=E \left[ I(X) \right]\\
+      &=E \left[ -\ln{ \left( P(X) \right)  } \right]\\
+      &=-\sum_{i=1}^{n}P(x_{i})\log{P(x_{i})}
+\end{align}
+
+
+- 接近确定性的分布(输出几乎可以确定)具有较低的熵。
+- 接近均匀分布的概率分布具有较高的熵。
+
+#+caption: 0-1分布的香农熵:$(p-1)\log(1-p)-p\log(p)$
+[[file:image/Deep learning/_1528619227_86290042_2018-08-24_20-42-11.png]]
+
+***** KL 散度(Kullback-Leibler(KL) divergence)
+如果我们对于同一个随机变量 $x$ 有两个单独的概率分布 $P(x)$ 和 $Q(x)$ , 我们可以使用 $KL$ 散度来衡量这两个分布的差异, $KL$ 距离是两个随机分布间距离的度量,度量当真实分布为 $p$ 时,假设分布 $q$ 的无效性:
+
+<<Eqn.(2.1.3.7)>>
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{align}
+    D_{KL} \left( p||q \right) &= E_{p}\left[ \log{\frac{p(x)}{q(x)}} \right]\\
+                               &=\sum_{x\in X}p(x)\log{\frac{p(x)}{q(x)}}\\
+                               &=\sum_{x\in X} \left[ p(x)\log{p(x)}-p(x)\log{q(x)} \right]\\
+                               &=\sum_{x\in X}p(x)\log{p(x)}-\sum_{x\in X}p(x)\log{q(x)}\\
+                               &=-H(p)-\sum_{x\in X}p(x)\log{q(x)}\\
+                               &=-H(p)+E_{p} \left[ -\log{q(x)} \right]\\
+                               &=H_{p}(q)-H(p)
+  \end{align}
+#+END_SRC
+
+#+RESULTS:
+\begin{align}
+  D_{KL} \left( p||q \right) &= E_{p}\left[ \log{\frac{p(x)}{q(x)}} \right]\\
+                             &=\sum_{x\in X}p(x)\log{\frac{p(x)}{q(x)}}\\
+                             &=\sum_{x\in X} \left[ p(x)\log{p(x)}-p(x)\log{q(x)} \right]\\
+                             &=\sum_{x\in X}p(x)\log{p(x)}-\sum_{x\in X}p(x)\log{q(x)}\\
+                             &=-H(p)-\sum_{x\in X}p(x)\log{q(x)}\\
+                             &=-H(p)+E_{p} \left[ -\log{q(x)} \right]\\
+                             &=H_{p}(q)-H(p)
+\end{align}
+
+显然，当 $p=q$ 时，两者之间得 $KL$ 散度 $D_{KL}(p||q)=0$ ,其中为了保证连续性，做如下约定:
+
+<<Eqn.(2.1.3.8)>>
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{equation}
+    0\log{\frac{0}{0}}=0,\ 0\log{\frac{0}{q}}=0,\ p\log{\frac{p}{0}}=\infty
+  \end{equation}
+#+END_SRC 
+
+#+RESULTS:
+\begin{equation}
+  0\log{\frac{0}{0}}=0,\ 0\log{\frac{0}{q}}=0,\ p\log{\frac{p}{0}}=\infty
+\end{equation}
+
+- $H_{p}(q)$: 表示在 $p$ 分布下，使用 $q$ 进行编码需要的香农数。
+- $H(p)$: 表示对真实分布下 $p$ 所需要得最小编码香农数。
+- $KL$ 散度的意义: 表示在真实分布为 $p$ 的前提下, 使用 $q$ 分布进行编码相对于使用真实分布 $p$ 进行编码(即最优编码)所多出来的香农数。
+
+#+BEGIN_QUOTE
+对于某些 $P$ 和 $Q$, $D_{KL}(P||Q)\neq D_{KL}(Q||P)$ 。这种非对称性意味着选择 $D_{KL}(P||Q)$ 还是 $D_{KL}(Q||P)$ 影响很大。
+[[file:image/Deep learning/_1528619271_1028313354_2018-08-27_20-03-45.png]]
+#+END_QUOTE
+
+**** 学习条件统计量
+有一个预测器 $f(x;\theta)$ ,我们想用它来预测 $y$ 的均值。
+假设神经网络能够表示一大类函数中的任何一个函数 $f$, 这个类仅仅被一些特征所限制, 例如连续性和有界, 而不是具有特殊的参数形式。这样可以把代价函数看作一个泛函(functional, 函数到实数的映射)而不仅仅是一个函数。即设计一个代价泛函, 使它的最小值处于一个特殊的函数上, 这个函数将 $x$ 映射到给定 $x$ 时 $y$ 的期望值。对函数求解优化问题需要变分法(*TODO*)。
+不同的代价函数给出不同的统计量:
+- 最小化均方误差代价函数：得到一个函数, 可以用来对每个 $x$ 的值预测出 $y$ 的均值。
+  
+  <<Eqn.(2.1.3.9)>>
+  #+BEGIN_SRC latex :results raw :exports none
+    \begin{align}
+      \hat{f}&=\mathop{\arg\min}\limits_{f} \mathbb{E}_{x,y\sim P_{data}} \left\Vert y-f(x) \right\Vert^{2}\\
+      \hat{f}(x)&=\mathbb{E}_{y\sim P_{data}(y|x)}[y]
+    \end{align}
+  #+END_SRC
+
+  #+RESULTS:
+  \begin{align}
+    \hat{f}&=\mathop{\arg\min}\limits_{f} \mathbb{E}_{x,y\sim P_{data}} \left\Vert y-f(x) \right\Vert^{2}\\
+    \hat{f}(x)&=\mathbb{E}_{y\sim P_{data}(y|x)}[y]
+  \end{align}
+
+- 平均绝对误差代价函数：得到一个函数可以对每个 $x$ 预测 $y$ 取值的中位数。
+
+  <<Eqn.(2.1.3.10)>>
+  #+BEGIN_SRC latex :results raw :exports none
+    \begin{equation}
+      \hat{f}=\mathop{\arg\min}\limits_{f} \mathbb{E}_{x,y\sim P_{data}} \left\Vert y-f(x) \right\Vert_{1}
+    \end{equation}
+  #+END_SRC 
+
+  #+RESULTS:
+  \begin{equation}
+    \hat{f}=\mathop{\arg\min}\limits_{f} \mathbb{E}_{x,y\sim P_{data}} \left\Vert y-f(x) \right\Vert_{1}
+  \end{equation}
+
+*** 输出单元
+假设前馈网络提供了一组定义为 $h = f(x;\theta)$ 的隐藏特征。输出层的作用则是随后对这些特征进行额外的变换完成整个网络必须完成的任务。
+
+**** 用于高斯输出分布的线性单元(单值输出)
+一种简单的输出单元是基于仿射变换的输出单元,仿射变换不具有非线性。这些单元往往被直接称为线性单元。
+给定特征 $h$, 线性输出单元层产生一个向量 $\hat{y}=w^Th+b$ 。
+线性输出层经常被用来 *产生条件高斯分布的均值(代价函数等价于最小化均方误差)*:
+<<Eqn.(2.1.4.1)>>
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{equation}
+    p(y|x)=\mathcal{N}(y,\hat{y},I)
+  \end{equation}
+#+END_SRC 
+
+#+RESULTS:
+\begin{equation}
+  p(y|x)=\mathcal{N}(y,\hat{y},I)
+\end{equation}
+
+**** 用于 Bernoulli 输出分布的 sigmoid 单元(二值输出)
+sigmoid 输出单元定义为($\sigma$ 为 logistic sigmoid 函数 $\frac{1}{1+e^{-x}}$):
+<<Eqn.(2.1.4.2)>>
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{equation}
+    \hat{y}=\sigma \left( w^{T}h+b \right)
+  \end{equation}
+#+END_SRC 
+
+#+RESULTS:
+\begin{equation}
+  \hat{y}=\sigma \left( w^{T}h+b \right)
+\end{equation}
+
+设 $z = w^Th + b$, 用 $z$ 的值来定义 $y$ 的概率分布。
+思路:sigmoid 可以 *通过构造一个非归一化的概率分布 $\widetilde{P}(y)$ 来得到。随后除以一个合适的常数得到有效概率分布* 。
+1. 假设非归一化的对数概率对 $y$ 和 $z$ 是线性的, 对其取指数来得到非归一化的概率。
+  <<Eqn.(2.1.4.3)>>
+  #+BEGIN_SRC latex :results raw :exports none
+    \begin{align}
+      \log \widetilde{P}(y)&=yz\\
+      \widetilde{P}(y)&=\exp{(yz)}
+    \end{align}
+  #+END_SRC 
+
+  #+RESULTS:
+  \begin{align}
+    \log \widetilde{P}(y)&=yz\\
+    \widetilde{P}(y)&=\exp{(yz)}
+  \end{align}
+2. 然后归一化,可以看出 P(y) 服从 Bernoulli 分布,该分布受 z 的 sigmoid 变换控制。
+   <<Eqn.(2.1.4.4)>>
+   #+BEGIN_SRC latex :results raw :exports none
+     \begin{align}
+       P(y)&=\frac{\exp(yz)}{\sum_{y'=0}^{1}\exp(y'z)}\\
+       P(y)&=\sigma \left( \left( 2y-1 \right)z \right)
+     \end{align}
+   #+END_SRC
+
+   #+RESULTS:
+   \begin{align}
+     P(y)&=\frac{\exp(yz)}{\sum_{y'=0}^{1}\exp(y'z)}\\
+     P(y)&=\sigma \left( \left( 2y-1 \right)z \right)
+   \end{align}
+
+   基于指数和归一化的概率分布在统计建模的文献中很常见。用于定义这种二值型变量分布的变量 $z$ 被称为分对数(logit)。
+
+确定 $y$ 的概率分布即可使用最大似然学习,代价函数为($\zeta$ 为 softplus 函数 $log(1+e^x)$):
+<<Eqn.(2.1.4.5)>>
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{align}
+    J(\theta)&=-\log{P(y|x)}\\
+             &=-\log{\sigma((2y-1)z)}\\
+             &=\zeta((1-2y)z)
+  \end{align}
+#+END_SRC 
+
+#+RESULTS:
+\begin{align}
+  J(\theta)&=-\log{P(y|x)}\\
+           &=-\log{\sigma((2y-1)z)}\\
+           &=\zeta((1-2y)z)
+\end{align}
+
+
+#+caption: softplus function
+[[file:image/Deep learning/softplus_function.png]]
+可以看出 $(1-2y)z$ 仅在绝对值非常大的负值才会饱和,即 *饱和只会出现在模型已经得到正确答案时(当 $y = 1$ 且 $z$ 取非常大的正值时,或者 $y = 0$ 且 $z$ 取非常小的负值时)* 。
+
+#+BEGIN_QUOTE
+当我们使用其他的损失函数,例如均方误差之类的,损失函数会在 $\sigma(z)$ 饱和时饱和。
+- sigmoid 激活函数在 $z$ 取非常小的负值时会饱和到 0。
+- 当 $z$ 取非常大的正值时会饱和到 1。
+这种情况一旦发生,梯度会变得非常小以至于不能用来学习, 无论此时模型给出的是正确还是错误的答案。 *因此,最大似然几乎总是训练 sigmoid 输出单元的优选方法* 。
+#+END_QUOTE
+
+**** 用于 Multinomial 输出分布的 softmax 单元(多值输出)
+softmax 函数最常用作分类器的输出,来表示 $n$ 个不同类上的概率分布。比较少见是, softmax 函数可以在模型内部使用,例如如果我们想要在某个内部变量的 $n$ 个不同选项中进行选择。
+
+设向量 $\hat{y}$, $\hat{y}_{i}=P(y=i|x),\hat{y}_{i}\subset(0,1),\sum_{i}\hat{y}=1$ 。使它称为一个有效的概率分布。用于 Bernoulli 分布的方法同样可以推广到  Multinomial 分布。
+1. 首先线性层 $z=wTh + b$ 预测未归一化的对数概率:
+   <<Eqn.(2.1.4.6)>>
+   #+BEGIN_SRC latex :results raw :exports none
+     \begin{equation}
+       z_{i}=\log\hat{P}(y=i|x)
+     \end{equation}
+   #+END_SRC
+
+   #+RESULTS:
+     \begin{equation}
+       z_{i}=\log\hat{P}(y=i|x)
+     \end{equation}
+2. softmax 函数然后可以对 $z$ 指数化和归一化来获得需要的 $\hat{y}$ 。
+   <<Eqn.(2.1.4.7)>>
+   #+BEGIN_SRC latex :results raw :exports none
+     \begin{equation}
+       softmax(z)_{i}=\frac{e^{z_{i}}}{\sum_je^{z_{j}}}
+     \end{equation}
+   #+END_SRC 
+
+   #+RESULTS:
+   \begin{equation}
+     softmax(z)_{i}=\frac{e^{z_{i}}}{\sum_j e^{z_{j}}}
+   \end{equation}
+3. 使用最大化对数似然训练 softmax 来输出目标值 $y$, 即最大化 $\log{P(y=i;z)}=\log{softmax(z)_{i}}$ 。
+   <<Eqn.(2.1.4.8)>>
+   #+BEGIN_SRC latex :results raw :exports none
+     \begin{equation}
+       \log{softmax(z)_{i}}=z_{i}-\log{\sum_{j}e^{z_{j}}}
+     \end{equation}
+   #+END_SRC 
+
+   #+RESULTS:
+   \begin{equation}
+     \log{softmax(z)_{i}}=z_{i}-\log{\sum_{j}e^{z_{j}}}
+   \end{equation}
+    - 由于输入 $z_{i}$ 对代价函数有直接贡献, 因此这项不会饱和(即使贡献很小学习依旧进行)。
+    - 负对数似然代价函数总是强烈地惩罚最活跃的不正确预测。
+
+***** softmax 的导数
+- 当 $i=j$ 时:$\frac{\partial{softmax(z)_i}}{\partial{z_i}}=z_i(1-z_i)$
+- 当 $i\neqj$ 时:$\frac{\partial{softmax(z)_i}}{\partial{z_j}}=-z_iz_j$
+*** 隐藏单元
+**** 整流线性单元(ReLU)及其扩展
+#+caption: 整流线性激活函数 $g(x)=\max(0,z)$
+[[file:image/Deep learning/_1528630165_305904624_2018-09-02_18-47-00.png]]
+
+优点:
+- *整流线性单元易于优化*: 因为它们和线性单元非常类似。
+- 整流线性单元处于激活状态, 它的导数都能保持较大。它的梯度不仅大而且一致。
+- *它的梯度方向对于学习来说更加有用*: 整流操作的二阶导数几乎处处为 0, 并且在整流线性单元处于激活状态时, 它的一阶导数处处为 1。
+
+缺点: 不能通过基于梯度的方法学习那些使它们激活为零的样本。 *整流线性单元的各种扩展保证了它们能在各个位置都接收到梯度* 。
+
+整流线性单元扩展:
+ - 下面三个整流线性单元的扩展基于当 $z_{i}<0$ 时使用一个非零的斜率 $\alpha_{i}:h_{i}=g(z,\alpha)_{i}=\max(0,z_{i}) + \alpha_{i}\min(0,z_{i})$ 。
+ - 绝对值整流(absolute value rectification)固定 $α_{i}=-1$ 来得到 $g(z)=|z|$ 。它用于图像中的对象识别,其中寻找在输入照明极性反转下不变的特征是有意义的。
+ - 渗漏整流线性单元(Leaky ReLU)将 $\alpha_{i}$ 固定成一个类似 0.01 的小值。
+   #+caption: Leaky ReLU
+   [[file:image/Deep learning/_1528630904_1350790563_2018-09-02_18-53-18.png]]
+ - 参数化整流线性单元(parametric ReLU)或者 PReLU 将 $\alpha_{i}$ 作为学习的参数。
+**** maxout 单元
+maxout 单元将 $z$ 划分为每组具有 $k$ 个值的组,而不是使用作用于每个元素的函数 $g(z)$ 。每个 maxout 单元则输出每组中的最大元素:
+<<Eqn.(2.1.5.1)>>
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{equation}
+    g(z)_{i}=\max\limits_{j\in\mathbb{G}^{(i)}}z_{j}
+  \end{equation}
+#+END_SRC
+
+#+RESULTS:
+\begin{equation}
+  g(z)_{i}=\max\limits_{j\in\mathbb{G}^{(i)}}z_{j}
+\end{equation}
+
+这里 $\mathbb{G}^{(i)}$ 是组 $i$ 的输入索引集 ${(i-1)k +1,...,ik}$。这提供了一种方法来学习对输入 $x$ 空间中多个方向响应的分段线性函数。
+[[file:image/Deep learning/_1528631098_14865276_2018-09-02_19-02-35.png]]
+图中左上方黑框里的部分就是 maxout 单元, 在 3 个白色单元的输出中取一个最大值作为蓝色单元的输出, 3 个白色单元就称为一「组」。
+
+优点:
+- 可以视为学习激活函数本身而不仅仅是单元之间的关系: maxout 单元可以学习具有多达 $k$ 段的分段线性的凸函数。使用足够大的 $k$, maxout 单元可以以任意的精确度来近似任何凸函数。
+- 可以和其他整流线性单元或其他函数相结合使用。
+- 如果由 $n$ 个不同的线性过滤器描述的特征可以在不损失信息的情况下, 用每一组 $k$ 个特征的最大值来概括的话, 那么下一层可以获得 $k$ 倍更少的权重数。
+**** 指数线性单元(exponential linear unit, ELU)
+[[file:image/Deep learning/_1528631225_2049132160_2018-09-02_19-06-19.png]]
+
+和 ReLU 的区别
+- 它在 $z<0$ 时取负值, 这使得该单元的平均输出接近于 0。这有助于减轻梯度消失问题。
+- 超参数 $\alpha$ 定义为当 $z$ 是一个大的负数时, ELU 函数接近的值(它通常设置为 1)。
+- 对 $z<0$ 有一个非零的梯度,避免了神经元死亡的问题。
+- 函数在任何地方都是平滑的, 包括 $z=0$ 左右, 这有助于加速梯度下降,因为它不会弹回 $z=0$ 的左侧和右侧。
+
+缺点: ELU 激活函数的主要缺点是计算速度慢于 ReLU 及其变体(由于使用指数函数), 但是在训练过程中, 这是通过更快的收敛速度来补偿的。然而在测试时间, ELU 网络将比 ReLU 网络慢。
+
+**** logistic sigmoid与双曲正切函数
+logistic sigmoid 激活函数: $g(z)=\sigma(z)=\frac{1}{1+\exp(-z)}$
+- 导数: $g(z)(1 - g(z))$
+[[file:image/Deep learning/_1528631429_132568009_2018-09-02_19-09-14.png]]
+
+双曲正切激活函数: $g(z)=tanh(z)$
+- 导数: $1-g(z)^2$
+[[file:image/Deep learning/_1528631481_1040367885_2018-09-02_19-09-15.png]]
+
+**** 其他隐藏单元
+- 径向基函数(radial basis function, RBF): 这个函数在 $x$ 接近模板 $W_{:,i}$ 时更加活跃。因为它对大部分 $x$ 都饱和到 0, 因此很难优化。
+  <<Eqn.(2.1.5.2)>>
+  #+BEGIN_SRC latex :results raw :exports none
+    \begin{equation}
+      h_{i}=\exp \left( -\frac{1}{\sigma^{2}} \left\Vert W_{:,i}-x \right\Vert ^{2} \right)
+    \end{equation}
+  #+END_SRC 
+
+  #+RESULTS:
+  \begin{equation}
+    h_{i}=\exp \left( -\frac{1}{\sigma^{2}} \left\Vert W_{:,i}-x \right\Vert ^{2} \right)
+  \end{equation}
+- softplus函数: 这是整流线性单元的平滑版本, 通常不鼓励使用 softplus 函数。softplus 表明隐藏单元类型的性能可能是非常反直觉的---因为它处处可导或者因为它不完全饱和, 人们可能希望它具有优于整流线性单元的点, 但根据经验来看, 它并没有。
+
+  <<Eqn.(2.1.5.3)>>
+  #+BEGIN_SRC latex :results raw :exports none
+    \begin{equation}
+      g(a)=\xi(a)=\log(1+\exp^{a})
+    \end{equation}
+  #+END_SRC 
+
+  #+RESULTS:
+  \begin{equation}
+    g(a)=\xi(a)=\log(1+\exp^{a})
+  \end{equation}
+- 硬双曲正切函数(hard tanh): 它的形状和 tanh 以及整流线性单元类似, 但是不同于后者, 它是有界的。
+
+  <<Eqn.(2.1.5.4)>>
+  #+BEGIN_SRC latex :results raw :exports none
+    \begin{equation}
+      g(a)=\max(-1, \min(1,a))
+    \end{equation}
+  #+END_SRC 
+
+  #+RESULTS:
+  \begin{equation}
+    g(a)=\max(-1, \min(1,a))
+  \end{equation}
+*** 前向传播
+前向传播过程: 假设神经网络架构如下所示
+[[file:image/Deep learning/_1528631640_885172327_2018-09-02_19-20-35.png]]
+<<Eqn.(2.1.6.1)>>
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{align}
+    z^{2}&=\sum_{j=1}^{j=n^{2}} \left( \left( \sum_{k=1}^{k=n^{1}}w_{jk}^{2}a_{k}^{1} \right) +b_{j}^{2} \right) ,n^{2}=4,n^{1}=3\\
+    a^{2}&=\sigma(z^{2})\\
+    z^{3}&=\sum_{j=1}^{j=n^{3}} \left( \left( \sum_{k=1}^{k=n^{2}}w_{jk}^{3}a_{k}^{2} \right) +b_{j}^{3} \right) ,n^{3}=2\\
+    a^{3}&=\sigma(z^{3})\\
+    h_{w,b}(x)&=a^{3}
+  \end{align}
+#+END_SRC
+
+#+RESULTS:
+\begin{align}
+  z^{2}&=\sum_{j=1}^{j=n^{2}} \left( \left( \sum_{k=1}^{k=n^{1}}w_{jk}^{2}a_{k}^{1} \right) +b_{j}^{2} \right) ,n^{2}=4,n^{1}=3\\
+  a^{2}&=\sigma(z^{2})\\
+  z^{3}&=\sum_{j=1}^{j=n^{3}} \left( \left( \sum_{k=1}^{k=n^{2}}w_{jk}^{3}a_{k}^{2} \right) +b_{j}^{3} \right) ,n^{3}=2\\
+  a^{3}&=\sigma(z^{3})\\
+  h_{w,b}(x)&=a^{3}
+\end{align}
+
+cost 函数以平方代价函数为例:
+
+<<Eqn.(2.1.6.2)>>
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{equation}
+    c=\frac{1}{2} \left\Vert y-a^{L} \right\Vert = \frac{1}{2} \sum_{j=1}^{j=n^{L}} \left( y_{j}-a_{j}^{L} \right) ^{2},L=n^{3}
+  \end{equation}
+#+END_SRC 
+
+#+RESULTS:
+\begin{equation}
+  c=\frac{1}{2} \left\Vert y-a^{L} \right\Vert = \frac{1}{2} \sum_{j=1}^{j=n^{L}} \left( y_{j}-a_{j}^{L} \right) ^{2},L=n^{3}
+\end{equation}
+
+*** 反向传播
+**** 反向传播算法
+反向传播算法的思路如下:给定一个样例 $(x,y)$
+1. 进行“前向传导”运算,计算出网络中所有的激活值,包括 $h_{W,b}(x)$ 的输出值。
+2. 针对第 $l$ 层的每一个节点 $j$, 我们计算出其"残差" $\delta_j^l$ (表明了该节点对最终输出值的残差产生了多少影响)。
+   - 对于最终的输出节点: 我们可以直接算出网络产生的激活值与实际值之间的差距,我们将这个差距定义为 $\delta_j^{L1}$(第 $n_l$ 层表示输出层)。
+   - 对于隐藏单元:基于节点(第 $l+1$ 层节点)残差的加权平均值计算 $\delta_j^l$,这些节点以 $a_j^l$ 作为输入。
+
+步骤:
+1. *输入 $x$*: 计算输入层相应的激活函数值 $a^1$ 。
+2. *正向传播*: 对每个 $l=2,3,\dots,L$,计算 $z_l=w^la^{l−1}+b^l$ 和 $a^l=\sigma(z^l)$ 。
+3. *输出误差 $\delta^L$*: 计算向量 $\delta^L=\nabla_{a}C\odot\sigma'(z^L)$ 。
+4. *将误差反向传播*: 对每个 $l=L−1,L−2,\dots,2$ 计算 $\delta^l=((w^{l+1})^T\delta^{l+1})\odot\sigma'(z^l)$
+5. *输出*:代价函数的梯度为 $\frac{\partial{C}}{\partial{w_{jk}^l}}=a_k^{l-1}\deltca_j^l$ 和 $\frac{\partial{C}}{\partial{b_j^l}}=\delta_j^l$ 。
+
+**** 对于代价函数C/J的两个假设
+- *假设代价函数能够被写成 $C=\frac{1}{n}\sum_xC_x$ 的形式*
+  - 其中 $C_x$ 是每个独立训练样本 $x$ 的代价函数。
+    在代价函数为平方代价函数的情况下, 一个训练样本的代价是 $C_x=\frac{1}{2}\Vert y-a^L \Vert^2$ 。
+  - 原因:反向传播实际上是对单个训练数据计算偏导数 $\frac{\partial{C_x}}{\partial{w}}$ 和 $\frac{\partial{C_x}}{\partial{b}}$ 。然后通过对所有训练样本求平均值获得 $\frac{\partial{C}}{\partial{w}}$ 和 $\frac{\partial{C}}{\partial{b}}$ 。事实上,有了这个假设,我们 *可以认为训练样本 $x$ 是固定的, 然后把代价 $C_x$ 去掉下标表示为 $C$ 。最终我们会重新把 $x$ 加回公式, 但目前为了简便我们将它隐去* 。
+- 假设可以写成关于神经网络输出结果得函数:
+  <<Eqn.(2.1.7.1)>>
+  #+BEGIN_SRC latex :results raw :exports none
+    \begin{equation}
+      cost\ C=C(a^{L})
+    \end{equation}
+  #+END_SRC 
+
+  #+RESULTS:
+  \begin{equation}
+    cost\ C=C(a^{L})
+  \end{equation}
+  - 平方代价函数满足该要求, 因为单一训练样本 $x$ 的二次代价可以表示为:
+
+    <<Eqn.(2.1.7.2)>>
+    #+BEGIN_SRC latex :results raw :exports none
+      \begin{equation}
+        C=\frac{1}{2} \left\Vert y-a^{L} \right\Vert ^{2}=\frac{1}{2}\sum_{j}(y_{j}-a_{j}^{L})^{2}
+      \end{equation}
+    #+END_SRC 
+
+    #+RESULTS:
+    \begin{equation}
+      C=\frac{1}{2} \left\Vert y-a^{L} \right\Vert ^{2}=\frac{1}{2}\sum_{j}(y_{j}-a_{j}^{L})^{2}
+    \end{equation}
+
+**** 反向传播的四个基本等式
+定义:
+第 $l$ 层第 $j$ 个神经元的错误量 $\delta_{j}^{l}$ 为(使用 $\delta^{l}$ 来表示与 $l$ 层相关联的错误量的向量): 改善代价, 实际值与预测值之间的误差。
+<<Eqn.(2.1.7.3)>>
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{equation}
+    \delta_{j}^{l}=\frac{\partial C}{\partial z_{j}^{l}}
+  \end{equation}
+#+END_SRC 
+
+#+RESULTS:
+\begin{equation}
+  \delta_{j}^{l}=\frac{\partial C}{\partial z_{j}^{l}}
+\end{equation}
+
+*反向传播会提供给我们一个用于计算错误量的流程,能够把 $\delta_j^l$ 和 $\frac{\partial{C}}{\partial{w_{jk}^l}}$ 和 $\frac{\partial{C}}{\partial{b_{j}^l}}$ 关联起来*
+
+四个基本等式:
+- 公式一: 输出层中关于错误量 $\delta^{L}$ 的等式, $\delta^{L}$ 得构成为($j$ 表示第几个神经单元):
+
+  <<Eqn.(2.1.7.4)>>
+  #+BEGIN_SRC latex :results raw :exports none
+  \begin{equation}
+    \delta_{j}^{L}=\frac{\partial C}{\partial a_{j}^{L}}\sigma'(z_{j}^{L})
+  \end{equation}
+  #+END_SRC 
+
+  #+RESULTS:
+  \begin{equation}
+    \delta_{j}^{L}=\frac{\partial C}{\partial a_{j}^{L}}\sigma'(z_{j}^{L})
+  \end{equation}
+  - $\frac{\partial{C}}{\partial{a_{j}^L}}$: 用于测量 $j^{th}$ 输出激活代价改变有多快的函数。(该式的确切形式依赖于代价函数的形式)。如: $C=\frac{1}{2}\sum_j^L(y_j-a_j)^2$,那么 $\frac{\partial{C}}{\partial{a^L_j}}=(a_j-y_j)$
+    举个例子,如果 $C$ 并不太依赖于某个特别的输出神经元 $j$, 那么 $\delta_j^L$ 就会很小, 这是我们所期望的。
+  - $\sigma'(z_j^L)$: 用于测量 $z_j^L$ 处的激活函数 $\sigma$ 改变有多快
+  - [[Eqn.(2.1.7.4)]] 的矩阵形式:
+    
+    <<Eqn.(2.1.7.5)>>
+    #+BEGIN_SRC latex :results raw :exports none
+      \begin{equation}
+        \delta^{L}=\nabla_{a}C \odot \sigma'(z^{L})
+      \end{equation}
+    #+END_SRC 
+
+    #+RESULTS:
+    \begin{equation}
+      \delta^{L}=\nabla_{a}C \odot \sigma'(z^{L})
+    \end{equation}
+- 公式二: 依据下一层错误量 $\delta^{l+1}$ 获取错误量 $\delta^{l}$ 的等式:
+  <<Eqn.(2.1.7.5)>>
+  #+BEGIN_SRC latex :results raw :exports none
+    \begin{equation}
+      \delta^{l}= \left( \left( w^{l+1} \right) ^{T}\delta^{l+1} \right) \odot \sigma'(z^{l})
+    \end{equation}
+  #+END_SRC 
+
+  #+RESULTS:
+  \begin{equation}
+    \delta^{l}= \left( \left( w^{l+1} \right) ^{T}\delta^{l+1} \right) \odot \sigma'(z^{l})
+  \end{equation}
+  - $(w^{l+1})^T$:$(l+1)^{th}$ 层的权重矩阵 $w^{l+1}$ 的转置。
+  - 假设我们知道 $(l+1)^{th}$ 层的错误量 $\delta^{l+1}$ 。当我们使用转置权值矩阵 $(w^{l+1})^T$ 的时候,我们可以凭借直觉认为将错误反向(backward)移动穿过网络, 带给我们某种测量 $l^{th}$ 层输出的错误量方法。然后我们使用 Hadamard 乘积 $\odot\sigma'(z^l)$ 。 *这就是将错误量反向移动穿过 $l$ 层的激活函数, 产生了 $l$ 层的加权输入的错误量 $\delta^l$* 。
+  - 通过结合(公式2)和(公式1)我们可以计算网络中任意一层的错误量 $\delta^l$ 。 *我们开始使用(公式1)来计算 $\delta^l$, 然后应用等式(公式2)来计算 $\delta^{L-1}$, 然后再次应用等式(公式2)来计算 $\delta^{L-2}$, 以此类推, 反向通过网络中的所有路径* 
+- 公式三: *网络的代价函数相对于偏置的改变速率的等式*:
+  - 表示错误量 $\delta_j^l$ 完全等于改变速率 $\frac{\partial{C}}{\partial{b_j^l}}$ 。
+  - 可以理解成 $\delta$ 可以和偏置 $b$ 在相同的神经元中被估计
+  - 简化公式:
+    <<Eqn.(2.1.7.6)>>
+   #+BEGIN_SRC latex :results raw :exports none
+     \begin{equation}
+       \frac{\partial C}{\partial b}=\delta
+     \end{equation}
+   #+END_SRC 
+
+   #+RESULTS:
+   \begin{equation}
+     \frac{\partial C}{\partial b}=\delta
+   \end{equation}
+- 公式四: *网络的代价函数相对于权重的改变速率的等式*:
+  <<Eqn.(2.1.7.7)>>
+  #+BEGIN_SRC latex :results raw :exports none
+    \begin{equation}
+      \frac{\partial C}{\partial w_{jk}^{l}}=a_{k}^{l-1}\delta_{j}^{l}
+    \end{equation}
+  #+END_SRC 
+
+  #+RESULTS:
+  \begin{equation}
+    \frac{\partial C}{\partial w_{jk}^{l}}=a_{k}^{l-1}\delta_{j}^{l}
+  \end{equation}
+  - 上式告诉我们如何依据 $\delta^l$ 和 $a^{l-1}$ 来计算偏导 $\frac{\partial{C}}{\partial{w_{jk}^l}}$ 。
+  - 上式可以转化为:
+    <<Eqn.(2.1.7.8)>>
+    #+BEGIN_SRC latex :results raw :exports none
+      \begin{equation}
+        \frac{\partial C}{\partial w}=a_{in}\delta_{out}
+      \end{equation}
+    #+END_SRC 
+
+    #+RESULTS:
+    \begin{equation}
+      \frac{\partial C}{\partial w}=a_{in}\delta_{out}
+    \end{equation}
+
+    - $a_{in}$: 是神经元的激活量, 输入到权重 $w$ 中。
+    - $δ_{out}$: 神经元的错误量,从权重 $w$ 输出。
+  - (公式4)的一个很好的结论是: 当激活量 $a_{in}$ 很小的时候, $a_{in}\approx0$, 梯度项 $\frac{\partial{C}}{\partial{w}}$ 也将会趋近于很小。在这种情况下, 我们说权重学习得很慢, 也就是说在梯度下降的时候并没有改变很多。换而言之, (公式4)的一个结果就是从低激活量神经元里输出的权重会学习缓慢。
+**** 关于四个基本等式的结论
+- (公式1)中的项 $\sigma'(z_j^L)$:对于 sigmoid 函数的图像, 当 $\sigma'(z_j^L)$ 的值大约是 0 或 1 的时候 $\sigma$ 函数的图像非常平缓。这时,我们将有 $\sigma'(z_j^L)\approx0$ 。
+  这告诉我们的是, 如果输出神经元是低激活量 $(\approx0)$ 或高激活量 $(\approx1)$ 的时候, 最后一层的权重将会学习缓慢。在这种情况下, 我们通常说输出神经元已经饱和(saturated), 结果就是权重停止了学习(或者说是学习缓慢)。输出层中的偏置也有类似的结论。
+- (公式2)中的 $\sigma'(z^l)$ 项: 如果神经元接近饱和 $\delta_j^l$ 也可能变小。相应地, 意味着任何一个输入到饱和神经元的权重都会学习缓慢。
+- *如果输入神经元是低激活量的, 或者输出神经元已经饱和(高激活量或低激活量), 那么权重就会学习得缓慢* 。
+**** 四个基本等式的证明
+- 公式一:
+  <<Eqn.(2.1.7.9)>>
+  #+BEGIN_SRC latex :results raw :exports none
+    \begin{equation}
+      \delta_{j}^{L}=\frac{\partial C}{\partial a_{j}^{L}}\sigma(z_{j}^{L})
+    \end{equation}
+  #+END_SRC 
+
+  #+RESULTS:
+  \begin{equation}
+    \delta_{j}^{L}=\frac{\partial C}{\partial a_{j}^{L}}\sigma(z_{j}^{L})
+  \end{equation}
+  - 对 $\delta^{l}$ 得定义应用链式法则该写成带有输出激活值得偏导数形式
+    <<Eqn.(2.1.7.10)>>
+    #+BEGIN_SRC latex :results raw :exports none
+      \begin{align}
+        \delta_{j}^{L}&=\frac{\partial C}{\partial z_{j}^{L}}\\
+                      &=\sum_{k}^{k=n^{L}}\frac{\partial C}{\partial a_{k}^{L}}\frac{\partial a_{k}^{L}}{\partial z_{j}^{L}}
+      \end{align}
+    #+END_SRC 
+ 
+    #+RESULTS:
+     \begin{align}
+      \delta_{j}^{L}&=\frac{\partial C}{\partial z_{j}^{L}}\\
+                    &=\sum_{k}^{k=n^{L}}\frac{\partial C}{\partial a_{k}^{L}}\frac{\partial a_{k}^{L}}{\partial z_{j}^{L}}
+     \end{align}
+  - 这里的求和是对于输出层的所有神经元 $k$ 而言的。当 $j=k$ 时, 第 $k^{th}$ 个神经元的输出激活 $a_k^L$ 只依赖于对第 $j^{th}$ 个神经元的输入 $z_j^L$ 。并且当 $j\neqk$ 时, $\frac{\partial a_k^L}{\partial z_j^L}$ 项为零。因此我们可以简化上面的方程为:
+    <<Eqn.(2.1.7.11)>>
+    #+BEGIN_SRC latex :results raw :exports none
+      \begin{equation}
+        \delta_{j}^{L}=\frac{\partial C}{\partial a_{j}^{L}}\frac{\partial a_{j}^{L}}{\partial z_{j}^{L}}
+      \end{equation}
+    #+END_SRC 
+
+    #+RESULTS:
+    \begin{equation}
+      \delta_{j}^{L}=\frac{\partial C}{\partial a_{j}^{L}}\frac{\partial a_{j}^{L}}{\partial z_{j}^{L}}
+    \end{equation}
+  - 将因为 $a_j^L=\sigma(z_j^L)$ 右边的第二项可以写为 $\sigma'(z_j^L)$,则
+    <<Eqn.(2.1.7.12)>>
+    #+BEGIN_SRC latex :results raw :exports none
+      \begin{equation}
+        \delta_{j}^{L}=\frac{\partial C}{\partial a_{j}^{L}}\sigma'(z_{j}^{L})
+      \end{equation}
+    #+END_SRC 
+
+    #+RESULTS:
+    \begin{equation}
+      \delta_{j}^{L}=\frac{\partial C}{\partial a_{j}^{L}}\sigma'(z_{j}^{L})
+    \end{equation}
+- 公式二:
+  <<Eqn.(2.1.7.13)>>
+  #+BEGIN_SRC latex :results raw :exports none
+    \begin{align}
+      \delta_{j}^{l}&=\frac{\partial C}{\partial z_{j}^{l}}\\
+                    &=\sum_{k=1}^{k=n^{l+1}}\frac{\partial C}{\partial z_{k}^{l+1}}\frac{\partial z_{k}^{l+1}}{\partial z_{j}^{l}}\\
+                    &=\sum_{k}^{k=n^{l+1}}\frac{\partial z_{k}^{l+1}}{\partial z_{j}^{l}}\delta_{k}^{l+1}\\
+                    &=\sum_{k}^{k=n^{l+1}}\frac{\partial\sum_{j=1}^{j=n^{l}}w_{kj}^{l+1}a_{j}^{l}+b_{k}^{l+1}}{\partial z_{j}^{l}}\delta_{k}^{l+1}\\
+                    &=\sum_{k}^{k=n^{l+1}}w_{kj}^{l+1}\delta_{k}^{l+1}\sigma'(z_{j}^{l})
+    \end{align}
+  #+END_SRC 
+
+  #+RESULTS:
+  \begin{align}
+    \delta_{j}^{l}&=\frac{\partial C}{\partial z_{j}^{l}}\\
+                  &=\sum_{k=1}^{k=n^{l+1}}\frac{\partial C}{\partial z_{k}^{l+1}}\frac{\partial z_{k}^{l+1}}{\partial z_{j}^{l}}\\
+                  &=\sum_{k}^{k=n^{l+1}}\frac{\partial z_{k}^{l+1}}{\partial z_{j}^{l}}\delta_{k}^{l+1}\\
+                  &=\sum_{k}^{k=n^{l+1}}\frac{\partial\sum_{j=1}^{j=n^{l}}w_{kj}^{l+1}a_{j}^{l}+b_{k}^{l+1}}{\partial z_{j}^{l}}\delta_{k}^{l+1}\\
+                  &=\sum_{k}^{k=n^{l+1}}w_{kj}^{l+1}\delta_{k}^{l+1}\sigma'(z_{j}^{l})
+  \end{align}
+*** 万能近似定理
+** 深度学习的正则化
+- 参数范数惩罚
+  <<Eqn.(2.2.1.1)>>
+  #+BEGIN_SRC latex :results raw :exports none
+    \begin{equation}
+      \widetilde{J}(\theta;X,y)=J(\theta;X,y)+\alpha\Omega(\theta)
+    \end{equation}
+  #+END_SRC 
+
+  #+RESULTS:
+  \begin{equation}
+    \widetilde{J}(\theta;X,y)=J(\theta;X,y)+\alpha\Omega(\theta)
+  \end{equation}
+- 作为约束的范数惩罚
+  <<Eqn.(2.2.1.2)>>
+  #+BEGIN_SRC latex :results raw :exports none
+    \begin{equation}
+      \mathcal{L}(\theta,\alpha;X,y)=J(\theta;X,y)+\alpha(\Omega(\theta)-k)
+    \end{equation}
+  #+END_SRC 
+
+  #+RESULTS:
+  \begin{equation}
+    \mathcal{L}(\theta,\alpha;X,y)=J(\theta;X,y)+\alpha(\Omega(\theta)-k)
+  \end{equation}
+- 数据集增强:使用更多的数据进行训练
+- 噪声鲁棒性:
+  - 对于某些模型而言,向输入添加方差极小的噪声等价于对权重施加范数惩罚
+  - 将噪声加到权重
+  - 显式地对标签上的噪声进行建模(大多数数据集的 $y$ 标签都有一定错误。错误的 $y$ 不利于最大化 $\log{p(y|x)}$
+- 半监督学习
+- 多任务学习:通过合并几个任务中的样例(可以视为对参数施加的软约束)来提高泛化的一种方式
+- 提前终止:当训练有足够的表示能力甚至会过拟合的大模型时,我们经常观察到,训练误差会随着时间的推移逐渐降低但验证集的误差会再次上升。返回使验证集误差最低的参数设置。
+- 参数绑定和参数共享
+- 稀疏表示:惩罚神经网络中的激活单元,稀疏化激活单元。这种策略间接地对模型参数施加了复杂惩罚。
+- Bagging 和其他集成方法:通过结合几个模型降低泛化误差的技术。
+- Dropout
+- 对抗训练:通过对抗训练减少原有独立同分布的测试集的错误率---在对抗扰动的训练集样本上训练网络。
+** 深度模型中的优化
+*** 优化中的挑战
+- 病态: 在优化凸函数时, 会遇到一些挑战。最突出的是 Hessian 矩阵 $H$ 的病态。
+- 局部极小值: 由于模型可辨识性(model identifiability)问题,神经网络和任意具有多个等效参数化潜变量的模型都会具有多个局部极小值。
+  模型可辨性:
+  - 可辨认的: 如果一个足够大的训练集可以唯一确定一组模型参数。
+  - 不可辨认的: 带有潜变量(通过相互交换潜变量导致模型参数不唯一)的模型。
+      不可辩认的例子:
+    - *权重空间对称性*: 考虑神经网络的第一层, 我们可以交换单元 $i$ 和单元 $j$ 的传入权重向量、传出权重向量而得到等价的模型。如果神经网络有 $m$ 层, 每层有 $n$ 个单元, 那么会有 $n!m$ 种排列隐藏单元的方式。
+    - 在任意整流线性网络或者 $maxout$ 网络中, 我们可以将传入权重和偏置扩大 $\alpha$ 倍, 然后将传出权重扩大 $1/\alpha$ 倍, 而保持模型等价。这意味着, 如果代价函数不包括如权重衰减这种直接依赖于权重而非模型输出的项, 那么整流线性网络或者 $maxout$ 网络的每一个局部极小点都在等价的局部极小值的 $m\times n$ 维双曲线上。
+- 高原、鞍点和其他平坦区域
+- *悬崖和梯度爆炸* (启发式梯度截断(gradient clipping)来避免其严重的后果): 多层神经网络通常存在像悬崖一样的斜率较大区域。这是由于几个较大的权重相乘导致的。遇到斜率极大的悬崖结构时, 梯度更新会很大程度地改变参数值, 通常会完全跳过这类悬崖结构。
+  [[file:image/Deep learning/_1529745518_669056320_2018-09-05_18-43-03.png]]
+- *长期依赖*: 当计算图变得极深时, 由于变深的结构使模型丧失了学习到先前信息的能力, 让优化变得极其困难。
+- 非精确梯度
+- 局部和全局结构间的弱对应
+- 优化的理论限制
+
+*** 基本算法
+**** 随机梯度下降
+#+caption: 随机梯度下降(SGD) $z$ 在第 $k$ 个训练迭代的更新
+[[file:image/Deep learning/_1529745564_88290078_2018-09-05_18-50-05.png]]
+
+**** 动量
+更新规则
+<<Eqn.(2.3.2.1)>>
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{align}
+    v &\gets \alpha v - \epsilon\nabla_{\theta} \left( \frac{1}{m}\sum_{i=1}^{m}L \left(f(x^{(i)};\theta),y^{(i)}\right) \right) \\
+    \theta &\gets \theta+v
+  \end{align}
+#+END_SRC 
+
+#+RESULTS:
+\begin{align}
+  v &\gets \alpha v - \epsilon\nabla_{\theta} \left( \frac{1}{m}\sum_{i=1}^{m}L \left(f(x^{(i)};\theta),y^{(i)}\right) \right) \\
+  \theta &\gets \theta+v
+\end{align}
+
+该方法可以看成是从物理角度上对于最优化问题得到的启发。
+- 损失值可以理解为是山的高度(因此高度势能是 $U=mgh$, 所以有 $U \propto h$)。
+- 则 *梯度可以看作时加速度* ($F=-\triangledown{U}=ma$), 质点所受的力就是 *损失函数的(负)梯度*
+- $v$(速度): 用随机数字初始化参数等同于在某个位置给质点设定初始速度为 0。
+- $\alpha$: 超参数, 模拟某种摩擦机制, 一般设为 0.9, 交叉验证, 通常设为[0.5,0.9,0.95,0.99]中的一个。
+- 步长则为: 则若 $\alpha=0.9$, 对应着速度最大 10 倍于梯度算法。
+  <<Eqn.(2.3.2.2)>>
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{equation}
+    \frac{\epsilon||g||}{1-\alpha}
+  \end{equation}
+#+END_SRC 
+
+#+RESULTS:
+\begin{equation}
+  \frac{\epsilon||g||}{1-\alpha}
+\end{equation}
+
+这样最优化过程可以看做是模拟参数向量(即质点)在地形上滚动的过程。
+*通过动量更新,参数向量会在任何有持续梯度的方向上增加速度*
+#+caption: 使用动量的随机梯度下降
+[[file:image/Deep learning/_1529746017_2078453386_2018-09-05_19-02-20.png]]
+
+动量的主要目的是解决两个问题:
+- Hessian 矩阵的病态条件: 黑箭头为梯度下降将在该点采取的策略, 红线为动量采取的策略
+  [[file:image/Deep learning/_1529746091_100977761_2018-09-05_19-02-52.png]]
+- 随机梯度的方差
+
+**** Nesterov 动量
+更新规则
+<<Eqn.(2.3.2.3)>>
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{align}
+    v &\gets \alpha v - \epsilon\nabla_{\theta} \left[ \frac{1}{m}\sum_{i=1}^{m}L \left(f(x^{(i)};\theta+\alpha v),y^{(i)}\right) \right] \\
+    \theta &\gets \theta+v
+  \end{align}
+#+END_SRC 
+
+#+RESULTS:
+\begin{align}
+  v &\gets \alpha v - \epsilon\nabla_{\theta} \left[ \frac{1}{m}\sum_{i=1}^{m}L \left(f(x^{(i)};\theta+\alpha v),y^{(i)}\right) \right] \\
+  \theta &\gets \theta+v
+\end{align}
+
+Nesterov 动量优化或 Nesterov 加速梯度(Nesterov Accelerated Gradient, NAG)的思想是测量损失函数的梯度不是在局部位置, 而是在动量方向稍微靠前。NAG 最终比常规的动量优化快得多。
+
+*与 Nesterov 动量的区别: 梯度的计算上加上了当前速度(校正因子)* 。
+
+#+caption: 使用 Nesterov 动量的随机梯度下降(SGD)
+[[file:image/Deep learning/Nesterov.png]]
+
+*** 参数初始化策略
+**** 权重初始化
+需要在不同单元间"破坏对称性":
+- 在高维空间上使用高熵分布来随机初始化,计算代价小并且不太可能分配单元计算彼此相同的函数。
+- 有和输出一样多的输入,可以使用 Gram-Schmidt 正交化于初始的权重矩阵,保证每个单元计算彼此非常不同的函数。
+
+初始权重大小的选择:
+- 选择大的权重
+  - 优点:
+    - 具有更强的破坏对称性的作用,有助于避免冗余的单元
+    - 有助于避免在每层线性成分的前向或反向传播中丢失信号---矩阵中更大的值在矩阵乘法中有更大的输出
+  - 缺点:
+    - 会在前向传播或反向传播中产生爆炸的值
+    - 较大的权重也会产生使得激活函数饱和的值,导致饱和单元的梯度完全丢失
+    - 在循环网络中,很大的权重也可能导致混沌(chaos)(对于输入中很小的扰动非常敏感,导致确定性前向传播过程表现随机)
+
+选择权重的初始化大小的方法:
+设 $m$ 个输入和 $n$ 输出: 可从以下分布采样权重
+| Activation function | Uniform distribution [-r,r]      | Normal distribution                   |
+| Logistic            | $r=\sqrt{\frac{6}{m+n}}$         | $\sigma=\sqrt{\frac{2}{m+n}}$         |
+| Hyperbolic tangent  | $r=4\sqrt{\frac{6}{m+n}}$        | $\sigma=4\sqrt{\frac{2}{m+n}}$        |
+| ReLU(its variants)  | $r=\sqrt{2}\sqrt{\frac{6}{m+n}}$ | $\sigma=\sqrt{2}\sqrt{\frac{2}{m+n}}$ |
+
+- *针对 ReLU 神经元的特殊初始化: 使用标准差为的高斯分布来初始化权重, 其中 $n$ 是输入的神经元数* 。
+  例如用 numpy 可以写作: =w = np.random.randn(n) * sqrt(2.0/n)= 。(最佳实践)
+  相关论文:[Delving Deep into Rectifiers: Surpassing Human-Level Performance on ImageNet Classification](https://arxiv.org/abs/1502.01852)
+- 随机正交矩阵
+
+数值范围的选择:
+- 稀疏初始化: 每个单元初始化为恰好有 $k$ 个非零权重。这个想法保持该单元输入的总数量独立于输入数目 $m$ , 而不使单一权重元素的大小随 $m$ 缩小。
+- 超参数搜索算法
+
+**** 偏置初始化
+- 设置为零
+- 设置为非零的情况:
+  - 如果偏置是作为输出单元,那么初始化偏置以获取正确的输出边缘统计通常是有利的。
+  - 想要选择偏置以避免初始化引起太大饱和。
+  - 一个单元会控制其他单元能否参与到等式中。
+
+**** 方差或精确度参数初始化
+- 通常初始化方差或精确度参数为 1。
+- 假设初始权重足够接近零, 设置偏置可以忽略权重的影响, 然后设定偏置以产生输出的正确边缘均值,
+
+**** 批量标准化(Batch Normalization, BN)
+解决梯度消失/爆炸问题
+让激活数据在训练开始前通过一个网络, 网络处理数据使其服从标准高斯分布。
+
+*** 自适应学习率算法
+学习率对模型的性能有显著的影响
+
+**** AdaGrad
+- 应用于凸问题时快速收敛
+- 独立地适应所有模型参数的学习率, 缩放每个参数反比于其所有梯度历史平方值总和的平方根(Duchi et al., 2011)。具有损失最大偏导的参数相应地有一个快速下降的学习率, 而具有小偏导的参数在学习率上有相对较小的下降。净效果是在参数空间中更为平缓的倾斜方向会取得更大的进步。
+[[file:image/Deep learning/_1529746832_2013423627_2018-09-05_19-23-48.png]]
+
+缺点: 对于训练深度神经网络模型而言, 从训练开始时积累梯度平方会导致有效学习率过早和过量的减小, 经常停止得太早, 学习率被缩减得太多, 以至于在达到全局最优之前, 算法完全停止。
+
+#+caption: AdaGrad 算法
+[[file:image/Deep learning/AdaGrad.png]]
+
+**** RMSProp
+修改 AdaGrad 以在非凸设定下效果更好, 改变梯度积累为指数加权的移动平均
+
+#+caption: RMSProp 算法
+[[file:image/Deep learning/RMSProp.png]]
+
+#+caption: 使用 Nesterov 动量的 RMSProp 算法
+[[file:image/Deep learning/_1529746945_1091523478_2018-09-05_19-27-56.png]]
+
+**** Adam
+#+caption: Adam 算法
+[[file:image/Deep learning/_1529746985_1067190516_2018-09-05_19-30-11.png]]
+
+** 卷积神经网络(CNN)
+卷积神经网络的各层中的神经元是 3 维排列的: 宽度、高度和深度(激活数据体的第三个维度, 如颜色通道)。
+
+*** 构建卷积神经网络
+通过将下面这些层叠加起来,就可以构建一个完整的卷积神经网络:
+- 卷积层
+- 汇聚/池化层(Pooling)
+- 全连接层(FC)
+
+**** 网络结构得例子
+一个用于 CIFAR-10 图像数据分类的卷积神经网络的结构可以是
+[输入层 -> 卷积层 -> ReLU层 -> 汇聚层 -> 全连接层]
+- 输入层: 输入[32x32x3]存有图像的原始像素值(宽高均为32, 有3个颜色通道)。
+- 卷积层: 神经元与输入层中的一个局部区域相连, 每个神经元都计算自己与输入层相连的小区域与自己权重的内积。卷积层会计算所有神经元的输出。如果我们使用12个滤波器(也叫作核), 得到的输出数据体的维度就是[32x32x12]。
+- ReLU层: 将会逐个元素地进行激活函数操作, 比如使用以 0 为阈值的 $max(0,x)$ 作为激活函数。该层对数据尺寸没有改变, 还是[32x32x12]。
+- 汇聚层: 在空间维度(宽度和高度)上进行降采样(downsampling)操作,数据尺寸变为[16x16x12]。
+- 全连接层: 计算分类评分, 数据尺寸变为[1x1x10], 其中10个数字对应的就是 CIFAR-10 中 10 个类别的分类评分值。正如其名, 全连接层与常规神经网络一样, 其中每个神经元都与前一层中所有神经元相连接。
+
+**** 层得排列规律
+卷积神经网络最常见的形式就是将一些卷积层和 ReLU 层放在一起,其后紧跟汇聚层,然后重复如此直到图像在空间上被缩小到一个足够小的尺寸, 在某个地方过渡成成全连接层也较为常见。最后的全连接层得到输出, 比如分类评分等, 如下:
+INPUT -> [[CONV -> RELU]*N -> POOL?]*M -> [FC -> RELU]*K -> FC
+- *: 指的是重复次数
+- POOL?: 指的是一个可选的汇聚层。
+- 重复次数的选择: 通常 0 ≤ N ≤ 3,M ≥ 0,0 ≤ K ≤ 3。
+
+一些常见的网络结构规律:
+- INPUT -> FC,实现一个线性分类器,此处 N = M = K = 0。
+- INPUT -> CONV -> RELU -> FC
+- INPUT -> [CONV -> RELU -> POOL]*2 -> FC -> RELU -> FC。此处在每个汇聚层之间有一个卷积层。
+- INPUT -> [CONV -> RELU -> CONV -> RELU -> POOL]*3 -> [FC -> RELU]*2 -> FC。此处每个汇聚层前有两个卷积层, 这个思路适用于更大更深的网络, 因为在执行具有破坏性的汇聚操作前, 多重的卷积层可以从输入数据中学习到更多的复杂特征。
+  建议:几个小滤波器卷积层的组合比一个大滤波器卷积层好。
+
+**** 层的尺寸设置规律
+- 输入层: (包含图像的)应该能被2整除很多次。常用数字包括32(比如CIFAR-10), 64, 96(比如STL-10)或224(比如ImageNet卷积神经网络), 384和512。
+- 卷积层: 使用小尺寸滤波器(比如 3x3 或最多 5x5), 使用步长 S=1。对输入数据进行零填充, 这样卷积层就不会改变输入数据在空间维度上的尺寸。
+- 汇聚层: 负责对输入数据的空间维度进行降采样。最常用的设置是用 2x2 感受野(即F=2)的最大值汇聚, 步长为2(S=2)。
+*** 卷积层
+- 卷积层的参数是由一些可学习的滤波器集合构成的。每个滤波器在空间上(宽度和高度)都比较小, 但是深度和输入数据一致。
+- 在前向传播的时候, 让每个滤波器都 *在输入数据的宽度和高度上滑动* (更精确地说是卷积), 然后计算整个滤波器和输入数据任一处的内积。当滤波器沿着输入数据的宽度和高度滑过后, 会生成一个2维的激活图(activation map), 激活图给出了在每个空间位置处滤波器的反应。
+- 直观地来说, 网络会 *让滤波器学习到当它看到某些类型的视觉特征时就激活*, 具体的视觉特征可能是某些方位上的边界, 或者在第一层上某些颜色的斑点, 甚至可以是网络更高层上的蜂巢状或者车轮状图案。
+
+**** 局部连接
+每个神经元只与输入数据的一个局部区域连接。该连接的空间大小叫做神经元的感受野(receptive field)。
+#+BEGIN_QUOTE
+注: 感受野的大小是一个超参数,即滤波器的空间大小。
+原因:在处理图像这样的高维度输入时, 让每个神经元都与前一层中的所有神经元进行全连接是不现实的。
+#+END_QUOTE
+
+例子:
+[[file:image/Deep learning/_1529831022_52793150_2018-09-04_20-03-58.png]]
+- 红色的是输入数据体(比如CIFAR-10中的图像)
+- 蓝色的部分是第一个卷积层中的神经元。
+  - 卷积层中的每个神经元都只是与输入数据体的一个局部在空间上相连。
+  - 与输入数据体的所有深度维度全部相连(如, 所有颜色通道)。在深度方向上有多个神经元(本例中5个), 它们都接受输入数据的同一块区域(感受野相同)。
+
+**** 空间排列
+控制着输出数据体的尺寸的 3 个超参数:
+- 深度(depth):和滤波器的数量一致, 沿着深度方向排列、感受野相同的神经元集合称为深度列(depth column), 也有人使用纤维(fiber)来称呼它们。
+- 步长(stride):在滑动滤波器的时候, 必须指定步长。当步长为 1, 滤波器每次移动 1 个像素。当步长为 2(或者不常用的3, 或者更多, 这些在实际中很少使用), 滤波器滑动时每次移动 2 个像素。这个操作会让输出数据体在空间上变小。
+- 零填充(zero-padding):将输入数据体用 0 在边缘处进行填充是很方便的
+  - 零填充的尺寸是一个超参数。
+  - 性质: 可以控制输出数据体的空间尺寸(最常用的是用来保持输入数据体在空间上的尺寸, 这样输入和输出的宽高都相等)
+
+输出数据体在空间上的尺寸的计算:
+符号说明:假设输入数组的空间形状是正方形
+- 输入数据体尺寸:$W_{in} \times H_{in} \times D_{in}$
+- 滤波器的数量:$K$
+- 滤波器的空间尺寸(感受野尺寸):$F$
+- 步长:$S$
+- 零填充的数量:$P$
+对这些超参数,常见的设置是 $F=3,S=1,P=1$ 。
+
+$W_{out}\times{H_{out}\times{D_{i}}}$ 由 $n$ 个 $W_{in} \times H_{in} \times D_{n}$ 经过滤波器计算的神经元的值相加合并成一个神经元。
+
+输出数据体的尺寸:$W_{out} \times H_{out} \times D_{out}$
+- $W_{out}$: $(W_{in}-F+2P/S+1$
+- $H_{out}$: $(H_{in}-F+2P)/S+1$
+- $D_{out}$: $K$
+**** 参数共享
+使用参数共享是用来控制参数的数量
+- 每个滤波器包含 $F\cdot F\cdot D1$ 个权重
+- 卷积层一共有 $F\cdot F\cdot D1\cdot K$ 个权重和 $K$ 个偏置
+- 在输出数据体中,第 $d$ 个深度切片(空间尺寸是 $W2 \times H2$), 用第 $d$ 个滤波器和输入数据进行有效卷积运算(在滤波器和输入数据的局部区域间做点积)的结果(使用步长 $S$), 最后在加上第 $d$ 个偏差。
+假设:如果一个特征在计算某个空间位置 $(x,y)$ 的时候有用,那么它在计算另一个不同位置 $(x2,y2)$ 的时候也有用。基于这个假设,可以显著地减少参数数量
+
+#+BEGIN_QUOTE
+注:有时候参数共享假设可能没有意义(如, 人脸), 特别是当卷积神经网络的输入图像是一些明确的中心结构时候。这时候我们就应该期望在图片的不同位置学习到完全不同的特征, 放松参数共享的限制的层, 称为局部连接层(Locally-Connected Layer)。
+#+END_QUOTE
+**** 其他卷积
+- 1x1卷积: 一些论文中使用了1x1的卷积, 这个方法最早是在论文Network in Network中出现。人们刚开始看见这个1x1卷积的时候比较困惑, 尤其是那些具有信号处理专业背景的人。因为信号是2维的, 所以1x1卷积就没有意义。但是, 在卷积神经网络中不是这样, 因为这里是对3个维度进行操作, 滤波器和输入数据体的深度是一样的。比如, 如果输入是[32x32x3], 那么1x1卷积就是在高效地进行3维点积(因为输入深度是3个通道)。
+- 扩张卷积: 最近一个研究(Fisher Yu和Vladlen Koltun的论文)给卷积层引入了一个新的叫扩张(dilation)的超参数。到目前为止, 我们只讨论了卷积层滤波器是连续的情况。但是, 让滤波器中元素之间有间隙也是可以的, 这就叫做扩张。举例, 在某个维度上滤波器 w 的尺寸是3, 那么计算输入 x 的方式是: w[0]*x[0] + w[1]*x[1] + w[2]*x[2], 此时扩张为0。如果扩张为1, 那么计算为: w[0]*x[0] + w[1]*x[2] + w[2]*x[4]。换句话说, 操作中存在1的间隙。在某些设置中, 扩张卷积与正常卷积结合起来非常有用, 因为在很少的层数内更快地汇集输入图片的大尺度特征。比如, 如果上下重叠 2 个 3x3 的卷积层, 那么第二个卷积层的神经元的感受野是输入数据体中 5x5 的区域(以成这些神经元的有效感受野是 5x5)。如果我们对卷积进行扩张, 那么这个有效感受野就会迅速增长。
+*** 汇聚层
+- 作用是逐渐降低数据体的空间尺寸, 这样的话就能减少网络中参数的数量, 使得计算资源耗费变少, 也能有效控制过拟合。
+- 汇聚层使用 MAX 操作, 对输入数据体的每一个深度切片独立进行操作, 改变它的空间尺寸。
+  - 最常见的形式是汇聚层使用尺寸 2x2 的滤波器, 以步长为 2 来对每个深度切片进行降采样, 将其中 75% 的激活信息都丢掉。每个 MAX 操作是从 4 个 数字中取最大值(也就是在深度切片中某个 2x2 的区域)。
+
+**** 汇聚层类型
+- 最大汇聚层: 在实践中, 最大汇聚层通常只有两种形式:
+  - 重叠汇聚(overlapping pooling): F=3, S=2
+  - 另一个: F=2, S=2。对更大感受野进行汇聚需要的汇聚尺寸也更大, 而且往往对网络有破坏性。
+- 普通汇聚(General Pooling):
+  - 平均汇聚(average pooling)
+  - L-2范式汇聚(L2-norm pooling)。
+*注*: 平均汇聚历史上比较常用, 但是现在已经很少使用了。因为实践证明, 最大汇聚的效果比平均汇聚要好。
+
+*** 其他技术
+**** 局部响应归一化(Local Response Normalization)
+LRN 是一种提高深度学习准确度的技术方法。LRN一般是在激活、池化函数后的一种方法。
+在 AlexNet 中, 提出了 LRN 层, 对局部神经元的活动创建竞争机制, 使其中响应比较大对值变得相对更大, 并抑制其他反馈较小的神经元, 增强了模型的泛化能力。
+
+<<Eqn.(2.4.4.1)>>
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{equation}
+    b_{x,y}^{i}=a_{x,y}^{i} / \left(k+\alpha \sum^{\min(N-1,i+\frac{n}{2})}_{j=\max(0,i-\frac{n}{2})}(a_{x,y}^{j})^{2} \right)^{\beta}
+  \end{equation}
+#+END_SRC 
+
+#+RESULTS:
+\begin{equation}
+  b_{x,y}^{i}=a_{x,y}^{i} / \left(k+\alpha \sum^{\min(N-1,i+\frac{n}{2})}_{j=\max(0,i-\frac{n}{2})}(a_{x,y}^{j})^{2} \right)^{\beta}
+\end{equation}
+
+- $i$: 表示第 $i$ 个神经元在位置 $(x,y)$ 使用激活函数 ReLU 后的输出
+- $n$: 同一个位置上临近的 kernel map 的数目
+- $N$: Kernel 的总数
+- $K$、$n$、$\alpha$、$\beta$: 超参数
+
+#+BEGIN_QUOTE
+后期争议:在 2015 年 cite:simonyan14_very_deep_convol_networ_large. 提到 LRN 基本没什么用。
+#+END_QUOTE
+
+**** 反卷积
+[[file:image/Deep learning/_1530183763_1721220464_2018-09-05_18-22-08.png]]
+** 循环神经网络(RNN)
+*** 展开计算图
+隐藏单元值得常用形式:
+<<Eqn.(2.5.1.1)>>
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{equation}
+    h^{\left(t\right)}=f\left(h^{\left(t-1\right)},x^{\left(t\right)};\theta\right)
+  \end{equation}
+#+END_SRC 
+
+#+RESULTS:
+\begin{equation}
+  h^{\left(t\right)}=f\left(h^{\left(t-1\right)},x^{\left(t\right)};\theta\right)
+\end{equation}
+
+[[file:image/Deep learning/_1530262172_554914944_2018-09-05_19-43-47.png]]
+- 回路原理图(左图): 黑色方块表示单个时间步的延迟
+- 展开计算图(右图): $t$ 表示时间步
+
+*** 循环神经网络的几种设计模式
+- 每个时间步都有输出, 并且隐藏单元之间有循环连接的循环网络。
+  [[file:image/Deep learning/_1530262291_1020759302_2018-09-05_19-44-28.png]]
+- 每个时间步都产生一个输出, 只有当前时刻的输出到下个时刻的隐藏单元之间有循环连接的循环网络。
+  [[file:image/Deep learning/_1530262333_136636364_2018-09-05_19-44-52.png]]
+- 隐藏单元之间存在循环连接, 但读取整个序列后产生单个输出的循环网络。
+  [[file:image/Deep learning/_1530262351_210456151_2018-09-05_19-45-17.png]]
+
+*** BPTT 和导师驱动过程
+**** BPTT
+设序列 $x_{t}\in{\{x_{1},x_{2},\dots,x_{\tau}\}}$, 输出单元 $o_{i}\in{\{o_{1},o_{2},\dots,o_{\tau}\}}$, $y^{t}\in{\{y^{1},y^{2},\dots,y^{\tau}\}}$ 表示正确的序列, 整个序列表示一个训练样本, 则总误差就是每个时间步长的误差的总和。
+
+<<Eqn.(2.5.3.1)>>
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{align}
+    a^{t}&=Wh^{t-1}+Ux^{t}+b\\
+    h^{t}&=tanh\left(a^{t}\right)\\
+    o^{t}&=Vh^{t}+c\\
+    \hat{y}^{t}&=softmax\left(o^{t}\right)\\
+    L&=-\sum_{t=1}^{\tau}{y^{t}\cdot{ln\left(\hat{y}^{t}\right)}}\\
+    L^{t}&=-y^{t}\cdot{ln\left(\hat{y}^{t}\right)}
+\end{align}
+#+END_SRC 
+
+#+RESULTS:
+\begin{align}
+    a^{t}&=Wh^{t-1}+Ux^{t}+b\\
+    h^{t}&=tanh\left(a^{t}\right)\\
+    o^{t}&=Vh^{t}+c\\
+    \hat{y}^{t}&=softmax\left(o^{t}\right)\\
+    L&=-\sum_{t=1}^{\tau}{y^{t}\cdot{ln\left(\hat{y}^{t}\right)}}\\
+    L^{t}&=-y^{t}\cdot{ln\left(\hat{y}^{t}\right)}
+\end{align}
+
+- $\nabla_{o_{i}^t}L$ 的梯度:
+  <<Eqn.(2.5.3.2)>>
+  #+BEGIN_SRC latex :results raw :exports none
+    \begin{align}
+      \frac{\partial{L}}{\partial{L^{t}}}&=1\\
+      \nabla_{\hat{y}_{i}^{t}}L&=\frac{\partial{L}}{\partial{L^{t}}}\frac{\partial{L^{t}}}{\partial{\hat{y}_{i}^{t}}}=-\frac{1}{\hat{y}_{i}^{t}}\\
+      \nabla_{o_{i}^{t}}L&=\nabla_{\hat{y}_{i}^{t}}L\cdot{\frac{\partial{\hat{y}_{i}^{t}}}{\partial{o_{i}^{t}}}}=-\frac{1}{\hat{y}_{i}^{t}}\cdot{\hat{y}_{i}^{t}\left(1-\hat{y}_{i}^{t}\right)}=\hat{y}_{i}^{t}-1
+    \end{align}
+  #+END_SRC
+
+  #+RESULTS:
+  \begin{align}
+    \frac{\partial{L}}{\partial{L^{t}}}&=1\\
+    \nabla_{\hat{y}_{i}^{t}}L&=\frac{\partial{L}}{\partial{L^{t}}}\frac{\partial{L^{t}}}{\partial{\hat{y}_{i}^{t}}}=-\frac{1}{\hat{y}_{i}^{t}}\\
+    \nabla_{o_{i}^{t}}L&=\nabla_{\hat{y}_{i}^{t}}L\cdot{\frac{\partial{\hat{y}_{i}^{t}}}{\partial{o_{i}^{t}}}}=-\frac{1}{\hat{y}_{i}^{t}}\cdot{\hat{y}_{i}^{t}\left(1-\hat{y}_{i}^{t}\right)}=\hat{y}_{i}^{t}-1
+  \end{align}
+- $\nabla_{h^{\tau}}L$ 的梯度：
+  <<Eqn.(2.5.3.3)>>
+  #+BEGIN_SRC latex :results raw :exports none
+    \begin{equation}
+      \nabla_{h^{\tau}}L=\nabla_{o^{\tau}}L\left(\frac{\partial{o_{i}^{\tau}}}{\partial{h^{\tau}}}\right)=V^{T}\left(\hat{y}^{\tau}-1\right)
+    \end{equation}
+  #+END_SRC 
+
+  #+RESULTS:
+  \begin{equation}
+    \nabla_{h^{\tau}}L=\nabla_{o^{\tau}}L\left(\frac{\partial{o_{i}^{\tau}}}{\partial{h^{\tau}}}\right)=V^{T}\left(\hat{y}^{\tau}-1\right)
+  \end{equation}
+- $\nabla_{h^{t}}L$ 的梯度：
+  <<Eqn.(2.5.3.4)>>
+  #+BEGIN_SRC latex :results raw :exports none
+    \begin{align}
+      \nabla_{h^{t}}L&=\left(\nabla_{h^{t+1}}L\right)\left(\frac{\partial{h^{t+1}}}{\partial{a^{t+1}}}\right)+\left(\nabla_{o^{t}}L\right)\left(\frac{\partial{o^{t}}}{\partial{h^{t}}}\right)^{T}\\
+                     &=\left(\nabla_{h^{t+1}}L\right)\cdot{diag\left(1-\left(h^{t+1}\right)^{2}\right)W^{T}}+V^{T}\nabla_{o^{t}}L\\
+                     &=\nabla_{h^{\tau}}L\cdot{\prod_{i=t+1}^{\tau}{diag\left(1-\left(h^{i}\right)^{2}\right)W^{T}}}+\prod_{i=t}^{\tau}V^{T}\nabla_{o^{t}}L\cdot{\prod_{j=t+1}^{i-t}{diag\left(1-\left(h^{j}\right)^{2}\right)W^{T}}}
+    \end{align}
+  #+END_SRC
+
+  #+RESULTS:
+  \begin{align}
+    \nabla_{h^{t}}L&=\left(\nabla_{h^{t+1}}L\right)\left(\frac{\partial{h^{t+1}}}{\partial{a^{t+1}}}\right)+\left(\nabla_{o^{t}}L\right)\left(\frac{\partial{o^{t}}}{\partial{h^{t}}}\right)^{T}\\
+    &=\left(\nabla_{h^{t+1}}L\right)\cdot{diag\left(1-\left(h^{t+1}\right)^{2}\right)W^{T}}+V^{T}\nabla_{o^{t}}L\\
+    &=\nabla_{h^{\tau}}L\cdot{\prod_{i=t+1}^{\tau}{diag\left(1-\left(h^{i}\right)^{2}\right)W^{T}}}+\prod_{i=t}^{\tau}V^{T}\nabla_{o^{t}}L\cdot{\prod_{j=t+1}^{i-t}{diag\left(1-\left(h^{j}\right)^{2}\right)W^{T}}}
+  \end{align}
+由于激活函数有多个,每个激活函数都需要乘以权重所以为对角矩阵。
+- 梯度消失和爆炸问题:求 $\nabla_{h^{t}}L$ 求偏导随着越加靠前, *偏导相乘的次数就会增加, 其中的导数小于 1 是就会趋近于0, 导数越大时就会趋近于无穷* 。随着序列长度的增长, 越靠前的信息就有可能丢失。
+- 参数的梯度
+  <<Eqn.(2.5.3.5)>>
+  #+BEGIN_SRC latex :results raw :exports none
+    \begin{align}
+      \nabla_{c}L&=\sum_{t=1}^{\tau}\nabla_{o^{t}}L\cdot \left( \frac{\partial o^{t}}{\partial C} \right) ^{T}=\sum_{t=1}^{\tau}\hat{y}^{t}-1\\
+      \nabla_{V}L&=\sum_{t=1}^{\tau}\nabla_{o^{t}}L\cdot \left( \frac{\partial o^{t}}{\partial V} \right) ^{T}=\sum_{t=1}^{\tau} (\hat{y}^{t}-1)(h^{t})^{T}\\
+      \nabla_{b}L&=\sum_{t=1}^{\tau}\nabla_{h^{t}}L\cdot \left( \frac{\partial h^{t}}{\partial b^{t}} \right) ^{T}=\sum_{t=1}^{\tau}diag \left( 1- \left( h^{t} \right) ^{2} \right) \cdot\nabla_{h^{t}}L\\
+      \nabla_{W}L&=\sum_{t=1}^{\tau}\frac{\partial L}{\partial h^{t}}\frac{\partial h^{t}}{\partial a^{t}}\frac{\partial a^{t}}{\partial W^{t}}=\sum_{t=1}^{\tau}\nabla_{h^{t}}L\cdot diag \left( 1- \left( h^{t} \right) ^{2} \right) \cdot \left( h^{t-1} \right) ^{T}\\
+      \nabla_{U}L&=\sum_{t=1}^{\tau}\frac{\partial L}{\partial h^{t}}\frac{\partial h^{t}}{\partial a^{t}}\frac{\partial a^{t}}{\partial U^{t}}=\sum_{t=1}^{\tau}\nabla_{h^{t}}L \cdot diag \left( 1- \left( h^{t} \right) ^{2} \right) \cdot(x^{t})^{T}
+    \end{align}
+  #+END_SRC
+
+  #+RESULTS:
+  \begin{align}
+    \nabla_{c}L&=\sum_{t=1}^{\tau}\nabla_{o^{t}}L\cdot \left( \frac{\partial o^{t}}{\partial C} \right) ^{T}=\sum_{t=1}^{\tau}\hat{y}^{t}-1\\
+    \nabla_{V}L&=\sum_{t=1}^{\tau}\nabla_{o^{t}}L\cdot \left( \frac{\partial o^{t}}{\partial V} \right) ^{T}=\sum_{t=1}^{\tau} (\hat{y}^{t}-1)(h^{t})^{T}\\
+    \nabla_{b}L&=\sum_{t=1}^{\tau}\nabla_{h^{t}}L\cdot \left( \frac{\partial h^{t}}{\partial b^{t}} \right) ^{T}=\sum_{t=1}^{\tau}diag \left( 1- \left( h^{t} \right) ^{2} \right) \cdot\nabla_{h^{t}}L\\
+    \nabla_{W}L&=\sum_{t=1}^{\tau}\frac{\partial L}{\partial h^{t}}\frac{\partial h^{t}}{\partial a^{t}}\frac{\partial a^{t}}{\partial W^{t}}=\sum_{t=1}^{\tau}\nabla_{h^{t}}L\cdot diag \left( 1- \left( h^{t} \right) ^{2} \right) \cdot \left( h^{t-1} \right) ^{T}\\
+    \nabla_{U}L&=\sum_{t=1}^{\tau}\frac{\partial L}{\partial h^{t}}\frac{\partial h^{t}}{\partial a^{t}}\frac{\partial a^{t}}{\partial U^{t}}=\sum_{t=1}^{\tau}\nabla_{h^{t}}L \cdot diag \left( 1- \left( h^{t} \right) ^{2} \right) \cdot(x^{t})^{T}
+  \end{align}
+
+**** 导师驱动过程
+由输出反馈到模型而产生循环连接的模型可用导师驱动过程(teacher forcing)进行训练
+[[file:image/Deep learning/screenshot_2018-09-06_22-25-04.png]]
+
+- 训练时: 将训练集中正确的输出 $y(t)$ 反馈到 $h(t+1)$ 。
+- 当模型部署后: 真正的输出通常是未知的。在这种情况下, 我们用模型的输出 $o(t)$ 近似正确的输出 $y(t)$, 并反馈回模型。
+
+*注*: 如果之后网络在开环 (open-loop) 模式下使用, 即网络输出(或输出分布的样本)反馈作为输入, 那么完全使用导师驱动过程进行训练的缺点就会出现。在这种情况下, 训练期间该网络看到的输入与测试时看到的会有很大的不同。减轻此问题的一种方法是同时使用导师驱动过程和自由运行的输入进行训练。
+*** LSTM(长短时记忆神经网络)
+Long Short-Term Memory Neural Network---一般就叫做 LSTM, 是一种 RNN 特殊的类型, 可以学习长期依赖信息。
+#+caption: LSTM 中的重复模块包含四个交互的层
+[[file:image/Deep learning/screenshot_2018-09-06_22-28-58.png]]
+
+#+caption: LSTM 中的图标
+[[file:image/Deep learning/screenshot_2018-09-06_22-30-04.png]]
+
+- 每一条黑线传输着一整个向量, 从一个节点的输出到其他节点的输入。
+- 粉色的圈代表 point wise 的操作, 诸如向量的和。
+- 黄色的矩阵就是学习到的神经网络层。
+- 合在一起的线表示向量的连接。
+- 分开的线表示内容被复制, 然后分发到不同的位置。
+
+**** LSTM 的核心思想
+LSTM 的关键就是细胞状态, 水平线在图上方贯穿运行。
+细胞状态类似于传送带。直接在整个链上运行, 只有一些少量的线性交互。信息在上面流传保持不变会很容易。
+
+[[file:image/Deep learning/screenshot_2018-09-06_22-31-56.png]]
+
+LSTM 有通过精心设计的称作为"门"的结构来去除或者增加信息到细胞状态的能力。门是一种让信息选择式通过的方法。
+1. 决定我们会从细胞状态中丢弃什么信息: 通过忘记门层, 输出一个在 0 到 1 之间的数值给每个在细胞状态 $C_{t-1}$ 中的数字。1 表示"完全保留", 0 表示"完全舍弃"。
+   #+caption: 决定丢弃信息
+   [[file:image/Deep learning/screenshot_2018-09-06_22-34-30.png]]
+2. 确定什么样的新信息被存放在细胞状态中:
+   - 输入门层 $i_{t}$: 决定什么值我们将要更新。
+   - tanh 层 $\widetilde{C}_{t}$: 创建一个新的候选值向量。
+   #+caption: 确定更新的信息
+   [[file:image/Deep learning/screenshot_2018-09-06_22-37-33.png]]
+3. 更新旧细胞状态的时间: $C_{t+1}$ 更新为 $C_{t}$ 。
+   #+caption: 更新细胞状态
+   [[file:image/Deep learning/screenshot_2018-09-06_22-39-27.png]]
+4. 确定输出什么值:
+   - sigmoid 层:来确定细胞状态的哪个部分将输出出去
+   - 细胞状态通过 tanh 进行处理(得到一个在 -1 到 1 之间的值)并将它和 sigmoid 门的输出相乘,最终我们仅仅会输出我们确定输出的那部分
+   [[file:image/Deep learning/screenshot_2018-09-06_22-41-18.png]]
+
+**** LSTM 的变体
+- 增加了 "peephole connection": 让门层也会接受细胞状态的输入。
+  #+caption: peephole 连接
+  [[file:image/Deep learning/screenshot_2018-09-06_22-43-40.png]]
+- 使用 coupled 忘记和输入门
+  #+caption: coupled 忘记门和输入门
+  [[file:image/Deep learning/screenshot_2018-09-06_22-44-53.png]]
+- GRU
+  [[file:image/Deep learning/screenshot_2018-09-06_22-45-17.png]]
+** DNN 实践参考
+| 初始化   | He 初始化 |
+| 激活函数 | ELU       |
+| 标准化   | 批标准化  |
+| 正则化   | Dropout   |
+| 优化器   | Adam      |
+| 学习速率 | None      |
+
+- 如果你找不到一个好的学习率(收敛速度太慢, 所以你增加了训练速度, 现在收敛速度很快, 但是网络的准确性不是最理想的), 那么你可以尝试添加一个学习率调整, 如指数衰减。
+- 如果你的训练集太小, 你可以实现数据增强。
+- 如果你需要一个稀疏的模型, 你可以添加 l1 正则化混合(并可以选择在训练后将微小的权重归零)。如果您需要更稀疏的模型, 您可以尝试使用 FTRL 而不是 Adam 优化以及 l1 正则化。
+- 如果在运行时需要快速模型, 则可能需要删除批量标准化, 并可能用 leakyReLU 替换 ELU 激活函数。有一个稀疏的模型也将有所帮助
+* 信息论
+<<信息论>>
+信息论的基本想法是一个不太可能的事件居然发生了, 要比一个非常可能的事件发生, 能提供更多的信息。消息说: "今天早上太阳升起" 信息量是如此之少以至于没有必要发送,但一条消息说："今天早上有日食" 信息量就很丰富。
+
+** 信息量
+- 非常可能发生的事件信息量要比较少, 并且极端情况下, 确保能够发生的事件应该没有信息量。
+- 较不可能发生的事件具有更高的信息量。
+- 独立事件应具有增量的信息。例如, 投掷的硬币两次正面朝上传递的信息量, 应该是投掷一次硬币正面朝上的信息量的两倍。
+为了满足上述三个性质,我们定义一个事件 $X=x$ 的自信息(self-information)为:
+
+<<Eqn.(3.1.1.1)>>
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{equation}
+    I(X)= - \log{P\left( x \right)}
+  \end{equation}
+#+END_SRC 
+
+#+RESULTS:
+\begin{equation}
+  I(X)= - \log{P\left( x \right)}
+\end{equation}
+
+用 $log$ 来表示自然对数, 其底数为 $e$ 。因此我们定义的 $I(x)$ 单位是奈特(nats)。一奈特是以 $1/e$ 的概率观测到一个事件时获得的信息量。
+
+** 香农熵和微分熵
+香农熵是指对整个概率分布中的不确定性总量进行量化。
+设随机变量 $X={x_{1},\dots,x_{n}}$ , $P$ 为 $X$ 得概率质量分布，香农熵记为 $H(X)$ (当 $x$ 时连续的,香农熵被称为微分熵)
+
+<<Eqn.(3.2.1.1)>>
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{align}
+    H(X)&=E \left[ I(X) \right]\\
+        &=E \left[ -\ln{ \left( P(X) \right)  } \right]\\
+        &=-\sum_{i=1}^{n}P(x_{i})\log{P(x_{i})}
+  \end{align}
+#+END_SRC
+
+#+RESULTS:
+\begin{align}
+  H(X)&=E \left[ I(X) \right]\\
+      &=E \left[ -\ln{ \left( P(X) \right)  } \right]\\
+      &=-\sum_{i=1}^{n}P(x_{i})\log{P(x_{i})}
+\end{align}
+
+
+- 接近确定性的分布(输出几乎可以确定)具有较低的熵。
+- 接近均匀分布的概率分布具有较高的熵。
+
+#+caption: 0-1分布的香农熵:$(p-1)\log(1-p)-p\log(p)$
+[[file:image/Deep learning/_1528619227_86290042_2018-08-24_20-42-11.png]]
+
+** KL 散度(Kullback-Leibler(KL) divergence)
+<<KL散度>>
+如果我们对于同一个随机变量 $x$ 有两个单独的概率分布 $P(x)$ 和 $Q(x)$ , 我们可以使用 $KL$ 散度来衡量这两个分布的差异, $KL$ 距离是两个随机分布间距离的度量,度量当真实分布为 $p$ 时,假设分布 $q$ 的无效性:
+
+<<Eqn.(3.3.1.1)>>
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{align}
+    D_{KL} \left( p||q \right) &= E_{p}\left[ \log{\frac{p(x)}{q(x)}} \right]\\
+                               &=\sum_{x\in X}p(x)\log{\frac{p(x)}{q(x)}}\\
+                               &=\sum_{x\in X} \left[ p(x)\log{p(x)}-p(x)\log{q(x)} \right]\\
+                               &=\sum_{x\in X}p(x)\log{p(x)}-\sum_{x\in X}p(x)\log{q(x)}\\
+                               &=-H(p)-\sum_{x\in X}p(x)\log{q(x)}\\
+                               &=-H(p)+E_{p} \left[ -\log{q(x)} \right]\\
+                               &=H_{p}(q)-H(p)
+  \end{align}
+#+END_SRC
+
+#+RESULTS:
+\begin{align}
+  D_{KL} \left( p||q \right) &= E_{p}\left[ \log{\frac{p(x)}{q(x)}} \right]\\
+                             &=\sum_{x\in X}p(x)\log{\frac{p(x)}{q(x)}}\\
+                             &=\sum_{x\in X} \left[ p(x)\log{p(x)}-p(x)\log{q(x)} \right]\\
+                             &=\sum_{x\in X}p(x)\log{p(x)}-\sum_{x\in X}p(x)\log{q(x)}\\
+                             &=-H(p)-\sum_{x\in X}p(x)\log{q(x)}\\
+                             &=-H(p)+E_{p} \left[ -\log{q(x)} \right]\\
+                             &=H_{p}(q)-H(p)
+\end{align}
+
+显然，当 $p=q$ 时，两者之间得 $KL$ 散度 $D_{KL}(p||q)=0$ ,其中为了保证连续性，做如下约定:
+
+<<Eqn.(3.3.1.2)>>
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{equation}
+    0\log{\frac{0}{0}}=0,\ 0\log{\frac{0}{q}}=0,\ p\log{\frac{p}{0}}=\infty
+  \end{equation}
+#+END_SRC 
+
+#+RESULTS:
+\begin{equation}
+  0\log{\frac{0}{0}}=0,\ 0\log{\frac{0}{q}}=0,\ p\log{\frac{p}{0}}=\infty
+\end{equation}
+
+- $H_{p}(q)$: 表示在 $p$ 分布下，使用 $q$ 进行编码需要的香农数。
+- $H(p)$: 表示对真实分布下 $p$ 所需要得最小编码香农数。
+- $KL$ 散度的意义: 表示在真实分布为 $p$ 的前提下, 使用 $q$ 分布进行编码相对于使用真实分布 $p$ 进行编码(即最优编码)所多出来的香农数。表示由于特征A而使得对数据集D的分类的不确定性减少的程度。
+
+#+BEGIN_QUOTE
+对于某些 $P$ 和 $Q$, $D_{KL}(P||Q)\neq D_{KL}(Q||P)$ 。这种非对称性意味着选择 $D_{KL}(P||Q)$ 还是 $D_{KL}(Q||P)$ 影响很大。
+[[file:image/Deep learning/_1528619271_1028313354_2018-08-27_20-03-45.png]]
+#+END_QUOTE
+
+*** KL 散度比
+<<KL散度比>>
+KL 散度得大小是想对于训练数据集而言的，并没有绝对意义。在分类问题困难时，也就是说在训练数据集的信息量大的时候, KL 散度会偏大，反之, KL 散度会偏小。使用 KL 散度可以对这一问题进行校正。
+
+<<Eqn.(3.3.1.3)>>
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{equation}
+    \text{information gain ratio}(p,q)=\frac{KL(p||q)}{H(p)}
+  \end{equation}
+#+END_SRC 
+
+#+RESULTS:
+\begin{equation}
+  \text{information gain ratio}(p,q)=\frac{KL(p||q)}{H(p)}
+\end{equation}

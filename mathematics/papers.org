@@ -1,0 +1,461 @@
+#+LATEX_HEADER: \usepackage{tikz}
+#+LATEX_HEADER: \usepackage{multirow}
+#+PROPERTY: header-args:latex+ :packages '(("" "tikz"))
+#+PROPERTY: header-args:latex+ :imagemagick yes :fit yes
+
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="http://www.pirilampo.org/styles/readtheorg/css/htmlize.css"/>
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="http://www.pirilampo.org/styles/readtheorg/css/readtheorg.css"/>
+#+HTML_HEAD: <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+#+HTML_HEAD: <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+#+HTML_HEAD: <script type="text/javascript" src="http://www.pirilampo.org/styles/lib/js/jquery.stickytableheaders.js"></script>
+#+HTML_HEAD: <script type="text/javascript" src="http://www.pirilampo.org/styles/readtheorg/js/readtheorg.js"></script>
+
+#+FILETAGS: :paper_read:
+
+* CNN                                                                  :CNN:
+** DONE 2012 - ImageNet Classification with Deep Convolutional Neural Networks
+ :PROPERTIES:
+  :Custom_ID: NIPS2012_4824
+  :AUTHOR: Alex Krizhevsky, Sutskever \& Hinton
+  :JOURNAL: 
+  :YEAR: 2012
+  :VOLUME: 
+  :PAGES: 1097--1105
+  :DOI: 
+  :URL: http://papers.nips.cc/paper/4824-imagenet-classification-with-deep-convolutional-neural-networks.pdf
+ :END:
+ - State "DONE"       from "TODO"       [2018-09-02 日 15:26]
+cite:NIPS2012_4824
+
+- Summary:
+  In the paper, the group discussed the architecture of the network(which was called AlexNet). They used relatively simple layout, compared to modern architectures. The network was made up of 5 conv layers, max-pooling layers, dropout layers, and 3 fully connected layers. The network they designed was used for classification with 1000 possible categories.
+- Problem: For classification with 1000 possible categories.
+- Experiment
+  - Date: Trained the network on ImageNet data, which contained over 15 million annotated images from a total of over 22000 categories.
+  - Model:
+    [[file:image/CNN/screenshot_2018-09-02_15-14-34.png]]
+  - Results:
+    | Model         |   Top-1 |   Top-5 |
+    |---------------+---------+---------|
+    | Spares coding |   47.1% |   28.2% |
+    | SIFT+FVs      |   45.7% |   25.7% |
+    | *AlexNet*     | *37.5%* | *17.0%* |
+
+*** Method:
+- Used ReLU for the nonlinearity functions(found to decrease training time as ReLUs are several times faster than the conventional tanh function).
+- Used data augmentation techniques that consisted of image translations, horizontal reflections, and patch extractions.
+- Implemented dropout layers in order to combat the problem of over fitting to the training data.
+- Trained the model using batch stochastic gradient descent, with specific values for momentum are weight decay.
+- Trained on two GTX 580 GPus for five to six days.
+
+** DONE 2013 - Visualizing and Understanding Convolutional Networks
+ :PROPERTIES:
+  :Custom_ID: zeiler13_visual_under_convol_networ
+  :AUTHOR: Zeiler \& Fergus
+  :JOURNAL: CoRR
+  :YEAR: 2013
+  :VOLUME: 
+  :PAGES: 
+  :DOI: 
+  :URL: http://arxiv.org/abs/1311.2901
+ :END:
+ - State "DONE"       from "TODO"       [2018-09-03 一 10:05]
+cite:zeiler13_visual_under_convol_networ
+
+- Summary: The paper are details of a slightly modified AlexNet model and *a very interesting way of visualizing feature maps*.
+- Problem: ILSVRC 2013
+- Experiment
+  - Date: ImageNet
+  - Model:
+    [[file:image/CNN/screenshot_2018-09-02_15-45-19.png]]
+
+*** Method:
+- Very similar architecture to AlexNet, except for a few minor modifications.
+- AlexNet trained on 15 million images, while ZF Net trained on only 1.3 million images.
+- Instead of using 11x11 sized filters in the first layer(which is what AlexNet implemented), ZF Net used filters of size 7x7 and a decreased stride value. The reasoning behind this modification is that a smaller filter size in the first conv layer helps retain a lot of original pixel information in the input volume. A filtering of size 11x11 proved to be skipping a lot of relevant information, especially as this is the first conv layer.
+- As the network grows, we also see a rise in the number of filters used.
+- Trained on a GTX 580 GPU for *twelve days*.
+- Developed a visualization technique named Deconvolutional Network, which helps to examine different feature activations and their relation to the input space. Called "deconvnet" because it maps features to pixels(the opposite of what a Convolutional layer does).
+
+**** DeConvNet
+** TODO 2013 - Overfeat: Integrated Recognition, Localization and Detection Using Convolutional Networks
+ :PROPERTIES:
+  :Custom_ID: sermanet13_overf
+  :AUTHOR: Sermanet, Eigen, Zhang, Mathieu, Fergus \& LeCun
+  :JOURNAL: CoRR
+  :YEAR: 2013
+  :VOLUME: 
+  :PAGES: 
+  :DOI: 
+  :URL: http://arxiv.org/abs/1312.6229v4
+ :END:
+
+cite:sermanet13_overf
+** DONE 2014 - Very Deep Convolutional Networks for Large-Scale Image Recognition
+ :PROPERTIES:
+  :Custom_ID: simonyan14_very_deep_convol_networ_large
+  :AUTHOR: Simonyan \& Zisserman
+  :JOURNAL: CoRR
+  :YEAR: 2014
+  :VOLUME: 
+  :PAGES: 
+  :DOI: 
+  :URL: http://arxiv.org/abs/1409.1556v6
+ :END:
+ - State "DONE"       from "TODO"       [2018-09-03 一 11:13]
+cite:simonyan14_very_deep_convol_networ_large
+- Summary: 
+  Simplicity and depth. *The paper reinforced the notion that convolution neural networks have to have a deep network of layers in order for this hierarchical representation of visual data to work*.
+- Problem: ILSVRC 2014
+- Experiment
+  - Date: ImageNet
+  - Model: [[http://www.robots.ox.ac.uk/~vgg/research/very_deep/]]
+    [[file:image/CNN/screenshot_2018-09-03_10-32-37.png]]
+
+*** Method:
+- The use of only 3x3 sized filters is quite different from AlexNet's 11x11 filters in the first layer and ZF Net's 7x7 filters. The authors's reasoning is that *the combination of two 3x3 conv layers has an effective receptive field of 5x5*. This in turn simulates a larger filter while keeping the benefits of smaller filters sizes. One of the benefits is a decrease in the number of parameters. Also, with two conv layers, we're able to use two ReLU layers instead of one.
+- 3 conv layers back to back have an effective receptive field of 7x7.
+- As the spatial size of the input volumes at each layer decrease(result of the conv and pool layers), the depth of the volumes increases due of the increased number of filters as you go down the network.
+- Interesting to notice that the number of filters doubles after each maxpool layer. This reinforces the idea of shrinking spatial dimensions, but growing depth.
+- Worked well on both image classification and localization tasks. The authors used a form of localization as regression (cite:sermanet13_overf)
+- Built model with the Caffe toolbox.
+- *TODO* Used scale jittering as one data augmentation technique during training.
+- Used ReLU layers after each conv layer and trained with batch gradient descent.
+- Trained on 4 Nvidia Titan Black GPUs for *two to three weeks*.
+** DONE 2014 - Going Deeper With Convolutions
+ :PROPERTIES:
+  :Custom_ID: szegedy14_going_deeper_with_convol
+  :AUTHOR: Szegedy, Liu, Jia, Sermanet, Reed, Anguelov, Erhan, Vanhoucke \& Rabinovich
+  :JOURNAL: CoRR
+  :YEAR: 2014
+  :VOLUME: 
+  :PAGES: 
+  :DOI: 
+  :URL: http://arxiv.org/abs/1409.4842v1
+ :END:
+ - State "DONE"       from "TODO"       [2018-09-04 二 19:40]
+cite:szegedy14_going_deeper_with_convol
+
+- Summary:
+  The paper present the architecture of CNN([[Inception module]]). GoogLeNet was one of the first models that introduced the idea that CNN layers didn't always have to be stacked up sequentially. Coming up with the Inception module, the authors showed that a creative structuring of layers can lead to improved performance and computationally efficiency.
+- Problem: ILSVRC 2014
+- Experiment
+  - Date: ImageNet
+  - Model:
+    https://adeshpande3.github.io/assets/GoogleNet.gif
+
+*** Method:
+- Used 9 Inception modules in the whole architecture, with over 100 layers in total! Now that is deep...
+- No use of fully connected layers! They use an average pool instead, to go from a 7x7x1024 volume to a 1x1x1024 volume. This saves a huge number of parameters.
+- Uses 12x fewer parameters than AlexNet.
+- During testing, multiple crops of the same image were created, fed into the network, and the softmax probabilities were averaged to give us the final solution.
+- Utilized concepts from R-CNN for their detection model.
+- There are updated versions to the Inception module.
+- Trained on "a few high-end GPUs within a week".
+
+**** Inception module
+<<Inception module>>
+
+#+caption: Inception module
+[[file:image/CNN/screenshot_2018-09-04_19-28-36.png]]
+
+Basically, at each layer of a traditional ConvNet, you have to make choice of whether to have a pooling operation or a conv operation(there is also the choice of filter size). What an Inception module allows you to do is perform all of these operations in parallel. *But It would lead to way too many outputs*. We would end up with extremely large depth channel for the output volume.
+The way that the authors address this is by *adding 1x1 conv operations before the 3x3 and 5x5 layers*. The 1x1 convolutions(or network in network layer)provide a method of dimensionality reduction.
+
+** DONE 2015 - Deep Residual Learning for Image Recognition
+ :PROPERTIES:
+  :Custom_ID: he15_deep_resid_learn_image_recog
+  :AUTHOR: He, Zhang, Ren \& Sun
+  :JOURNAL: CoRR
+  :YEAR: 2015
+  :VOLUME: 
+  :PAGES: 
+  :DOI: 
+  :URL: http://arxiv.org/abs/1512.03385v1
+ :END:
+ - State "DONE"       from "TODO"       [2018-08-23 四 18:01]
+cite:he15_deep_resid_learn_image_recog
+
+- Summary:
+  The paper present a *residual learning framework* to solve *degradation problem*
+- Problem: degradation problem
+  With the network depth increasing, accuracy gets saturated and then degrades rapidly
+- Experiment
+  - Data: ImageNet
+  - Model: [[https://github.com/KaimingHe/deep-residual-networks][deep-residual-networks]]
+
+*** Method: residual learning framework
+**** TODO Residual learning
+read paper cite:balduzzi17_shatt_gradien_probl
+
+**** Identity Mapping by Shortcuts
+The paper adopt residual learning to every few stacked layers. A building block is defined as: Here $x$ and $y$ are the input and output vectors of the layers considered. The function $F(x,\{W_{i}\})$ represents the residual mapping to be learned.
+
+<<Eqn.(1)>>
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{equation}
+  \label{eq:1}
+  y = F(x,\{W_{i}\}+x).
+  \end{equation}
+#+END_SRC
+#+RESULTS:
+\begin{equation}
+\label{eq:1}
+y = F(x,\{W_{i}\}+x).
+\end{equation}
+
+*The dimensions of $x$ and $F$ must be equal*, If this is not the case(e.g., when changing the input/output channels), we can perform a linear projection $W_{s}$ by the shortcut connections to match the dimensions:
+
+<<Eqn.(2)>>
+#+BEGIN_SRC latex :results raw :exports none
+\begin{equation}
+\label{eq:2}
+y=F(x,\{W_{i}\})+W_{s}x
+\end{equation}
+#+END_SRC
+
+#+RESULTS:
+\begin{equation}
+\label{eq:2}
+y=F(x,\{W_{i}\})+W_{s}x
+\end{equation}
+
+**** Residual Network
+#+caption: Residual network
+[[file:image/CNN/screenshot_2018-08-23_16-24-54.png]]
+
+the input and output of the dimensions
+- same: use identity shortcuts ([[Eqn.(1)]])
+- increase: consider two options
+  - *Identity*: The shortcut still performs identity mapping, with extra zero entries padded for increasing dimensions, This option introduces no extra parameter.
+  - *projection*: The projection shortcut in [[Eqn.(2)]] is used to match dimensions(done by 1x1 convolutions).
+
+** TODO 2016 - Xception: Deep Learning With Depthwise Separable Convolutions
+ :PROPERTIES:
+  :Custom_ID: chollet16_xcept
+  :AUTHOR: Chollet
+  :JOURNAL: CoRR
+  :YEAR: 2016
+  :VOLUME: 
+  :PAGES: 
+  :DOI: 
+  :URL: http://arxiv.org/abs/1610.02357v3
+ :END:
+
+cite:chollet16_xcept
+
+* Human Pose Estimation                               :human_pose_estimation:
+** DONE 2016 - Realtime Multi-Person 2d Pose Estimation Using Part Affinity Fields
+ :PROPERTIES:
+  :Custom_ID: cao16_realt_multi_person_pose_estim
+  :AUTHOR: Cao, Simon, Wei \& Sheikh
+  :JOURNAL: CoRR
+  :YEAR: 2016
+  :VOLUME: 
+  :PAGES: 
+  :DOI: 
+  :URL: http://arxiv.org/abs/1611.08050v2
+ :END:
+- State "DONE"       from "TODO"       [2018-08-24 五 17:18]
+cite:cao16_realt_multi_person_pose_estim
+
+- Summary:
+  The paper presents an approach to efficiently detect the 2D pose of multiple people in an image. The approach uses a *non-parametric representation*, which we refer to as *Part Affinity Fields(PAFs)*, to *learn to associate body parts with individuals* in the image.
+- Problem: Realtime Multi-Person 2d Pose Estimation
+- Experiment
+  - Date: COCO & MPI
+  - Model: [[https://github.com/ZheC/Realtime_Multi-Person_Pose_Estimation][Realtime_Multi-Persion_Pose_Estimation]]
+
+*** Method:
+- Confidence Maps for Part Detection
+  The paper generate the groundtruth confidence maps from the annotated 2D keypoints. In fact, Using Gaussian filtering for the annotated 2D keypoints.
+
+  #+BEGIN_QUOTE
+  In this paper, the key points are obtained by shifting the confidence map by one pixel from four directions and taking the maximum values of the original map and the offset map.
+  #+END_QUOTE 
+- Part Affinity Fields for Part Associate
+  A 2D vector encodes the direction that points from one part of the limb to the other.
+- Multi-Person Parsing using PAFs
+  The paper measures the alignment of the predicted PAFs with the candidate limb that would be formed by connecting the detected body parts and take the maximum values of the alignment.
+- Network arch
+  #+caption: Architecture of the two-branch multi-stage CNN
+  [[file:image/human-pose-estimation/screenshot_2018-08-24_16-51-49.png]]
+
+  - F, that is a set of feature maps, is generated by a convolution network(initialized by the first 10 layers of VGG-19 and fine-tuned)
+  - Each stage in the first branch predicts confidence maps $S^{t}$.
+  - Each stage in the second branch predicts PAFs $L^{t}$.
+  - *The predictions from the two branches, along with the image features, are concatenated for next stage.*
+
+** TODO 2017 - Cascaded Pyramid Network for Multi-Person Pose Estimation
+ :PROPERTIES:
+  :Custom_ID: chen17_cascad_pyram_networ_multi_person_pose_estim
+  :AUTHOR: Chen, Wang, Peng, Zhang, Yu \& Sun
+  :JOURNAL: CoRR
+  :YEAR: 2017
+  :VOLUME: 
+  :PAGES: 
+  :DOI: 
+  :URL: http://arxiv.org/abs/1711.07319v2
+ :END:
+
+cite:chen17_cascad_pyram_networ_multi_person_pose_estim
+
+- Summary:
+- Problem:
+- Experiment
+  - Date:
+  - Model:
+
+*** Method:
+* Object Detection                                         :object_detection:
+** DONE 2013 - Rich Feature Hierarchies for Accurate Object Detection and Semantic Segmentation
+ :PROPERTIES:
+  :Custom_ID: girshick13_rich_featur_hierar_accur_objec
+  :AUTHOR: Girshick, Donahue, Darrell \& Malik
+  :JOURNAL: CoRR
+  :YEAR: 2013
+  :VOLUME: 
+  :PAGES: 
+  :DOI: 
+  :URL: http://arxiv.org/abs/1311.2524v5
+ :END:
+ - State "DONE"       from "TODO"       [2018-09-12 三 16:58]
+cite:girshick13_rich_featur_hierar_accur_objec
+
+- Summary
+  The paper represent the method what is called R-CNN for object detection. The method first propose regions, then extract features, and then classify those regions based on their features. In essence, we have turned object detection into an image classification problem. R-CNN was very intuitive, but very slow.
+- Problem: object detection
+- Experiment
+  - Date: ILSVRC2013, PASCAL VOC 2010-12
+  - Model:
+    [[https://github.com/rbgirshick/rcnn]]
+
+*** Method:
+The paper object detection system consists of three steps:
+1. Scan the input image for possible objects using an algorithm called Selective Search, generating(about 2000 *region proposals*)
+2. Feature extraction: extract a 4096-dimensional feature vector form each region proposal using the Caffe implementation of the CNN.(require [[Object proposal transformations]])
+3. Take the output of each CNN and feed it into a) an SVM to classify the region and b) a linear regressor to tighten the bounding box of the object, if such an object exists
+
+#+caption: R-CNN three steps
+#+DOWNLOADED: https://cdn-images-1.medium.com/max/800/1*RUjYe8yqo7nKAG2lNd2mbw.png @ 2018-09-12 16:48:31
+[[file:image/Object Detection/screenshot_2018-09-12_16-48-31.png]]
+
+**** Object proposal transformations
+<<Object proposal transformations>>
+*TODO*
+
+** DONE 2015 - Fast R-Cnn
+ :PROPERTIES:
+  :Custom_ID: girshick15_fast_r_cnn
+  :AUTHOR: Girshick
+  :JOURNAL: CoRR
+  :YEAR: 2015
+  :VOLUME: 
+  :PAGES: 
+  :DOI: 
+  :URL: http://arxiv.org/abs/1504.08083v2
+ :END:
+ - State "DONE"       from "TODO"       [2018-09-13 四 15:12]
+cite:girshick15_fast_r_cnn
+
+
+- Summary:
+  Fast R-CNN resembled the original in many ways, but improved on its detection speed through two main augmentations:
+  - Performing feature extraction over the image before proposing regions, thus only running one CNN over the entire image instead of 2000 CNN's over 2000 overlapping regions
+  - Replacing the SVM with s softmax layer, thus extending the neural network for predictions instead of creating a new model
+- Problem: object detection
+- Experiment
+  - Model:
+    https://github.com/rbgirshick/fast-rcnn
+
+*** Method:
+#+caption: Fast R-CNN
+#+DOWNLOADED: https://cdn-images-1.medium.com/max/800/1*iWyUwIPO-5kA2ECAfaaPSg.png @ 2018-09-13 15:11:32
+[[file:image/Object Detection/screenshot_2018-09-13_15-11-32.png]]
+
+** DONE 2015 - Faster R-Cnn: Towards Real-Time Object Detection With Region Proposal Networks
+ :PROPERTIES:
+  :Custom_ID: ren15_faster_r_cnn
+  :AUTHOR: Ren, He, Girshick \& Sun
+  :JOURNAL: CoRR
+  :YEAR: 2015
+  :VOLUME: 
+  :PAGES: 
+  :DOI: 
+  :URL: http://arxiv.org/abs/1506.01497v3
+ :END:
+ - State "DONE"       from "TODO"       [2018-09-18 二 20:04]
+cite:ren15_faster_r_cnn
+- Summary: Faster R-CNN = [[RPN]] + Fast R-CNN
+- Problem: Object Detection
+- Model:
+  https://github.com/rbgirshick/py-faster-rcnn
+*** Method:
+**** RPN(region proposal network)
+<<RPN>>
+- At the last layer of an initial CNN, a 3x4 sliding window moves across the feature map and maps it to a *lower dimension*(e.g. 256-d for ZF and 512-d for VGG)
+- For each sliding-window location, it generates multiple possible regions based on $k$ fixed-ratio anchor boxes(default bounding boxes, class number)
+- Each region proposal consists of:
+  - =cls= layer: an "=objectness=" score for that region
+  - =reg= layer: 4 coordinates representing the bounding box of the region
+
+#+caption: Detecting the anchor boxes for a single 3x3 window
+#+DOWNLOADED: cite:ren15_faster_r_cnn @ 2018-09-17 14:35:46
+[[file:image/Object Detection/screenshot_2018-09-17_14-35-46.png]]
+
+Once we have our region proposals, we feed them straight into what is essentially a Fast R-CNN. We add a pooling layer, some fully-connected layers, and finally a softmax classification layer and bounding box regressor. In a sense, *Faster R-CNN = RPN + Fast R-CNN*.
+
+** TODO 2016 - Feature Pyramid Networks for Object Detection
+ :PROPERTIES:
+  :Custom_ID: lin16_featur_pyram_networ_objec_detec
+  :AUTHOR: Lin, Doll\'ar, Girshick, He, Hariharan \& Belongie
+  :JOURNAL: CoRR
+  :YEAR: 2016
+  :VOLUME: 
+  :PAGES: 
+  :DOI: 
+  :URL: http://arxiv.org/abs/1612.03144v2
+ :END:
+
+cite:lin16_featur_pyram_networ_objec_detec
+
+- Summary:
+- Problem: recognizing objects at vastly different scales
+- Experiment
+  - Date:
+  - Model:
+
+*** Method:
+
+** TODO 2017 - Mask R-Cnn
+ :PROPERTIES:
+  :Custom_ID: he17_mask_r_cnn
+  :AUTHOR: He, Gkioxari, Doll\'ar \& Girshick
+  :JOURNAL: CoRR
+  :YEAR: 2017
+  :VOLUME: 
+  :PAGES: 
+  :DOI: 
+  :URL: http://arxiv.org/abs/1703.06870v3
+ :END:
+
+cite:he17_mask_r_cnn
+
+** TODO 2018 - Object Detection With Deep Learning: a Review
+ :PROPERTIES:
+  :Custom_ID: zhao18_objec_detec_with_deep_learn
+  :AUTHOR: Zhao, Zheng, Xu \& Wu
+  :JOURNAL: CoRR
+  :YEAR: 2018
+  :VOLUME: 
+  :PAGES: 
+  :DOI: 
+  :URL: http://arxiv.org/abs/1807.05511v1
+ :END:
+
+cite:zhao18_objec_detec_with_deep_learn
+** reference blog
+- review
+  [[https://medium.com/comet-app/review-of-deep-learning-algorithms-for-object-detection-c1f3d437b852][Review of Deep Learning Algorithms for Object Detection]]
+  [[https://towardsdatascience.com/deep-learning-for-object-detection-a-comprehensive-review-73930816d8d9][Deep Learning for Object Detection: A Comprehensive Review]]
+

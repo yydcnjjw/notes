@@ -1,0 +1,2050 @@
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="http://www.pirilampo.org/styles/readtheorg/css/htmlize.css"/>
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="http://www.pirilampo.org/styles/readtheorg/css/readtheorg.css"/>
+#+HTML_HEAD: <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+#+HTML_HEAD: <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+#+HTML_HEAD: <script type="text/javascript" src="http://www.pirilampo.org/styles/lib/js/jquery.stickytableheaders.js"></script>
+#+HTML_HEAD: <script type="text/javascript" src="http://www.pirilampo.org/styles/readtheorg/js/readtheorg.js"></script>
+
+* Booting
+** BIOS 阶段
+1. 加电启动时： CPU RESET，初始化寄存器，执行物理地址 =0xfffffff0= 处代码(BIOS，实地址模式)。(**硬件把这个地址映射到 ROM BIOS 里**)。
+2. POST(Power-On Self-Test，上电自检)：对计算机硬件执行一系列的测试，用来检测现在都有什么设备以及这些设备是否正常工作。在这个阶段中，会显示一些信息，例如 BIOS 版本号。
+
+#+BEGIN_QUOTE
+注：如今的 80x86、AMD64 和 Itanium 计算机使用高级配置与开机界面(Advanced Configuration and Power Interface，ACPI)标准。在 ACPI 兼容的 BIOS 中，启动代码会建立几个表来描述当前系统中的硬件设备。这些表的格式独立于设备生产商，而且可由操作系统读取以获得如何调用这些设备的信息。
+#+END_QUOTE
+
+1. 初始化硬件设备：这个阶段在现代基于 PCI 的体系结构中相当重要，因为它可以保证所有的硬件设备操作不会引起 IRQ 线与 I/O 端口的冲突。在本阶段的最后，会显示系统中所安装的所有 PCI 设备的一个列表。
+2. 搜索一个操作系统来启动：实际上，根据 BIOS 的设置，这个过程可能要试图访问（按照用户预定义的次序）系统中软盘、硬盘和 CD-ROM 的第一个扇区(**引导扇区，MBR **)。
+3. 载入代码：只要找到一个有效的设备，就把第一个扇区的内容拷贝到 RAM 中从物理地址 =0x00007c00= 开始的位置，然后跳转到这个地址处，开始执行刚才装载进来的代码。
+
+** 引导程序
+引导装入程序(boot loader)是由 BIOS 用来把操作系统的内核映像装载到 RAM 中所调用的一个程序。
+
+*** GRUB
+#+caption: GRUB 启动过程
+[[File:image/引导/_1528762437_356548471_2018-07-29_20-40-23.png]]
+
+当跳转到 0x7c00 后，GRUB 开始执行：
+1. boot.img 加载 diskboot.img
+   1. boot.img 使用 BIOS 中断 =0x13= 加载 diskboot.img。
+   2. BIOS 首先将 diskboot.img 读到 =0x7000= (BIOS 读缓存， =GRUB_BOOT_MACHINE_BUFFER_SEG= )处。
+   3. boot.img 将其移动内存 =0x8000= ( =GRUB_BOOT_MACHINE_KERNEL_ADDR= ) 处。
+2. diskboot.img 加载 core.img。
+   1. diskboot.img 使用 BIOS 中断 =0x13= 加载 core.img。
+   2. BIOS 将 core.img 读到 =0x70000= (BIOS 读缓存) 处。
+   3. diskboot.img 将其移动内存 =0x8200= 处。
+   4. 执行 lzma_decompress.img。
+3. core.img 自解压：lzma_decompress.img 将 core.img 解压到内存 =GRUB_MEMORT_MACHINE_DECOMPRESSION_ADDR(0x100000)= 处。解压函数 =_LzmaDecodeA= 定义在 =lzma_decode.S= 中。
+4. kernel.img 将自己复制回 =0x9000= ：因为 Linux 内核和 initramfs 可能被加载到内存从 1MB 开始的任何地方，所以 GRUB 要给他们指路，所以 GRUB 虽然使用了 1MB 以上的区域作为解压使用的缓冲区，但是解压后要移动回 1MB 以下的部分。
+
+   #+BEGIN_SRC asm
+     /* grub/grub-core/kern/i386/pc/startup.S */
+     // 移动 kernel.img 的代码在 kernel.img 的开头文件 startup.S
+     _start:
+     __start:
+     .code32
+             // ...
+             movl	%ecx, (LOCAL(real_to_prot_addr) - _start) (%esi)
+             movl	%edi, (LOCAL(prot_to_real_addr) - _start) (%esi)
+             movl	%eax, (EXT_C(grub_realidt) - _start) (%esi)
+             movl	$(_start), %edi
+             rep
+     movsb
+             // ...
+             movl	$LOCAL (cont), %esi
+             jmp	*%esi
+             LOCAL(cont):
+             subl	%edi, %ecx
+
+             /* clean out */
+             xorl	%eax, %eax
+             cld
+             rep
+             stosb
+             movl	%edx, EXT_C(grub_boot_device)
+
+             /*
+             ,*  Call the start of main body of C code.
+             ,*/
+             call EXT_C(grub_main)
+   #+END_SRC
+
+   1. startup.S 调用 x86 的指令 =movsb= 移动映像。
+   2. =esi= 是移动的源地址 =(0x100000)=, =edi= 是移动的目的地址(被设置为 =_start= 的地址 =0x9000= )
+   3. =ecx= 是移动的字节数，startup.S 只移动从 =_edata= (表示 kernel.img 的数据段结束) 到 =_start= 的指令和数据，表示 startup.S 只是将 kernel.img 移动到 =0x9000= 并没有移动模块(模块需要重定向)。
+   4. 移动完 kernel.img 后，startup.S 使用跳转指令 =jmp= 到移动后的位置继续执行，然后调用 =grub_main= 进入 c 语言写的核心部分。
+   5. =grub_main= 调用函数 =grub_load_modules= 装配模块，然后调用 =grub_load_normal_mode= 加载 normal 模块
+      
+      #+BEGIN_SRC C
+        // Grub/grub-core/kern/main.c
+        void __attribute__ ((noreturn))
+        grub_main (void)
+        {
+            //...
+            grub_load_modules ();
+            //...
+            grub_load_normal_mode ();
+        }
+      #+END_SRC
+
+*** GRUB 映像的构成
+- 由于现代操作系统的复杂性，Bootloader 仅仅一个扇区已经不够了，GRUB 将除 MBR 里的部分代码"嵌入"到 MBR 和第一个分区之间的 *空闲区域* ，这相对比较安全。
+- 空闲区域的大小是有限的，GRUB 采用了模块化的设计方案，来控制嵌入到空闲区域的大小。
+- MBR 将映像分为三个部分：MBR 中的 boot.img、嵌入空闲扇区的 core.img 和 存储在文件系统的模块。
+
+  #+caption: 在MBR分区模式下以嵌人方式安装的GRUB
+  [[file:image/引导/_1528763697_1065589286_2018-07-30_19-40-01.png]]
+
+  - boot.img 和 core.img：使用读写磁盘扇区的方式访问
+  - 模块：使用文件系统访问
+
+**** MBR 映像 (boot.img)
+boot.img 主要功能将 core.img 中的第一个扇区载入内存。
+- 保存 core.img 的第一个扇区的位置，kernel_sector 处，即 =GRUB_BOOT_MACHINE_KERNEL_SECTOR(0x5c)= 处。
+- boot.img 使用 BIOS 提供的中断向量 =0x13(基于扇区的磁盘读写服务)= ，以支持 LBA 模式的磁盘为例：
+  BIOS 将地址 =kernel_sector= 处指示的扇区号所在的扇区(一个扇区)的内容载入内存，boot.img 把读入的扇区内容移动到符号 =kernel_address= 处指示的地址，并跳转到 =kernel_address= 执行。
+- =kernel_address= 的值为宏 =GRUB_BOOT_MACHINE_KERNEL_ADDR(0x8000)=
+
+**** GRUB 核心映像(core.img)
+core.img 包括多个映像和模块，以从硬盘启动为例：
+
+#+caption: core.img 构成示意图
+[[file:image/引导/_1528763923_92428418_2018-07-30_19-48-12.png]]
+
+- diskboot.img：diskboot.img 用来加载 core.img 中除 diskboot.img 外的其余部分。占据 core.img 中的第一个扇区(boot.img 加载的 core.img 的第一个扇区)。
+  在 GRUB 安装时，会将 core.img 占据的扇区号写入 diskboot.img 中。
+
+  [[file:image/引导/image18_2018-07-30_19-52-46.png]]
+
+  - GRUB_BOOT_MACHINE_KERNEL_SEG(0x800)：类似带参数的宏，对于使用 x86 架构的PC，MACHINE 会被替换为 I386_PC，表示将 core.img 其余部分载入到 0x8200 处。
+  - diskboot.img 的最后 12 字节记录的是一个 =blocklist= (代表一个连续的扇区)
+    - =start= ：起始扇区
+    - =len= ：扇区的数量
+    - =segment= ：扇区加载到内存的段地址
+
+      [[file:image/引导/image20_2018-07-30_19-54-36.png]]
+
+- 为了控制 core.img 的体积，GRUB 将 core.img 进行了压缩(kernel.img 和模块)
+  - 对于基于 x86 架构的 PC，GRUB 默认使用的是 lzma 压缩算法。
+  - GRUB 将 lzma 算法的解压缩代码编译为 lzma_decompress.img，连接在 diskboot.img 的后面，diskboot.img 将 core.img 加载进内存后，将跳转到 lzma_decompress.img：
+- kernel.img 的主入口函数是 =grub_main=
+- 鉴于嵌入区域的尺寸有限，因此只有关键的模块才能包含到 core.img 中，即文件系统模块(只有支持文件系统，才可以读入其他模块)。
+
+#+BEGIN_QUOTE
+注：文件系统模块载入内存还需要重定向(grub_load_modules 函数)。
+#+END_QUOTE
+
+*** 加载内核和 initramfs
+grub 根据下列参数确定加载位置
+
+- =pref_address(引导参数，默认0x1000000)= ：支持重定向。
+- =GRUB_LINUX_BZIMAGE_ADDR(0x100000)= ：不支持重定向。
+然后计算保护模式的内核尺寸将其加载到加载位置。
+
+1. normal 模块读取并解析 GRUB 配置文件 grub.cfg(一般在 =/boot/grub/grub.cfg=)
+2. grub.cfg 根据里面的具体命令，加载相应的模块(命令和模块的关系记录在 command.lst 中，一般在 =/boot/grub/i386-pc=)
+
+#+BEGIN_QUOTE
+加载内核及 initramfs
+#+END_QUOTE
+#+BEGIN_SRC C
+  // grub/grub-core/loader/i386/linux.c 1140行
+  GRUB_MOD_INIT(linux)
+  {
+    cmd_linux = grub_register_command ("linux", grub_cmd_linux,
+                                       0, N_("Load Linux."));
+    cmd_initrd = grub_register_command ("initrd", grub_cmd_initrd,
+                                        0, N_("Load initrd."));
+    my_mod = mod;
+  }
+#+END_SRC
+
+- 命令 =linux= 负责加载内核，回调函数是 =grub_cmd_linux= ，执行操作如下:
+  1. 确认内核希望加载的地址，如果支持重定位，读取 =pref_address= (默认 =0x1000000=) 作为内核加载位置。否则加载到位置 =GRUB_LINUX_BZIMAGE_ADDR(0x100000)=
+  2. 调用 =allocate_pages= 为内核映像分配内存，同时设置指针 =prot_mode_mem= 指向内核分配的内存，变量 =prot_mode_target= 设为该内存的地址
+  3. 修改引导参数成员 =code32_start(0x100000)= 为 =prot_mode_target= (考虑特殊情况)。
+  4. 计算实模式部分的尺寸(由于不需要加载实模式部分)，定位保护模式开始的地方，确定保护模式的尺寸。
+
+     #+BEGIN_SRC C
+       real_size = setup_sects << GRUB_DISK_SECTOR_BITS;
+       prot_file_size = grub_file_size (file) - real_size - GRUB_DISK_SECTOR_SIZE;
+     #+END_SRC
+
+  5. 加载内核(不包含实模式部分的内核)，使用文件系统驱动提供的接口 =grub_file_read= 。
+- 命令 =initrd= 负责加载 initramfs，回调函数是 =grub_cmd_initrd=
+  1. 确定加载的位置。
+  2. 调用 =grub_relocator_alloc_chunk_align= 指定范围内找一个合适位置(GRUB 采用的策略是尽可能将 initramfs 加载到高地址处)
+  3. 将指针 =initrd_mem= 指向加载 initramfs 分配的内存，并将这块内存的物理地址记录到变量 =initrd_mem_tartget= 中。
+  4. 加载内核到内存 =initrd_mem= 处，考虑存在多个 initrd 使用 for 循环。
+  5. 将 initramfs 的尺寸、加载的位置记录到引导参数中。
+
+     #+BEGIN_QUOTE
+     将控制权交给内核: GRUB 将记录引导参数的全局变量放置到传统的实模式占据的位置。然后通过一个长跳转(=code32_start=)，GRUB 将控制全交给了内核(=arch/x86/boot/compressed/head_64.S ENTRY(startup_32)=)。
+     #+END_QUOTE
+     
+** 引导协议
+*** 内存布局
+
+#+BEGIN_EXAMPLE
+        ~                        ~
+        |  Protected-mode kernel |
+100000  +------------------------+
+        |  I/O memory hole       |
+0A0000  +------------------------+
+        |  Reserved for BIOS     |        Leave as much as possible unused
+        ~                        ~
+        |  Command line          |        (Can also be below the X+10000 mark)
+X+10000 +------------------------+
+        |  Stack/heap            |        For use by the kernel real-mode code.
+X+08000 +------------------------+
+        |  Kernel setup          |        The kernel real-mode code.
+        |  Kernel boot sector    |        The kernel legacy boot sector.
+X       +------------------------+
+        |  Boot loader           |        <- Boot sector entry point 0000:7C00
+001000  +------------------------+
+        |  Reserved for MBR/BIOS |
+000800	+------------------------+
+        |  Typically used by MBR |
+000600  +------------------------+
+        |  BIOS use only         |
+000000  +------------------------+
+#+END_EXAMPLE
+
+*** 16 位引导协议
+该协议约定 Bootloader 和内核之间分享的数据存储的位置、大小以及哪些由内核提供给 Bootloader，哪些由 Bootloader 提供给内核(引导参数 =boot_params= )。
+
+引导参数在内核 =1F1= 偏移处，该部分代码位于 =arch/x86/boot/header.S 292行=
+
+#+BEGIN_SRC asm
+          .section ".header", "a"
+          .globl	sentinel
+  sentinel:	.byte 0xff, 0xff        /* Used to detect broken loaders */
+
+          .globl	hdr
+  hdr:
+  setup_sects:	.byte 0			/* Filled in by build.c */
+  root_flags:	.word ROOT_RDONLY
+  syssize:	.long 0			/* Filled in by build.c */
+  ram_size:	.word 0			/* Obsolete */
+  vid_mode:	.word SVGA_MODE
+  root_dev:	.word 0			/* Filled in by build.c */
+  boot_flag:	.word 0xAA55
+
+          # offset 512, entry point
+
+              .globl	_start
+  _start:
+                  .byte	0xeb		# short (2-byte) jump
+                  .byte	start_of_setup-1f
+  1:
+#+END_SRC
+
+查看链接脚本 =arch/x86/boot/setup.ld=
+
+#+BEGIN_SRC C
+  // .header 段在 495 处，.header 和 _start 恰好是 512(0x200) 的偏移。
+  ENTRY(_start)
+  SECTIONS {
+          . = 0;
+          .bstext         : { *(.bstext) }
+          .bsdata         : { *(.bsdata) }
+          . = 495;
+          .header         : { *(.header) }
+#+END_SRC
+
+#+caption: 引导参数
+| Offset/Size |   Proto | Name                  | Meaning                                                     |
+|-------------+---------+-----------------------+-------------------------------------------------------------|
+| 01F1/1      |   ALL(1 | setup_sects           | The size of the setup in sectors                            |
+| 01F2/2      |     ALL | root_flags            | If set, the root is mounted readonly                        |
+| 01F4/4      | 2.04+(2 | syssize               | The size of the 32-bit code in 16-byte paras                |
+| 01F8/2      |     ALL | ram_size              | DO NOT USE - for bootsect.S use only                        |
+| 01FA/2      |     ALL | vid_mode              | Video mode control                                          |
+| 01FC/2      |     ALL | root_dev              | Default root device number                                  |
+| 01FE/2      |     ALL | boot_flag             | 0xAA55 magic number                                         |
+| 0200/2      |   2.00+ | jump                  | Jump instruction                                            |
+| 0202/4      |   2.00+ | header                | Magic signature "HdrS"                                      |
+| 0206/2      |   2.00+ | version               | Boot protocol version supported                             |
+| 0208/4      |   2.00+ | realmode_swtch        | Boot loader hook (see below)                                |
+| 020C/2      |   2.00+ | start_sys_seg         | The load-low segment (0x1000) (obsolete)                    |
+| 020E/2      |   2.00+ | kernel_version        | Pointer to kernel version string                            |
+| 0210/1      |   2.00+ | type_of_loader        | Boot loader identifier                                      |
+| 0211/1      |   2.00+ | loadflags             | Boot protocol option flags                                  |
+| 0212/2      |   2.00+ | setup_move_size       | Move to high memory size (used with hooks)                  |
+| 0214/4      |   2.00+ | code32_start          | Boot loader hook (see below)                                |
+| 0218/4      |   2.00+ | ramdisk_image         | initrd load address (set by boot loader)                    |
+| 021C/4      |   2.00+ | ramdisk_size          | initrd size (set by boot loader)                            |
+| 0220/4      |   2.00+ | bootsect_kludge       | DO NOT USE - for bootsect.S use only                        |
+| 0224/2      |   2.01+ | heap_end_ptr          | Free memory after setup end                                 |
+| 0226/1      | 2.02+(3 | ext_loader_ver        | Extended boot loader version                                |
+| 0227/1      | 2.02+(3 | ext_loader_type       | Extended boot loader ID                                     |
+| 0228/4      |   2.02+ | cmd_line_ptr          | 32-bit pointer to the kernel command line                   |
+| 022C/4      |   2.03+ | initrd_addr_max       | Highest legal initrd address                                |
+| 0230/4      |   2.05+ | kernel_alignment      | Physical addr alignment required for kernel                 |
+| 0234/1      |   2.05+ | relocatable_kernel    | Whether kernel is relocatable or not                        |
+| 0235/1      |   2.10+ | min_alignment         | Minimum alignment, as a power of two                        |
+| 0236/2      |   2.12+ | xloadflags            | Boot protocol option flags                                  |
+| 0238/4      |   2.06+ | cmdline_size          | Maximum size of the kernel command line                     |
+| 023C/4      |   2.07+ | hardware_subarch      | Hardware subarchitecture                                    |
+| 0240/8      |   2.07+ | hardware_subarch_data | Subarchitecture-specific data                               |
+| 0248/4      |   2.08+ | payload_offset        | Offset of kernel payload                                    |
+| 024C/4      |   2.08+ | payload_length        | Length of kernel payload                                    |
+| 0250/8      |   2.09+ | setup_data            | 64-bit physical pointer to linked list of struct setup_data |
+| 0258/8      |   2.10+ | pref_address          | Preferred loading address                                   |
+| 0260/4      |   2.10+ | init_size             | Linear memory required during initialization                |
+| 0264/4      |   2.11+ | handover_offset       | Offset of handover entry point                              |
+
+*** 32 位引导协议
+1. 除了传统的引导参数(=struct boot_params=)，Bootloader 取代内核实模式部分负责收集硬件信息([[https://elixir.bootlin.com/linux/v4.17.1/source/Documentation/x86/zero-page.txt][zero-page.txt]])
+2. 然后，Bootloader 跳转到 =code32_start= 处，即内核被加载的起始位置。
+
+#+BEGIN_QUOTE
+在进入时，CPU 的初始化状态
+- CPU 必须处于启动分页的 64 位模式
+- setup_header.init_size 的范围为从内核被加载的起始地址和零页面以及命令行缓冲区获得的 =ident= 映射。
+- 加载 GDT 描述符(4G 平坦模式)，选择子为 =__BOOT_CS(0x10, 执行/读取)= 和 =__BOOT_DS(0x18, 读/写)=
+- =cs= 为 =__BOOT_CS= ， =ds、es、ss= 为 =__BOOT_DS= 。
+- 禁用中断。
+- =esi= 保存 =struct boot_params= 的基地址。
+- =ebp、edi、ebx= 必须为 0。
+#+END_QUOTE
+
+*** 64 位引导协议
+1. 除了传统的引导参数(=struct boot_params=)，Bootloader 取代内核实模式部分负责收集硬件信息([[https://elixir.bootlin.com/linux/v4.17.1/source/Documentation/x86/zero-page.txt][zero-page.txt]])
+2. 然后，Bootloader 跳转到 =code32_start= 处，即内核被加载的起始位置 + 0x200。
+
+#+BEGIN_QUOTE
+在进入时，CPU 的初始化状态
+- CPU 必须处于启动分页的 64 位模式
+- setup_header.init_size 的范围为从内核被加载的起始地址和零页面以及命令行缓冲区获得的 =ident= 映射。
+- 加载 GDT 描述符(4G 平坦模式)，选择子为 =__BOOT_CS(0x10, 执行/读取)= 和 =__BOOT_DS(0x18, 读/写)=
+- =cs= 为 =__BOOT_CS= ， =ds、es、ss= 为 =__BOOT_DS= 。
+- 禁用中断。
+- =esi= 保存 =struct boot_params= 的基地址。
+- =ebp、edi、ebx= 必须为 0。
+#+END_QUOTE
+
+** 内核代码的入口
+*** startup_32
+该部分代码位于 =arch/x86/boot/compressed/head_64.S 48= 。
+1. 检查 =boot_params= 的 =loadflags= 的 =KEEP_SEGMENTS= 位：确保段寄存器都设置为基地址都为 0 的平坦段。
+   - 如果为 0：重新加载段寄存器， =ds、es、ss= 设为(=__BOOT_DS,0x18=)。
+   - 如果为 1：不重新加载段寄存器。
+2. 计算实际被加载的内存地址, 保存到 =ebp=
+   
+   #+BEGIN_SRC asm
+             leal	(BP_scratch+4)(%esi), %esp
+             call	1f
+     1:      popl	%ebp
+             subl	$1b, %ebp
+   #+END_SRC
+3. 建立栈和检查 CPU 是否支持 =long mode= 和 =sse= ，不支持则 =hlt= 。
+4. 设置 =ebp= 为内核被加载的地址， =ebx= 为临时移动内核映像的地址，确保安全的就地解压缩(=LOAD_PHYSICAL_ADDR + init_size(内核映像解压缩后需要的大小) - 压缩内核的结束位置=)。
+   
+   #+BEGIN_QUOTE
+   注：如果配置了可重定向，检查被加载的内核是否对齐(可能存在boot loader 未将内核加载到指定位置)，若没有对齐使之对齐，设为 =LOAD_PHYSICAL_ADDR= 。
+   #+END_QUOTE
+5. 准备进入 64 位模式：
+   1. 重新加载 =GDT= ：一个 32 位内核代码段，一个 64 位内核段，内核数据段，两个任务描述符。
+
+      #+BEGIN_SRC asm
+        gdt:
+                .word	gdt_end - gdt
+                .long	gdt
+                .word	0
+                .quad	0x00cf9a000000ffff	/* __KERNEL32_CS */
+                .quad	0x00af9a000000ffff	/* __KERNEL_CS */
+                .quad	0x00cf92000000ffff	/* __KERNEL_DS */
+                .quad	0x0080890000000000	/* TS descriptor */
+                .quad   0x0000000000000000	/* TS continued */
+        gdt_end:
+      #+END_SRC
+
+   2. 启动页表模式 =4-level mode= ：x86_64(48 位地址总线，256 TB)。
+6. 检查 SEV，并构建页表(4 G大小)：初始化 24 kb内存(置 0)，分配 6 个页表(每个页表分配了 4kb)。
+   - 一个 Page Map Level 4(PML4)，包含一个表项指向
+   - 一个 Page Directory Pointer(PDP)，包含 4 个表项
+   - 4 个 Page Directory tables，共 2048 个表项
+7. 在 EFER(Extended Feature Enable Register) 启动 long mode。
+8. =ldtr= 标记为无效, =tr= 设为 =__BOOT_TSS= (指向 4*8 段描述符)。
+9. 设置 =CR0= 的 =PG= 、 =PE= 位，执行 =lret(__KERNEL_CS:startup_64 + LOAD_PHYSICAL_ADDR，如：0X0010:0X1000200=)，即跳转到 =startup_64=
+
+*** startup_64
+该部分代码位于 =arch/x86/boot/compressed/head_64.S 253= 。
+1. 初始化除 =cs= 以外的段寄存器(置零)
+2. 设置 =rbp= 为内核被加载的地址， =rbx= 为临时移动内核映像的地址，确保安全的就地解压缩(=LOAD_PHYSICAL_ADDR + (init_size(内核解压缩后需要的大小) - 压缩内核的结束位置)=)。
+
+   #+BEGIN_QUOTE
+   注：如果配置了可重定向，检查被加载的内核是否对齐(可能存在boot loader 未将内核加载到指定位置)，若没有对齐使之对齐，设为 =LOAD_PHYSICAL_ADDR=
+   #+END_QUOTE。
+3. 设置栈，计算实际被加载的内存地址的起始位置保存到 =rdi= ，调用 =adjust_got=
+
+   #+BEGIN_QUOTE
+   =adjust_got= ：调整 got(global offset table，全局变量运行时地址)。
+   - =rax= ：撤销上一次调整(第一次为 0)
+   - =rdi= ：新的调整
+   #+END_QUOTE
+4. 重新加载 =GDT= (确保有 32 code segment)：一个 32 位内核代码段，一个 64 位内核段，内核数据段，两个任务描述符。
+5. 切换页表模式: 若想在 long mode 下的 4-level 启动 5-level 设置 CR4.LA57 将触发 #GP(反之亦然), 所以需要先取消 long mode, 然后在低内存(针对内核处在 4G 以上的情况)从 4-level 切换到 5-level, 同时还需要将 =top_table= 驻留在较低内存中(32-bit mode 无法加载 64-bit 的值)。
+   1) 调用 =paging_prepare=:
+      1. 首先寻找 trampoline 的位置保存在 =paging_config.trampoline_start=
+      2. 将 =paging_config.trampoline_start= 原本的内存暂存在 =trampoline_save=
+      3. 将 top_table(当前 cr3 的页表, 仅一个页表) 和 =trampoline_32bit_src= 代码移动到 =paging_config.trampoline_start= 的位置
+      4. 返回 rax, 即 =paging_config=
+         #+BEGIN_SRC C
+           // arch/x86/boot/compressed/pgtable_64.c
+           struct paging_config {
+             // trampoline_32bit_src
+             unsigned long trampoline_start;
+             unsigned long l5_required; // 需要 l5 设为 1
+           };
+         #+END_SRC
+   2) 执行 =trampoline_32bit_src= 代码: 切换页表模式
+   3) 使用 =trampoline_save= 恢复 =paging_config.trampoline_start= 所在保存地址的内存, 并填充 =top_pgtable= 设置 cr3 为 =top_pgtable= 。
+
+#+BEGIN_EXAMPLE
+为解压缩内核做准备
+#+END_EXAMPLE
+
+6. 设置 stack 为 =rbx(临时移动内核的起始地址) + boot_stack_end=，=EFLAGS= 置零。
+7. 调用 =adjust_got= : =rdi= 为 =rbx= (临时移动内核的地址)。
+8. 计算到 =_bss= 为止的内核大小,并将该部分的内核复制到 =rbx= 位置。
+
+   #+BEGIN_SRC asm
+             pushq   %rsi
+             leaq    (_bss-8)(%rip), %rsi
+             leaq    (_bss-8)(%rbx), %rdi
+             movq    $_bss /* - $startup_32 */, %rcx
+             shrq    $3, %rcx
+             std
+             rep     movsq
+             cld
+             popq    %rsi
+   #+END_SRC
+9. 跳转到 =relocated + rbx= 位置
+
+   #+BEGIN_SRC asm
+             leaq    relocated(%rbx), %rax
+             jmp     *%rax
+   #+END_SRC
+10. 清理 BSS(置零)
+11. 调用 =extract_kernel(arch/x86/boot/compressed/misc.c 339行)= 函数：解压缩内核。
+12. 跳转到 =rax= 即 *解压后内核* 的起始位置 (=arch/x86/kernel/head_64.S=)
+
+*** init_size 的计算
+
+#+BEGIN_SRC asm
+  /* 保证安全的就地解压 */
+  /* For more information, please refer to RFC 1951 and RFC 1952. */
+
+  #define ZO_z_extra_bytes	((ZO_z_output_len >> 8) + 65536)
+  #if ZO_z_output_len > ZO_z_input_len
+  # define ZO_z_extract_offset	(ZO_z_output_len + ZO_z_extra_bytes -
+                     ZO_z_input_len)
+  #else
+  # define ZO_z_extract_offset	ZO_z_extra_bytes
+  #endif
+
+  /* 保证偏移对齐 */
+  #if (ZO__ehead - ZO_startup_32) > ZO_z_extract_offset
+  # define ZO_z_min_extract_offset ((ZO__ehead - ZO_startup_32 + 4095) & ~4095)
+  #else
+  # define ZO_z_min_extract_offset ((ZO_z_extract_offset + 4095) & ~4095)
+  #endif
+
+  #define ZO_INIT_SIZE	(ZO__end - ZO_startup_32 + ZO_z_min_extract_offset)
+
+  #define VO_INIT_SIZE	(VO__end - VO__text)
+  #if ZO_INIT_SIZE > VO_INIT_SIZE
+  # define INIT_SIZE ZO_INIT_SIZE
+  #else
+  # define INIT_SIZE VO_INIT_SIZE
+  #endif
+
+  init_size:		.long INIT_SIZE		# kernel initialization size
+
+#+END_SRC
+
+*** 解压缩内核
+
+#+BEGIN_EXAMPLE
+                             |-----compressed kernel image------|
+                             V                                  V
+ 0                       extract_offset                      +INIT_SIZE
+ |-----------|---------------|-------------------------|--------|
+             |               |                         |        |
+           VO__text      startup_32 of ZO          VO__end    ZO__end
+             ^                                         ^
+             |-------uncompressed kernel image---------|
+#+END_EXAMPLE
+
+#+BEGIN_QUOTE
+=extract_kernel= 函数负责解压缩内核，参数有：
+- =rmode= ：指向 =boot_params= 的指针。
+- =heap= ：指向 =boot_heap= 的指针，为解压缩分配堆的内存。
+- =input_data= ：指向压缩内核的起始地址
+- =input_len= ：压缩内核的长度
+- =output= ：解压缩内核后的起始地址
+- =output_len= ：解压缩内核的长度
+#+END_QUOTE
+
+1. 首先打印关于解压缩的一些信息
+2. 调用 =choose_random_location= ：选择内核映像将被解压缩的内存位置(kASLR，Address space layout randomization)，允许内核解压到一个随机的地址，为了安全考虑。
+   - 其中设置 5-level mode 相关变量的值
+3. 校验随机地址的选择正确对齐且地址没有错误。
+4. 打印 Decompressing Linux...，并调用 =__decompress= ，该函数取决于在内核编译期间选择的解压缩算法。
+
+   #+BEGIN_SRC C
+     #ifdef CONFIG_KERNEL_GZIP
+     #include "../../../../lib/decompress_inflate.c"
+     #endif
+
+     #ifdef CONFIG_KERNEL_BZIP2
+     #include "../../../../lib/decompress_bunzip2.c"
+     #endif
+
+     #ifdef CONFIG_KERNEL_LZMA
+     #include "../../../../lib/decompress_unlzma.c"
+     #endif
+
+     #ifdef CONFIG_KERNEL_XZ
+     #include "../../../../lib/decompress_unxz.c"
+     #endif
+
+     #ifdef CONFIG_KERNEL_LZO
+     #include "../../../../lib/decompress_unlzo.c"
+     #endif
+   #+END_SRC
+
+5. 解析 elf：将内核的各个段进行 2M 对齐
+6. 处理重定向
+7. 返回
+
+* Initialization
+** arch/x86/kernel/head_64.S:startup_64
+1. 内核可能加载到与编译时不同的地址，需要修复在页表的物理地址并重新加载。
+   1. 调用 =verify_cpu= ，检查 SSE 和 longmode，在 intel 将 xd 位清零(若 bootloader 进入 startup_64 则需要重新检查 cpu，防止一些 bootloader 没有进行 cpu 检查)。
+   2. 调用 =__startup_64= 修正早期的页表，早期的页表如下:
+      - 内核在物理内存的起始位置被映射到 =0xffffffff80000000= 加上物理地址的起始位置，直到内核大小的结束位置。
+      - 提供 =early_dynamic_pgts= (共 64 个页表)，进行页表管理。并初始化映射到内核物理内存所在的地址。
+      
+      #+BEGIN_SRC asm
+        /* arch/x86/kernel/head_64.S 370 */
+        /* Automate the creation of 1 to 1 mapping pmd entries */
+        #define PMDS(START, PERM, COUNT)			\
+                i = 0 ;						\
+                .rept (COUNT) ;					\
+                .quad	(START) + (i << PMD_SHIFT) + (PERM) ;	\
+                i = i + 1 ;					\
+                .endr
+
+                __INITDATA
+        NEXT_PGD_PAGE(early_top_pgt)
+                .fill	512,8,0
+                
+                // PGD需要 8k 对齐早期页表不需要这么严格
+                // 但是为了能够使用像 set_pgd() 的实现而不担心 4k 和 8k
+                // 配置 CONFIG_PAGE_TABLE_ISOLATION
+                .fill	PTI_USER_PGD_FILL,8,0 
+
+        NEXT_PAGE(early_dynamic_pgts)
+                .fill	512*EARLY_DYNAMIC_PAGE_TABLES,8,0
+                .data
+
+        // ...
+
+        NEXT_PAGE(level3_kernel_pgt)
+                .fill	L3_START_KERNEL,8,0
+                /* (2^48-(2*1024*1024*1024)-((2^39)*511))/(2^30) = 510 */
+                .quad	level2_kernel_pgt - __START_KERNEL_map + _KERNPG_TABLE_NOENC
+                .quad	level2_fixmap_pgt - __START_KERNEL_map + _PAGE_TABLE_NOENC
+
+        NEXT_PAGE(level2_kernel_pgt)
+                // 用一页来填充 kernel
+                PMDS(0, __PAGE_KERNEL_LARGE_EXEC,
+                        KERNEL_IMAGE_SIZE/PMD_SIZE)
+
+        NEXT_PAGE(level2_fixmap_pgt)
+                .fill	506,8,0
+                .quad	level1_fixmap_pgt - __START_KERNEL_map + _PAGE_TABLE_NOENC
+                /* 8MB reserved for vsyscalls + a 2MB hole = 4 + 1 entries */
+                .fill	5,8,0
+
+        NEXT_PAGE(level1_fixmap_pgt)
+                .fill	512,8,0
+
+        #undef PMDS
+
+                .data
+                .align 16
+                .globl early_gdt_descr
+        early_gdt_descr:
+                .word	GDT_ENTRIES*8-1
+        early_gdt_descr_base:
+                .quad	INIT_PER_CPU_VAR(gdt_page)
+      #+END_SRC
+
+      相关的变量和函数
+      - =load_delta=: 编译地址和运行地址的偏移
+      - =fixup_pointer=: 返回变量实际的物理地址
+        
+        #+BEGIN_SRC C
+          static void __head *fixup_pointer(void *ptr, unsigned long physaddr)
+          {
+                  // ptr 编译时变量地址, _text 编译时内核起始地址(0xffffffff81000000)
+                  // 实际的内核起始的物理地址
+                  return ptr - (void *)_text + (void *)physaddr;
+          }
+        #+END_SRC
+2. 启动页表模式
+   1. 启动 =PAE mode= 和 =PGE mode=, 设置 =cr3= 为 =early_top_pgt=
+   2. 执行跳转操作确保在虚拟地址执行
+      
+      #+BEGIN_SRC asm
+                movq	$1f, %rax
+                ANNOTATE_RETPOLINE_SAFE
+                jmp	*%rax
+      #+END_SRC
+3. *TODO* 检查 cpu nx 是否实现，并 ...
+4. 设置栈, 并清空标志位 (为运行任何代码 =c code=)
+
+   #+BEGIN_SRC asm
+             MOVQ initial_stack（％RIP ），％RSP
+             pushq  $ 0
+             popfq
+             ...
+             GLOBAL(initial_stack)
+             .quad  init_thread_union + THREAD_SIZE - SIZEOF_PTREGS
+   #+END_SRC 
+
+   - =THREAD_SIZE=: 线程大小取决于 [[https://github.com/torvalds/linux/tree/master/Documentation/dev-tools/kasan.rst][=KASAN=]] ，若没有配置 =KASAN= 则 =THREAD_SIZE= 为 16kb。
+        
+      #+BEGIN_SRC C
+        #ifdef CONFIG_KASAN
+        #define KASAN_STACK_ORDER 1
+        #else
+        #define KASAN_STACK_ORDER 0
+        #endif
+        #define THREAD_SIZE_ORDER	(2 + KASAN_STACK_ORDER)
+        #define THREAD_SIZE  (PAGE_SIZE << THREAD_SIZE_ORDER)#ifdef CONFIG_KASAN
+      #+END_SRC
+   - =init_thread_union=: =init_task= 被链接到 =init_thread_union= 的内部
+     
+     #+BEGIN_SRC C
+       // include/linux/sched.h 1560
+       union thread_union {
+       #ifndef CONFIG_ARCH_TASK_STRUCT_ON_STACK
+               struct task_struct task;
+       #endif
+       #ifndef CONFIG_THREAD_INFO_IN_TASK
+               struct thread_info thread_info;
+       #endif
+               unsigned long stack[THREAD_SIZE/sizeof(long)];
+       };
+       // include/asm-generic/vmlinux.lds.h
+       #define INIT_TASK_DATA(align)						\
+               . = ALIGN(align);						\
+               __start_init_task = .;						\
+               init_thread_union = .;						\
+               init_stack = .;							\
+               KEEP(*(.data..init_task))					\
+               KEEP(*(.data..init_thread_info))				\
+               . = __start_init_task + THREAD_SIZE;				\
+               __end_init_task = .;
+       // init/init_task.h
+       #ifdef CONFIG_ARCH_TASK_STRUCT_ON_STACK
+       #define __init_task_data __attribute__((__section__(".data..init_task")))
+       #else
+       #define __init_task_data /**/
+       #endif
+     #+END_SRC
+5. *TODO* 加载 gdt, 设置段寄存器
+      
+   #+BEGIN_SRC asm
+     // arch/x86/kernel/head_64.S 461
+     early_gdt_descr:
+             .word	GDT_ENTRIES*8-1
+     early_gdt_descr_base:
+             .quad	INIT_PER_CPU_VAR(gdt_page)
+   #+END_SRC 
+
+   - =GDT_ENTRIES=: x86_64 为 16, x86_32 为 32
+   - =INIT_PER_CPU_VAR(gdt_page)=: gdt 的地址, 对于 x86_64 定义了以下描述符 =GDT_ENTRY_KERNEL32_CS= 、 =GDT_ENTRY_KERNEL_CS= 、 =GDT_ENTRY_KERNEL_DS= 、 =GDT_ENTRY_DEFAULT_USER32_CS= 、 =GDT_ENTRY_DEFAULT_USER_DS= 、 =GDT_ENTRY_DEFAULT_USER_CS=
+        
+     #+BEGIN_SRC C
+       // arch/x86/include/asm/percpu.h
+       #ifdef CONFIG_X86_64_SMP
+       #define INIT_PER_CPU_VAR(var)  init_per_cpu__##var
+       #else
+       #define INIT_PER_CPU_VAR(var)  var
+       #endif
+     #+END_SRC 
+
+     其声明和定义使用了下面两个宏: 保证 per-cpu 变量必须对齐
+
+     #+BEGIN_SRC C
+       // include/linux/percpu-defs.h
+       #define DECLARE_PER_CPU_PAGE_ALIGNED(type, name)			\
+               DECLARE_PER_CPU_SECTION(type, name, "..page_aligned")		\
+               __aligned(PAGE_SIZE)
+
+       #define DEFINE_PER_CPU_PAGE_ALIGNED(type, name)				\
+               DEFINE_PER_CPU_SECTION(type, name, "..page_aligned")		\
+               __aligned(PAGE_SIZE)
+     #+END_SRC 
+        
+     #+BEGIN_SRC C
+       // arch/x86/include/asm/desc.h 声明
+       DECLARE_PER_CPU_PAGE_ALIGNED(struct gdt_page, gdt_page);
+
+       // arch/x86/kernel/cpu/common.c 定义
+       DEFINE_PER_CPU_PAGE_ALIGNED(struct gdt_page, gdt_page) = { .gdt = {
+       #ifdef CONFIG_X86_64
+               /*
+                ,* We need valid kernel segments for data and code in long mode too
+                ,* IRET will check the segment types  kkeil 2000/10/28
+                ,* Also sysret mandates a special GDT layout
+                ,*
+                ,* TLS descriptors are currently at a different place compared to i386.
+                ,* Hopefully nobody expects them at a fixed place (Wine?)
+                ,*/
+               [GDT_ENTRY_KERNEL32_CS]		= GDT_ENTRY_INIT(0xc09b, 0, 0xfffff),
+               [GDT_ENTRY_KERNEL_CS]		= GDT_ENTRY_INIT(0xa09b, 0, 0xfffff),
+               [GDT_ENTRY_KERNEL_DS]		= GDT_ENTRY_INIT(0xc093, 0, 0xfffff),
+               [GDT_ENTRY_DEFAULT_USER32_CS]	= GDT_ENTRY_INIT(0xc0fb, 0, 0xfffff),
+               [GDT_ENTRY_DEFAULT_USER_DS]	= GDT_ENTRY_INIT(0xc0f3, 0, 0xfffff),
+               [GDT_ENTRY_DEFAULT_USER_CS]	= GDT_ENTRY_INIT(0xa0fb, 0, 0xfffff),
+       #else
+               [GDT_ENTRY_KERNEL_CS]		= GDT_ENTRY_INIT(0xc09a, 0, 0xfffff),
+               [GDT_ENTRY_KERNEL_DS]		= GDT_ENTRY_INIT(0xc092, 0, 0xfffff),
+               [GDT_ENTRY_DEFAULT_USER_CS]	= GDT_ENTRY_INIT(0xc0fa, 0, 0xfffff),
+               [GDT_ENTRY_DEFAULT_USER_DS]	= GDT_ENTRY_INIT(0xc0f2, 0, 0xfffff),
+               /*
+                ,* Segments used for calling PnP BIOS have byte granularity.
+                ,* They code segments and data segments have fixed 64k limits,
+                ,* the transfer segment sizes are set at run time.
+                ,*/
+               /* 32-bit code */
+               [GDT_ENTRY_PNPBIOS_CS32]	= GDT_ENTRY_INIT(0x409a, 0, 0xffff),
+               /* 16-bit code */
+               [GDT_ENTRY_PNPBIOS_CS16]	= GDT_ENTRY_INIT(0x009a, 0, 0xffff),
+               /* 16-bit data */
+               [GDT_ENTRY_PNPBIOS_DS]		= GDT_ENTRY_INIT(0x0092, 0, 0xffff),
+               /* 16-bit data */
+               [GDT_ENTRY_PNPBIOS_TS1]		= GDT_ENTRY_INIT(0x0092, 0, 0),
+               /* 16-bit data */
+               [GDT_ENTRY_PNPBIOS_TS2]		= GDT_ENTRY_INIT(0x0092, 0, 0),
+               /*
+                ,* The APM segments have byte granularity and their bases
+                ,* are set at run time.  All have 64k limits.
+                ,*/
+               /* 32-bit code */
+               [GDT_ENTRY_APMBIOS_BASE]	= GDT_ENTRY_INIT(0x409a, 0, 0xffff),
+               /* 16-bit code */
+               [GDT_ENTRY_APMBIOS_BASE+1]	= GDT_ENTRY_INIT(0x009a, 0, 0xffff),
+               /* data */
+               [GDT_ENTRY_APMBIOS_BASE+2]	= GDT_ENTRY_INIT(0x4092, 0, 0xffff),
+
+               [GDT_ENTRY_ESPFIX_SS]		= GDT_ENTRY_INIT(0xc092, 0, 0xfffff),
+               [GDT_ENTRY_PERCPU]		= GDT_ENTRY_INIT(0xc092, 0, 0xfffff),
+               GDT_STACK_CANARY_INIT
+       #endif
+       } };
+     #+END_SRC
+6. 跳转到 =x86_64_start_kernel= (arch/x86/kernel/head64.c, c code)
+
+** arch/x86/kernel/head64.c:x86_64_start_kernel
+1. 检查下列的值是否符合条件，若不符合则编译错误。
+
+   #+BEGIN_SRC C
+     // arch/x86/boot/boot.h !!condition 相当于 condition != 0
+     #define BUILD_BUG_ON(condition) ((void)sizeof(char[1 - 2*!!(condition)]))
+   
+     // arch/x86/kernel/head64.c 393
+     BUILD_BUG_ON(MODULES_VADDR < __START_KERNEL_map);
+     BUILD_BUG_ON(MODULES_VADDR - __START_KERNEL_map < KERNEL_IMAGE_SIZE);
+     BUILD_BUG_ON(MODULES_LEN + KERNEL_IMAGE_SIZE > 2*PUD_SIZE);
+     BUILD_BUG_ON((__START_KERNEL_map & ~PMD_MASK) != 0);
+     BUILD_BUG_ON((MODULES_VADDR & ~PMD_MASK) != 0);
+     BUILD_BUG_ON(!(MODULES_VADDR > __START_KERNEL));
+     MAYBE_BUILD_BUG_ON(!(((MODULES_END - 1) & PGDIR_MASK) ==
+                          (__START_KERNEL & PGDIR_MASK)));
+     BUILD_BUG_ON(__fix_to_virt(__end_of_fixed_addresses) <= MODULES_END);
+   #+END_SRC
+2. 初始化 =cpu_tlbstate.cr4(percpu)= 为当前 cr4 值。
+3. 清理除内核占用的页表以外的 early page tables
+4. 清理 =bss= 段
+5. 清理 =init_top_pgt= (感觉没必要)，清理方式根据 cpu feature 选择
+   
+   #+BEGIN_SRC C
+     // arch/x86/include/asm/page_64.h 47
+     static inline void clear_page(void *page)
+     {
+             // 如果支持 X86_FEATURE_ERMS 使用 clear_page_erms
+             // 否则, 如果支持 X86_FEATURE_REP_GOOD 使用 clear_page_rep
+             // 否则, 使用 clear_page_orig
+             alternative_call_2(clear_page_orig,
+                                clear_page_rep, X86_FEATURE_REP_GOOD,
+                                clear_page_erms, X86_FEATURE_ERMS,
+                                "=D" (page),
+                                "0" (page)
+                                : "cc", "memory", "rax", "rcx");
+     }
+   #+END_SRC 
+6. *TODO* 对 SME 进行早期的初始化, SME 支持可能会更新 =early_pmd_flags= 以包含内存加密掩码，因此需要在可能产生页面错误的任何内容之前调用它。
+7. *TODO* =kasan_early_init=
+8. 使用早期处理程序初始化 idt 表(0-31) [[early_idt_handler]]
+9. 复制 =real_mode_data= 到 =boot_params(arch/x86/include/asm/setup.h 70)=, 重置某些 =boot_param= 保持规范。
+    *TODO*: =sme_unmap_bootdata=
+10. *TODO* =load_ucode_bsp=
+11. 设置 =init_top_pgt= 的内核映射
+    #+BEGIN_SRC C
+      init_top_pgt[511] = early_top_pgt[511];
+    #+END_SRC 
+12. *TODO* initialize early x86 platform quirks.
+13. call =start_kernel() init/main.c/ 531=
+
+*** 早期的中断处理
+<<early_idt_handler>>
+- 设置中断: 填充 =idt_descr= 并将 idt_descr 的地址加载到 idt
+  - x86_64: 为前32个中断(异常)设置中断处理程序 =early_idt_handler_array=
+  - x86_32: 为所有的中断设置中断处理程序 =early_ignore_irq=
+  #+BEGIN_SRC C
+    extern gate_desc idt_table[]; // arch/x86/include/asm/desc.h
+    gate_desc idt_table[IDT_ENTRIES] __page_aligned_bss; // IDT_ENTRIES 256 arch/x86/kernel/idt.c
+  #+END_SRC
+- 中断处理函数:
+  - =early_idt_handler_array=: 32 个大小为 9 字节程序的数组
+    如果异常有错误代码，什么也不做。如果异常没有错误代码 将 0 压入栈(保持栈统一)。然后将中断向量号压栈并调用 =early_idt_handler_common=
+
+    #+BEGIN_SRC asm
+      // NUM_EXCEPTION_VECTORS 32, EARLY_IDT_HANDLER_SIZE 9
+      // arch/x86/include/asm/segment.h
+      extern const char early_idt_handler_array[NUM_EXCEPTION_VECTORS][EARLY_IDT_HANDLER_SIZE];
+
+      // arch/x86/kernel/head_64.S
+      ENTRY(early_idt_handler_array)
+              i = 0
+              .rept NUM_EXCEPTION_VECTORS
+              .if ((EXCEPTION_ERRCODE_MASK >> i) & 1) == 0 
+                      UNWIND_HINT_IRET_REGS
+                      pushq $0	# Dummy error code, to make stack frame uniform
+              .else
+                      UNWIND_HINT_IRET_REGS offset=8
+              .endif
+              pushq $i		# 72(%rsp) Vector number
+              jmp early_idt_handler_common
+              UNWIND_HINT_IRET_REGS
+              i = i + 1
+              .fill early_idt_handler_array + i*EARLY_IDT_HANDLER_SIZE - ., 1, 0xcc
+              .endr
+              UNWIND_HINT_IRET_REGS offset=16
+      END(early_idt_handler_array)
+    #+END_SRC 
+
+    - =early_idt_handler_common=: 保存相关的寄存器，根据 =vector number= 调用相应得异常处理函数
+      - =early_make_pgtable=: 
+        1. 检查是否是无效地址，或者 early pgt 是否完成
+        2. 检查异常地址在不同等级的页表所在位置的值。
+           - 不为零: 向下级页表搜索
+           - 为零: 检查 =early_dynamic_pgts= 是否超过 64 若超过则重置，然后为异常地址所在位置的页表设置地址。
+      - =early_fixup_exception=: 针对非 fault page 异常的处理
+        1. 忽略 =X86_TRAP_NMI= 异常
+        2. 搜索异常表 [[exception-tables]]
+        3. 处理 bug 异常
+        4. 打印相关异常信息
+
+    #+BEGIN_SRC asm
+      // arch/x86/kernel/head_64.S
+      early_idt_handler_common:
+              /*
+               ,* The stack is the hardware frame, an error code or zero, and the
+               ,* vector number.
+               ,*/
+              cld
+
+              incl early_recursion_flag(%rip)
+
+              /* The vector number is currently in the pt_regs->di slot. */
+              pushq %rsi				/* pt_regs->si */
+              movq 8(%rsp), %rsi			/* RSI = vector number */
+              movq %rdi, 8(%rsp)			/* pt_regs->di = RDI */
+              pushq %rdx				/* pt_regs->dx */
+              pushq %rcx				/* pt_regs->cx */
+              pushq %rax				/* pt_regs->ax */
+              pushq %r8				/* pt_regs->r8 */
+              pushq %r9				/* pt_regs->r9 */
+              pushq %r10				/* pt_regs->r10 */
+              pushq %r11				/* pt_regs->r11 */
+              pushq %rbx				/* pt_regs->bx */
+              pushq %rbp				/* pt_regs->bp */
+              pushq %r12				/* pt_regs->r12 */
+              pushq %r13				/* pt_regs->r13 */
+              pushq %r14				/* pt_regs->r14 */
+              pushq %r15				/* pt_regs->r15 */
+              UNWIND_HINT_REGS
+
+              cmpq $14,%rsi		/* Page fault? */
+              jnz 10f
+              GET_CR2_INTO(%rdi)	/* Can clobber any volatile register if pv */
+              call early_make_pgtable
+              andl %eax,%eax
+              jz 20f			/* All good */
+
+      10:
+              movq %rsp,%rdi		/* RDI = pt_regs; RSI is already trapnr */
+              call early_fixup_exception
+
+      20:
+              decl early_recursion_flag(%rip)
+              jmp restore_regs_and_return_to_kernel
+      END(early_idt_handler_common)
+    #+END_SRC
+  - =early_ignore_irq=: 
+    
+    #+BEGIN_SRC asm
+      /* This is the default interrupt "handler" :-) */
+      ENTRY(early_ignore_irq)
+              cld
+      #ifdef CONFIG_PRINTK
+              pushl %eax
+              pushl %ecx
+              pushl %edx
+              pushl %es
+              pushl %ds
+              movl $(__KERNEL_DS),%eax
+              movl %eax,%ds
+              movl %eax,%es
+              cmpl $2,early_recursion_flag
+              je hlt_loop
+              incl early_recursion_flag
+              pushl 16(%esp)
+              pushl 24(%esp)
+              pushl 32(%esp)
+              pushl 40(%esp)
+              pushl $int_msg
+              call printk
+
+              call dump_stack
+
+              addl $(5*4),%esp
+              popl %ds
+              popl %es
+              popl %edx
+              popl %ecx
+              popl %eax
+      #endif
+              iret
+
+      hlt_loop:
+              hlt
+              jmp hlt_loop
+      ENDPROC(early_ignore_irq)
+    #+END_SRC
+
+** init/main.c:start_kernel
+1. 为 =init_stack= 的结尾设置 =STACK_END_MAGIC= (For easy inspection stack overflow)
+2. *TODO* =debug_objects_early_init=
+3. *TODO* =cgroup_init_early=
+4. =local_irq_disable=: Disable local IRQs(interrupts for current CPU). Do necessary setups, then enable them.
+5. =boot_cpu_init=: first processor activation
+   1. get the bootstrap processor id with a call to =smp_processor_id=
+   2. set current CPU mask for online, active, present and possible
+6. print linux banner
+7. =setup_arch=: architecture-dependent parts of initialization
+   1. memory init
+      1. reserve memory block for the kernel =_text= and =_data= which starts from the =_text= symbol and ends before =_bss_stop=
+      2. reserve memory for initrd
+   2. print kernel info which is the command line.
+   3. *TODO* detects One Laptop Per Child support.
+   4. =idt_setup_early_traps=: initializes [[debug]] (#DB - raised when the =TF= flag of rflags is set) and [[int3]] (#BP)
+   5. =early_cpu_init=: cpu init:
+      1. print kernel supported cpus with [[cpu_dev]]
+      2. initialization =boot_cpu_data= what is =struct cpuinfo_x86= for doing minimum CPU detection early
+   6. initialization ideal nops according to =cpuinfo_x86.x86_vendor=
+   7. *TODO* Jump label support init
+   8. =early_ioremap_init=: early [[ioremap]] initialization, 512 (2K) temporary boot-time mappings, used by early_ioremap(), before ioremap() is functional
+   9. *TODO* =setup_olpc_ofw_pgd=:
+   10. obtaining major and minor numbers for the root device
+       #+BEGIN_SRC C
+         ROOT_DEV = old_decode_dev(boot_params.hdr.root_dev);
+       #+END_SRC 
+   11. setup different parameters as information about a screen
+   12. memory map setup: copy =e820_table= to =e820_table_kexec= and =e820_table_firmware=, then print e820 information
+   13. =parse_setup_data=: 
+   14. =copy_edd()=: copy the BIOS =EDD= information from =boot_params= into a safe place
+   15. memory descriptor initialization
+       1. [[mm_struct]] initialization
+       2. =mpx_mm_init=: initialization of the intel Memory Protection Extensions
+       3. initialization of the code/data/bss resources
+   16. configure nx
+   17. parse early param
+   18. print nx information of cpu according to cpu feature, command line option and More
+   19. 
+
+
+* Misc
+** linux 构建过程
+*** linux kernel Makefile 文件组成
+
+| 名称                    | 描述                                                                                                        |
+|-------------------------+-------------------------------------------------------------------------------------------------------------|
+| 顶级 Makefile           | 顶级 Makefile 主要负责构建：vmlinux(常驻内核映像)和模块(任何模块文件)                                       |
+| .config                 | 配置文件，配置内核时生成。所有的Makefile文件（包括顶层目录和各级子目录）都是根据.config来决定使用哪些文件的 |
+| arch/\$(ARCH)/Makefile  | 不同平台的 Makefile                                                                                         |
+| scripts/Makefile.*      | Makefile 公用的通用规则、脚本等                                                                             |
+| 子目录 kbuild Makefiles | 各级子目录的Makefile相对简单，被上一层Makefile.build调用来编译当前目录的文件                                |
+
+#+caption: scripts/Makefile.* 文件组成
+| 名称           | 描述                                          |
+|----------------+-----------------------------------------------|
+| Kbuild.include | 定义了一些函数如：if_changed，和变量如：build |
+| Makefile.build |                                               |
+| Makefile.lib   |                                               |
+| Makefile.clean |                                               |
+
+*** Kbuild
+利用 GNU Make 组织的一套复杂的构建系统。
+Kbuild主要利用以下 Make 的功能
+
+**** Makefile的包含
+- 顶层 Makefile 包含平台相关的 Makefile(方便添加对新平台的支持)
+  
+  #+BEGIN_SRC makefile
+    include arch/$(SRCARCH)/Makefile
+  #+END_SRC
+
+- Makefile.build 包含各个子目录下的 Makefile:Kbuild 将所以与编译过程相关的公共的规则和变量都提取到 scripts 目录下的 Makefile.build, 具体子目录下的 Makefile 文件则可以写的非常简单和直接
+
+  *实现*: Kbuild 定义了 obj-y、obj-m 等变量,用于记录参与编译过程的文件。
+  例: =fs/notify/dnotify/Makefile=, 只有简单的一行
+
+  #+BEGIN_SRC makefile
+    obj-$(CONFIG_DNOTIFY)		+= dnotify.o
+  #+END_SRC
+
+  在编译时,Makefile.build 会指导 make 将要编译的子目录下 Makefile 文件包含到 Makefile.inclde 中动态组成完整的 Makefile 文件。
+
+  #+BEGIN_SRC makefile
+    # scripts/Makefile.build
+    kbuild-dir := $(if $(filter /%,$(src)),$(src),$(srctree)/$(src))
+    kbuild-file := $(if $(wildcard $(kbuild-dir)/Kbuild),$(kbuild-dir)/Kbuild,$(kbuild-dir)/Makefile)
+    include $(kbuild-file)
+  #+END_SRC
+  - =src= ：指向需要构建的目录(相对)
+  - =kbuild-dir= ：指向需要构建的目录(绝对)
+  - =srctree= ：内核顶层目录的绝对路径
+
+**** 使用指定 Makefile 的方式进行递归
+- kbuild 编译子目录采用绝对目录的方式执行 make
+- kbuild 使用的典型方式:
+
+  #+BEGIN_SRC makefile
+    $(MAKE) $(build)=<subdir> [target]
+  #+END_SRC
+
+  make 执行 scripts/Makefile.build 将子目录中的 Makefile 包含到 Makefile.include,动态组成子目录的真正的 Makefile
+  - 通过 make 的 -f 选项将子目录的 Makefile 传递给 make: =$(MAKE)= 相当于 make 命令。
+  - =$(build)= 定义在 =Kbuild.include= 里。
+
+    #+BEGIN_SRC makefile
+      # scripts/Kbuild.include
+      # Shorthand for $(Q)$(MAKE) -f scripts/Makefile.build obj=
+      # Usage:
+      # $(Q)$(MAKE) $(build)=dir
+      build := -f $(srctree)/scripts/Makefile.build obj
+    #+END_SRC
+
+    #+BEGIN_QUOTE
+    KBUILD_SRC 只有在子目录进行 make 时,才会被设置为子目录,否则在顶层目录进行 make,该变量为空。
+    #+END_QUOTE
+  
+- 为了在顶层工作目录中跟踪编译所在的子目录,kbuild 定义了两个变量
+  - src：始终指向需要构建的目录
+
+    #+BEGIN_SRC makefile
+      # scripts/Makefile.build
+      src := $(obj)
+    #+END_SRC
+
+  - =obj= ：指向构建的目标存放的目录
+  - 在引用源码树中已存在的对象时使用变量 =src=, 引用编译时动态生成的对象使用变量 =obj=
+
+**** 有用的函数
+***** if_changed
+如果 =any-prereq= 或 =arg-check= 发生改变,执行表达式 =$(cmd_$(1))= 展开的值。
+
+#+BEGIN_SRC makefile
+  if_changed = $(if $(strip $(any-prereq) $(arg-check)),                       \
+          @set -e;                                                             \
+          $(echo-cmd) $(cmd_$(1));                                             \
+          printf '%s\n' 'cmd_$@ := $(make-cmd)' > $(dot-target).cmd, @:)
+#+END_SRC
+
+- =any-prereq= ：检查是否有依赖比目标新,或依赖还没有创建。
+- =arg-check= ：检查编译目标的命令相对上次是否发生变化。
+
+***** cmd 脚本
+- =cmd_ld= ：链接脚本
+
+  #+BEGIN_SRC makefile
+    # /scripts/Makefile.lib 228行
+    quiet_cmd_ld = LD      $@
+    cmd_ld = $(LD) $(LDFLAGS) $(ldflags-y) $(LDFLAGS_$(@F)) \
+            $(filter-out FORCE,$^) -o $@
+  #+END_SRC
+
+- =cmd_objcopy= ：执行 =objcopy= ，使用 =OBJCOPYFLAGS_$(@F)= 等规则，将内核转换为裸二进制格式(删除如 .note .comment 等 elf 头)，并从 =$<= 复制到 =$@=
+
+  #+BEGIN_SRC makefile
+    # /scripts/Makefile.lib 235行
+    quiet_cmd_objcopy = OBJCOPY $@
+    cmd_objcopy = $(OBJCOPY) $(OBJCOPYFLAGS) $(OBJCOPYFLAGS_$(@F)) $< $@
+  #+END_SRC
+
+  - =$(@F)= ：表示去除目录的文件名
+
+*** 根目录 Makefile 分析
+**** make 的输出
+Makefile 在执行时会回显整个命令，linux 定义了三种 make 显示方式
+- =make V=0(默认)= ：打印简短的输出
+- =make V=1= ：打印完整的输出
+- =make -s= ：不显示任何输出
+linux kernel 在 顶级 Makefile 里 定义了 =KBUILD_VERBOSE=、=quiet=、=Q=
+- =KBUILD_VERBOSE=：相当与 =V=
+- =$(quiet)=：通过使用 =$($(quiet)$(cmd))= 定义不同的输出格式
+
+  #+BEGIN_SRC makefile
+    quiet_cmd_cc_o_c = Compiling $(RELDIR)/$@
+    cmd_cc_o_c       = $(CC) $(c_flags) -c -o $@ $<
+  #+END_SRC
+
+  - =$(quiet)= 为空：对应 V = 1
+  - =$(quiet)= 为 quiet_：对应 V = 0
+  - =$(quiet)= 为 silent_：对于 -s
+- =$(Q)= ：是否显示命令
+  - =$(Q)= 为空(V=1)：显示命令
+  - =$(Q)= 为 @ (V=0)：隐藏命令
+  *注* ：@ 在 make 表示隐藏命令
+
+**** 目标 arch 的选择
+linux kernel 默认使用用户的 arch，通过 =SUBARCH= 确定。
+
+#+BEGIN_SRC makefile
+  SUBARCH := $(shell uname -m | sed -e s/i.86/x86/ -e s/x86_64/x86/
+                  -e s/sun4u/sparc64/ \
+                  -e s/arm.*/arm/ -e s/sa110/arm/ \
+                  -e s/s390x/s390/ -e s/parisc64/parisc/ \
+                  -e s/ppc.*/powerpc/ -e s/mips.*/mips/ \
+                  -e s/sh[234].*/sh/ -e s/aarch64.*/arm64/ \
+                  -e s/riscv.*/riscv/)
+#+END_SRC
+
+如果对其他体系进行交叉编译应手动指定平台和交叉编译工具
+
+#+BEGIN_SRC makefile
+  ARCH		?= $(SUBARCH) # 选择 arch/ 下的平台
+  # 指定所有交叉编译相关可执行文件的前缀
+  # 如 ia64-linux-
+  CROSS_COMPILE	?= $(CONFIG_CROSS_COMPILE:"%"=%)
+#+END_SRC
+
+**** Makefile 的目标
+- 当在命令行没有指定目标时默认目标是 =all: vmlinux= 。
+- 更多的目标在 =arch/$(SRCARCH)/Makefile= ，该 Makefile 被包含在顶级 Makefile 里。
+
+  #+BEGIN_SRC makefile
+    include arch/$(SRCARCH)/Makefile
+  #+END_SRC
+
+***** 目标 vmlinux
+
+#+BEGIN_SRC makefile
+  vmlinux: scripts/link-vmlinux.sh autoksyms_recursive $(vmlinux-deps) FORCE
+  ifdef CONFIG_HEADERS_CHECK
+          $(Q)$(MAKE) -f $(srctree)/Makefile headers_check
+  endif
+  ifdef CONFIG_GDB_SCRIPTS
+          $(Q)ln -fsn $(abspath $(srctree)/scripts/gdb/vmlinux-gdb.py)
+  endif
+          +$(call if_changed,link-vmlinux)
+#+END_SRC
+
+link-vmlinux 展开的值为 cmd_link-vmlinux
+
+#+BEGIN_SRC makefile
+  cmd_link-vmlinux =                                                 \
+          $(CONFIG_SHELL) $< $(LD) $(LDFLAGS) $(LDFLAGS_vmlinux) ;    \
+          $(if $(ARCH_POSTLINK), $(MAKE) -f $(ARCH_POSTLINK) $@, true)
+#+END_SRC
+
+=cmd_link-vmlinux= 执行 =vmlinux= 的第一个依赖 =scripts/link-vmlinux.sh= ，该脚本负责链接 =vmlinux= 。
+
+#+BEGIN_SRC shell
+  # vmlinux
+  #   ^
+  #   |
+  #   +-< $(KBUILD_VMLINUX_INIT)
+  #   |   +--< init/version.o + more
+  #   |
+  #   +--< $(KBUILD_VMLINUX_MAIN)
+  #   |    +--< drivers/built-in.a mm/built-in.a + more
+  #   |
+  #   +--< $(KBUILD_VMLINUX_LIBS)
+  #   |    +--< lib/lib.a + more
+  #   |
+  #   +-< ${kallsymso} (see description in KALLSYMS section)
+#+END_SRC
+
+****** 依赖的目标
+- =$(vmlinux-deps)= ：vmlinux 的依赖包含下面目录的 =built-in.a= 。
+
+#+BEGIN_SRC makefile
+  # arch/$(SRCARCH)/Makefile 下
+  # 例 x86/Makefile 269 行
+  head-y += arch/x86/kernel/head$(BITS).o
+  head-y += arch/x86/kernel/ebda.o
+  head-y += arch/x86/kernel/platform-quirks.o
+
+  libs-y  += arch/x86/lib/
+
+  # See arch/x86/Kbuild for content of core part of the kernel
+  core-y += arch/x86/
+
+  # drivers-y are linked after core-y
+  drivers-$(CONFIG_MATH_EMULATION) += arch/x86/math-emu/
+  drivers-$(CONFIG_PCI)            += arch/x86/pci/
+
+  # must be linked after kernel/
+  drivers-$(CONFIG_OPROFILE) += arch/x86/oprofile/
+
+  # suspend and hibernation support
+  drivers-$(CONFIG_PM) += arch/x86/power/
+
+  drivers-$(CONFIG_FB) += arch/x86/video/
+  ...
+  # 575 行
+  init-y		:= init/
+  drivers-y	:= drivers/ sound/ firmware/
+  net-y		:= net/
+  libs-y		:= lib/
+  core-y		:= usr/
+  virt-y		:= virt/
+  ...
+  # 981 行
+  core-y		+= kernel/ certs/ mm/ fs/ ipc/ security/ crypto/ block/
+  ...
+  # 990 行
+  # init/built-in.a
+  init-y		:= $(patsubst %/, %/built-in.a, $(init-y))
+  # usr/built-in.a ...
+  core-y		:= $(patsubst %/, %/built-in.a, $(core-y))
+  # drivers/built-in.a sound/built-in.a firmware/built-in.a
+  drivers-y	:= $(patsubst %/, %/built-in.a, $(drivers-y))
+  # net/built-in.a
+  net-y		:= $(patsubst %/, %/built-in.a, $(net-y))
+  # lib/lib.a
+  libs-y1		:= $(patsubst %/, %/lib.a, $(libs-y))
+  # lib/built-in.a
+  libs-y2		:= $(patsubst %/, %/built-in.a, $(filter-out %.a, $(libs-y)))
+  # virt/built-in.a
+  virt-y		:= $(patsubst %/, %/built-in.a, $(virt-y))
+
+  # 给 link-vmlinux.sh 使用
+  export KBUILD_VMLINUX_INIT := $(head-y) $(init-y)
+  export KBUILD_VMLINUX_MAIN := $(core-y) $(libs-y2) $(drivers-y) $(net-y) $(virt-y)
+  export KBUILD_VMLINUX_LIBS := $(libs-y1)
+  export KBUILD_LDS          := arch/$(SRCARCH)/kernel/vmlinux.lds
+  # ...
+  vmlinux-deps := $(KBUILD_LDS) $(KBUILD_VMLINUX_INIT) $(KBUILD_VMLINUX_MAIN) $(KBUILD_VMLINUX_LIBS)
+
+  $(sort $(vmlinux-deps)): $(vmlinux-dirs) ;
+#+END_SRC
+
+  - =$(vmlinux-dirs)= ：递归 make 相关子目录，生成 built-in.a 或 lib.a，vmlinux-dirs：将相关 =dirs/= 替换为 =dirs=
+
+    #+BEGIN_SRC makefile
+      # 983 行
+      vmlinux-dirs	:= $(patsubst %/,%,$(filter %/, $(init-y) $(init-m) \
+                              $(core-y) $(core-m) $(drivers-y) $(drivers-m) \
+                              $(net-y) $(net-m) $(libs-y) $(libs-m) $(virt-y)))
+      ...
+      # 1062 行
+      $(vmlinux-dirs): prepare scripts
+              $(Q)$(MAKE) $(build)=$@ need-builtin=1
+    #+END_SRC
+  - =autoksyms_recursive= ：
+    
+    #+BEGIN_SRC makefile
+      autoksyms_recursive: $(vmlinux-deps)
+      ifdef CONFIG_TRIM_UNUSED_KSYMS
+	  $(Q)$(CONFIG_SHELL) $(srctree)/scripts/adjust_autoksyms.sh \
+	    "$(MAKE) -f $(srctree)/Makefile vmlinux"
+      endif
+    #+END_SRC
+
+***** 目标 bzImage
+=bzImage= 在 =arch/$(ARCH)/Makefile=
+
+#+BEGIN_SRC makefile
+  bzImage: vmlinux
+  ifeq ($(CONFIG_X86_DECODER_SELFTEST),y)
+          $(Q)$(MAKE) $(build)=arch/x86/tools posttest
+  endif
+          $(Q)$(MAKE) $(build)=$(boot) $(KBUILD_IMAGE)
+          $(Q)mkdir -p $(objtree)/arch/$(UTS_MACHINE)/boot
+          $(Q)ln -fsn ../../x86/boot/bzImage $(objtree)/arch/$(UTS_MACHINE)/boot/$@
+#+END_SRC
+
+=$(Q)$(MAKE) $(build)=$(boot) $(KBUILD_IMAGE)= 展开为
+
+#+BEGIN_SRC makefile
+  make -f scripts/Makefile.build obj=arch/x86/boot arch/x86/boot/bzImage
+#+END_SRC
+
+#+BEGIN_SRC makefile
+  cmd_image = $(obj)/tools/build $(obj)/setup.bin $(obj)/vmlinux.bin \
+                                 $(obj)/zoffset.h $@ $($(quiet)redirect_image)
+  ...
+  $(obj)/bzImage: $(obj)/setup.bin $(obj)/vmlinux.bin $(obj)/tools/build FORCE
+          $(call if_changed,image)
+          @$(kecho) 'Kernel: $@ is ready' ' (#'`cat .version`')'
+#+END_SRC 
+
+****** 依赖的目标
+- =$(obj)/tools/build= ：从三个不同的文件构建磁盘映像(简单连接为 bzImage)，它会检查所有文件的类型是否正确，并在指定目的地写入结果，移除头和适当填充，写一些系统数据到 stdout
+  - setup：8086 machine code, sets up system parm
+  - system：80386 code for actual system
+  - zoffset.h：header with ZO_* defines
+- =$(obj)/vmlinux.bin= ：删除 .note .comment elf头、符号表和重定位表，并从 arch/x86/boot/compressed/vmlinux 复制到 arch/x86/boot/vmlinux.bin
+
+  #+BEGIN_SRC makefile
+    OBJCOPYFLAGS_vmlinux.bin := -O binary -R .note -R .comment -S
+    $(obj)/vmlinux.bin: $(obj)/compressed/vmlinux FORCE
+            $(call if_changed,objcopy)
+    ...
+    $(obj)/compressed/vmlinux: FORCE
+            $(Q)$(MAKE) $(build)=$(obj)/compressed $@
+  #+END_SRC
+
+  - =$(obj)/compressed/vmlinux= ：创建一个压缩的 vmlinux image。
+
+    #+BEGIN_SRC makefile
+      # /arch/x86/boot/compressed/Makefile
+      vmlinux-objs-y := $(obj)/vmlinux.lds $(obj)/head_$(BITS).o $(obj)/misc.o \
+                              $(obj)/string.o $(obj)/cmdline.o $(obj)/error.o \
+                              $(obj)/piggy.o $(obj)/cpuflags.o
+
+      vmlinux-objs-$(CONFIG_EARLY_PRINTK) += $(obj)/early_serial_console.o
+      vmlinux-objs-$(CONFIG_RANDOMIZE_BASE) += $(obj)/kaslr.o
+      ifdef CONFIG_X86_64
+      vmlinux-objs-$(CONFIG_RANDOMIZE_BASE) += $(obj)/kaslr_64.o
+      vmlinux-objs-y += $(obj)/mem_encrypt.o
+      vmlinux-objs-y += $(obj)/pgtable_64.o
+      endif
+
+      $(obj)/eboot.o: KBUILD_CFLAGS += -fshort-wchar -mno-red-zone
+
+      vmlinux-objs-$(CONFIG_EFI_STUB) += $(obj)/eboot.o $(obj)/efi_stub_$(BITS).o \
+                              $(objtree)/drivers/firmware/efi/libstub/lib.a
+      vmlinux-objs-$(CONFIG_EFI_MIXED) += $(obj)/efi_thunk_$(BITS).o
+      ...
+      $(obj)/vmlinux: $(vmlinux-objs-y) FORCE
+              $(call if_changed,check_data_rel)
+              $(call if_changed,ld)
+    #+END_SRC 
+
+    - =$(vmlinux-objs-y)= ：vmlinux 链接依赖的一些文件
+      其中 piggy.o 由目标 =$(obj)/piggy.S= 生成，包含了压缩映像和解压内核所需的信息。
+      
+      #+BEGIN_SRC makefile
+        $(obj)/piggy.S: $(obj)/vmlinux.bin.$(suffix-y) $(obj)/mkpiggy FORCE
+                $(call if_changed,mkpiggy)
+      #+END_SRC
+
+      生成的示例：定义了解压 =vmlinux.bin.$(suffix-y)= 的需要的一些信息，包括压缩映像的长度、解压后的长度等。
+      
+      #+BEGIN_SRC asm
+                      .section ".rodata..compressed","a",@progbits
+                      .globl z_input_len
+                      z_input_len = 589355
+                      .globl z_output_len
+                      z_output_len = 1264628
+                      .globl input_data, input_data_end
+                      input_data:
+                      .incbin "arch/x86/boot/compressed/vmlinux.bin.gz"
+                      input_data_end:
+      #+END_SRC
+
+      - =$(suffix-y)= ：定义 vmlinux 压缩方式
+        
+        #+BEGIN_SRC makefile
+          suffix-$(CONFIG_KERNEL_GZIP)	:= gz
+          suffix-$(CONFIG_KERNEL_BZIP2)	:= bz2
+          suffix-$(CONFIG_KERNEL_LZMA)	:= lzma
+          suffix-$(CONFIG_KERNEL_XZ)	:= xz
+          suffix-$(CONFIG_KERNEL_LZO) 	:= lzo
+          suffix-$(CONFIG_KERNEL_LZ4) 	:= lz4
+        #+END_SRC 
+        
+      - =$(obj)/vmlinux.bin.$(suffix-y)= ：对 vmlinux.bin (和 =vmlinux.relocs=)执行压缩
+
+        #+BEGIN_SRC makefile
+          $(obj)/vmlinux.bin.gz: $(vmlinux.bin.all-y) FORCE
+                  $(call if_changed,gzip)
+          $(obj)/vmlinux.bin.bz2: $(vmlinux.bin.all-y) FORCE
+                  $(call if_changed,bzip2)
+          $(obj)/vmlinux.bin.lzma: $(vmlinux.bin.all-y) FORCE
+                  $(call if_changed,lzma)
+          $(obj)/vmlinux.bin.xz: $(vmlinux.bin.all-y) FORCE
+                  $(call if_changed,xzkern)
+          $(obj)/vmlinux.bin.lzo: $(vmlinux.bin.all-y) FORCE
+                  $(call if_changed,lzo)
+          $(obj)/vmlinux.bin.lz4: $(vmlinux.bin.all-y) FORCE
+                  $(call if_changed,lz4)
+        #+END_SRC
+
+        =$(vmlinux.bin.all-y)= ：执行 =$(obj)/vmlinux.bin= 如 配置 =relocs= 执行 =$(obj)/vmlinux.relocs= (如果内核被配置为可重定位，包括记录重定位信息的 =vmlinux.relocs=)。
+
+        #+BEGIN_SRC makefile
+          vmlinux.bin.all-y := $(obj)/vmlinux.bin
+          vmlinux.bin.all-$(CONFIG_X86_NEED_RELOCS) += $(obj)/vmlinux.relocs
+        #+END_SRC 
+        
+          =$(obj)/vmlinux.bin= ：删除 .comment elf头、符号表和重定位表，并从 /vmlinux 复制到 arch/x86/boot/compressed/vmlinux.bin
+
+          #+BEGIN_SRC makefile
+            OBJCOPYFLAGS_vmlinux.bin :=  -R .comment -S
+            $(obj)/vmlinux.bin: vmlinux FORCE
+                    $(call if_changed,objcopy)
+          #+END_SRC
+    - =cmd_check_data_rel= ：检查 elf 是否存在重定位数据，存在则停止链接
+    - =cmd_ld= ：vmlinux.lds 指导链接规则
+- =$(obj)/setup.bin= ：将相关文件链接为 setup.elf 并转换为裸二进制格式的 setup.bin
+
+  #+BEGIN_SRC makefile
+    setup-y		+= a20.o bioscall.o cmdline.o copy.o cpu.o cpuflags.o cpucheck.o
+    setup-y		+= early_serial_console.o edd.o header.o main.o memory.o
+    setup-y		+= pm.o pmjump.o printf.o regs.o string.o tty.o video.o
+    setup-y		+= video-mode.o version.o
+    setup-$(CONFIG_X86_APM_BOOT) += apm.o
+
+    setup-y		+= video-vga.o
+    setup-y		+= video-vesa.o
+    setup-y		+= video-bios.o
+    ...
+    SETUP_OBJS = $(addprefix $(obj)/,$(setup-y))
+    ...
+    LDFLAGS_setup.elf	:= -T
+    $(obj)/setup.elf: $(src)/setup.ld $(SETUP_OBJS) FORCE
+            $(call if_changed,ld)
+
+    OBJCOPYFLAGS_setup.bin	:= -O binary
+            $(obj)/setup.bin: $(obj)/setup.elf FORCE
+            $(call if_changed,objcopy)
+  #+END_SRC 
+
+- =$(obj)/zoffset.h= ：使用 nm 提取 vmlinx 信息输出为 zoffset.h
+
+  #+BEGIN_SRC makefile
+    sed-zoffset := -e 's/^\([0-9a-fA-F]*\) [ABCDGRSTVW] \(startup_32\|startup_64\|efi32_stub_entry\|efi64_stub_entry\|efi_pe_entry\|input_data\|_end\|_ehead\|_text\|z_.*\)$$/\#define ZO_\2 0x\1/p'
+
+    quiet_cmd_zoffset = ZOFFSET $@
+    cmd_zoffset = $(NM) $< | sed -n $(sed-zoffset) > $@
+
+    targets += zoffset.h
+    $(obj)/zoffset.h: $(obj)/compressed/vmlinux FORCE
+            $(call if_changed,zoffset)
+  #+END_SRC 
+
+  输出示例
+
+  #+BEGIN_SRC C
+    #define ZO__ehead 0x00000069 // vmlinux 头部代码的结束位置
+    #define ZO__end 0x000a6000
+    #define ZO__text 0x0008fe94
+    #define ZO_input_data 0x00000069 // vmlinux 压缩内核的起始位置
+    #define ZO_startup_32 0x00000000
+    #define ZO_z_input_len 0x0008fe2b // 压缩内核的长度
+    #define ZO_z_output_len 0x00134bf4 // 解压缩内核后的长度
+  #+END_SRC
+
+****** 总结
+1. 将根目录的 vmlinux 复制到 arch/x86/boot/compressed/vmliux.bin，并删除 .comment elf头、符号表和重定位表。
+2. 定义压缩方式，将 vmlinux.bin 和 vmlinux.relocs(若配置了可重定向) 压缩为如 vmlinux.bin.gz。
+3. 使用内核自带的工具 mkpiggy 构建了 piggy.S(定义了解压内核所需的信息)。
+4. 将相关文件 head_32.o、misc.o 和包含压缩映像的 piggy.o 等目标文件链接为 vmlinux。
+5. 将 arch/x86/boot/compressed/vmlinux 复制到 arch/x86/boot/vmlinux.bin 并删除 .note .comment elf头、符号表和重定位表。
+6. 使用 nm 提取 vmlinx 信息生成为 zoffset.h
+6. 将相关文件链接为 setup.elf 并转换为裸二进制格式的 setup.bin。
+7. 将 setup.bin vmlinux.bin zoffset.h 简单链接为 bzImage。
+
+***** 相关目标
+- FORCE：这个规则没有命令也没有依赖，它的目标也不是一个存在的文件名。在执行此规则时，目标 FORCE 总会被认为是最新的。这样当它作为其它规则的依赖时，因为依赖总被认为被更新过的，所以那个规则的中定义的命令总会被执行。
+
+  #+BEGIN_SRC makefile
+    PHONY += FORCE
+    FORCE:
+  #+END_SRC
+
+- scripts_basic：修复文件依赖性，避免内核配置发生改变时避免文件重新编译。
+- scripts：脚本包含用于构建过程中遍及内核的各种辅助程序，如：
+  - kallsyms：在 vmlinux 中查找所有符号
+  - pnmttologo：Convert pnm files to logo files
+  - 等等
+
+  #+BEGIN_SRC makefile
+    PHONY += scripts
+    scripts: scripts_basic include/config/auto.conf include/config/tristate.conf \
+                                    asm-generic gcc-plugins $(autoksyms_h)
+            $(Q)$(MAKE) $(build)=$(@)
+  #+END_SRC 
+
+  *asm-generic 和 uapi-asm-generic* ：为一些特定的平台生成通用头文件，如构建 x86 为了支持 i386 生成一些 i386 的头文件(如 syscall_32.h)
+- prepare：在构建内核之前的一些准备工作
+
+  #+BEGIN_SRC makefile
+    PHONY += prepare archprepare prepare0 prepare1 prepare2 prepare3
+    # prepare3 被用来查看是否在一个单独的输出目录构建
+    prepare3: include/config/kernel.release
+    ifneq ($(KBUILD_SRC),)
+            @$(kecho) '  Using $(srctree) as source for kernel'
+            $(Q)if [ -f $(srctree)/.config -o -d $(srctree)/include/config ]; then \
+                    echo >&2 "  $(srctree) is not clean, please run 'make mrproper'"; \
+                    echo >&2 "  in the '$(srctree)' directory.";\
+            /bin/false; \
+            fi;
+    endif
+
+    # prepare2 如果在单独目录输出则创建一个 makefile
+    # 和 .config 的相关检查
+    prepare2: prepare3 prepare-compiler-check outputmakefile asm-generic
+
+    prepare1: prepare2 $(version_h) $(autoksyms_h) include/generated/utsrelease.h \
+                            include/config/auto.conf
+            $(cmd_crmodverdir)
+    archprepare: archheaders archscripts prepare1 scripts_basic
+
+    prepare0: archprepare gcc-plugins
+            $(Q)$(MAKE) $(build)=.
+
+    prepare: prepare0 prepare-objtool
+
+    prepare-objtool: $(objtool_target)
+    ...
+    # 为模块支持文件创建缓存目录
+    # 只有在构建所有模块时才进行清理
+    # clean it up only when building all modules
+    cmd_crmodverdir = $(Q)mkdir -p $(MODVERDIR) \
+                    $(if $(KBUILD_MODULES),; rm -f $(MODVERDIR)/*)
+  #+END_SRC 
+** bochs linux kernel
+1. 创建硬盘镜像 img，bs(柱面) = 16(磁头数) x 63(扇区数) x 512B
+
+   #+BEGIN_SRC shell
+     dd if=/dev/zero of=hd.img bs=516096c count=100
+   #+END_SRC 
+
+2. 初始化磁盘并分区
+ 
+   #+BEGIN_SRC shell
+     fdisk -u -C100 -S63 -H16 hd.img
+   #+END_SRC 
+
+3. 挂载硬盘镜像
+   - udisksctl 方式： =udisksctl loop-setup -f hd.img=
+   - losetup 方式： =losetup -o 32256 /dev/loop0 hd.img=
+  
+#+BEGIN_QUOTE
+卸载方式
+- udisksctl： =udisksctl loop-delete -b /dev/loop0 /dev/loop0=
+- losetup： =losetup -d /dev/loop0=
+#+END_QUOTE
+
+4. 格式化文件系统
+
+   #+BEGIN_SRC shell
+     mkfs.ext4 /dev/loop0p1
+   #+END_SRC 
+
+5. 挂载文件系统
+
+   #+BEGIN_SRC shell
+     sudo mount /dev/loop0p1 rootfs
+   #+END_SRC 
+
+6. 创建 boot 和 grub 目录： =mkdir -p rootfs/boot/grub=
+7. bzImage 到 rootfs/boot
+8. grub-install
+
+   #+BEGIN_SRC shell
+     sudo grub-install --target=i386-pc /dev/loop0 --boot-directory=rootfs/boot
+   #+END_SRC 
+
+9. 配置 grub.cfg
+
+   #+BEGIN_EXAMPLE
+   set timeout=5
+   # set pager=1
+   set debug=all # 打印调试信息
+   menuentry 'linux' {
+	    set root='(hd0, 1)'
+	    linux /boot/bzImage root=/dev/sda1 ro rootdelay=5 panic=10 debug ignore_loglevel
+            }
+   #+END_EXAMPLE
+
+10. 配置 bochs
+
+* Memory management
+** Paging
+linux 采用五级分页模型
+五种页表分别为:位数根据具体的计算机体系结构有关
+- 页全局目录(page global directory)
+- p4d
+- 页上级目录(page upper directory)
+- 页中间目录(page middle directory)
+- 页表(page table)
+
+*** arch x86
+#+CAPTION: x86 的分页
+*TODO* PAE 分析
+| page mode | macro    |   PGD |   P4D | PUD | PMD |  PTE | max-lin   |
+|           |          |       |       |     |     |      | -add-spac |
+|-----------+----------+-------+-------+-----+-----+------+-----------|
+|           | PTRS_PER |  1024 |     1 |   1 |   1 | 1024 |           |
+| 32-bit    | SHIFT    |    22 |    22 |  22 |  22 |   12 | 4GB       |
+|           | SIZE     |   4MB |   4MB | 4MB | 4MB |  4KB |           |
+|-----------+----------+-------+-------+-----+-----+------+-----------|
+|           | PTRS_PER |     4 |     1 |   1 | 512 |  512 |           |
+| PAE       | SHIFT    |    30 |    30 |  30 |  21 |   12 | 64GB      |
+|           | SIZE     |     ? |   2MB | 2MB | 2MB |  4KB |           |
+|-----------+----------+-------+-------+-----+-----+------+-----------|
+|           | PTRS_PER |   512 |     1 | 512 | 512 |  512 |           |
+| 4-level   | SHIFT    |    39 |    39 |  30 |  21 |   12 | 256TB     |
+|           | SIZE     | 512GB | 512GB | 1GB | 2MB |  4KB |           |
+|-----------+----------+-------+-------+-----+-----+------+-----------|
+|           | PTRS_PER |   512 |   512 | 512 | 512 |  512 |           |
+| 5-level   | SHIFT    |    48 |    39 |  30 |  21 |   12 | 128PB     |
+|           | SIZE     | 256TB | 512GB | 1GB | 2MB |  4KB |           |
+
+=arch/x86/include/asm/= 下的 =pgtable_types.h= 定义了页表格式, 其中包含
+- 若配置 =x86_32= 包含 =pgtable_32_types.h=
+  - 若配置 =x86_PAE= 包含 =pgtable-3level_types.h=: PAE 相关定义
+  - 若没有配置 包含 =pgtable-2level_types.h=: 32-bit 相关定义
+- 若配置 =x86_64= 包含 =pgtable_64_types.h=: 4-level 和 5-level 相关定义
+然后根据选择的分页模式修复(折叠)五种页表, 如果 =CONFIG_PGTABLE_LEVELS < 4= 则包含 =include/asm-generic/pgtable-nop4d.h= (使 =P4D_PTRS_PER_P4D=1= 等等)。以此类推...
+** Memblock
+<<memblock>>
+Memblock is a method of managing memory regions during the early boot period when the usual kernel memory allocators are not up and running.
+Memblock views the system memory as collections of contiguous regions. There are several types of these collections:
+- =memory=: describes the physical memory available to the kernel. This may differ from the actual physical memory installed in the system, for instance when the memory is restricted with
+- =mem==: command line parameter
+- =reserved=: describes the regions that were allocated
+- =physmap=: describes the actual physical memory regardless of the possible restrictions(the =physmap= type is only available on some architectures)
+
+reference:
+- [[https://www.kernel.org/doc/html/latest/core-api/boot-time-mm.html]]
+- [[https://elixir.bootlin.com/linux/latest/source/mm/memblock.c]]
+- [[https://elixir.bootlin.com/linux/latest/source/include/linux/memblock.h]]
+** ioremap
+ioremap used to map device memory into kernel address space. 
+** mm_struct
+<<mm_struct>>
+[[https://0xax.gitbooks.io/linux-insides/content/Initialization/linux-initialization-5.html][memory descriptor initialization]]
+
+* Interrupts
+** 异常表(exception-tables)
+<<exception-tables>>
+异常表位于段 =.__ex_table= 中，保存着指定代码地址的异常处理。
+There it uses the address of the instruction that caused the exception(i.e. =regs->eip=) to *find an address where the execution can continue(fixup) and execution customized exception handler function*. If this search is successful, the fault handler modifies the return address (again regs->eip) and returns. The execution will continue at the address in =fixup=.
+
+*** =__ex_table= 结构
+#+BEGIN_SRC C
+  // arch/x86/include/asm/extable.h
+  struct exception_table_entry {
+	  int insn, fixup, handler;
+  };
+#+END_SRC
+#+BEGIN_SRC asm
+  // arch/x86/include/asm/asm.h
+# define _ASM_EXTABLE_HANDLE(from, to, handler)   \
+         .pushsection "__ex_table","a" ;          \
+         .balign 4 ;                              \
+         .long (from) - . ;                       \
+         .long (to) - . ;                         \
+         .long (handler) - . ;                    \
+         .popsection                              \
+#+END_SRC
+- =insn=: 指定代码(可能发生异常)的地址和异常表位置的相对偏移
+- =fixup=: 异常处理结束返回的地址(通常位于 =.fixup= 段中)和异常表位置的相对偏移
+  =.fixup= 里的代码包含 =jmp= 跳转回 =from= 之后得代码
+- =handler=: 异常处理的地址和异常表位置的相对偏移
+
+** 早期的中断处理
+<<early_idt_handler>>
+- 设置中断: 填充 =idt_descr= 并将 idt_descr 的地址加载到 idt
+  - x86_64: 为前32个中断(异常)设置中断处理程序 [[early_idt_handler_array]]
+  - x86_32: 为所有的中断设置中断处理程序 [[early_ignore_irq]]
+  #+BEGIN_SRC C
+    extern gate_desc idt_table[]; // arch/x86/include/asm/desc.h
+    gate_desc idt_table[IDT_ENTRIES] __page_aligned_bss; // IDT_ENTRIES 256 arch/x86/kernel/idt.c
+  #+END_SRC
+
+** 中断处理函数
+*** 相关的宏
+- =idtentry=: define an interrupt/exception entry point
+  - =sym=: name of the interrupt entry point
+  - =do_sym=: name of the interrupt handler
+  - =has_error_code=: has interrupt error code or not
+  - =paranoid=: if this parameter = 1, switch to special stack(read above)
+  - =shift_ist=: stack to switch during interrupt
+  #+BEGIN_SRC asm
+    .macro idtentry sym do_sym has_error_code:req paranoid=0 shift_ist=-1
+    ENTRY(\sym)
+            UNWIND_HINT_IRET_REGS offset=\has_error_code*8
+
+            /* Sanity check */
+            .if \shift_ist != -1 && \paranoid == 0
+            .error "using shift_ist requires paranoid=1"
+            .endif
+
+            ASM_CLAC
+
+            .if \has_error_code == 0
+            pushq	$-1				/* ORIG_RAX: no syscall to restart */
+            .endif
+
+            .if \paranoid == 1
+            testb	$3, CS-ORIG_RAX(%rsp)		/* If coming from userspace, switch stacks */
+            jnz	.Lfrom_usermode_switch_stack_\@
+            .endif
+
+            .if \paranoid
+            call	paranoid_entry
+            .else
+            call	error_entry
+            .endif
+            UNWIND_HINT_REGS
+            /* returned flag: ebx=0: need swapgs on exit, ebx=1: don't need it */
+
+            .if \paranoid
+            .if \shift_ist != -1
+            TRACE_IRQS_OFF_DEBUG			/* reload IDT in case of recursion */
+            .else
+            TRACE_IRQS_OFF
+            .endif
+            .endif
+
+            movq	%rsp, %rdi			/* pt_regs pointer */
+
+            .if \has_error_code
+            movq	ORIG_RAX(%rsp), %rsi		/* get error code */
+            movq	$-1, ORIG_RAX(%rsp)		/* no syscall to restart */
+            .else
+            xorl	%esi, %esi			/* no error code */
+            .endif
+
+            .if \shift_ist != -1
+            subq	$EXCEPTION_STKSZ, CPU_TSS_IST(\shift_ist)
+            .endif
+
+            call	\do_sym
+
+            .if \shift_ist != -1
+            addq	$EXCEPTION_STKSZ, CPU_TSS_IST(\shift_ist)
+            .endif
+
+            /* these procedures expect "no swapgs" flag in ebx */
+            .if \paranoid
+            jmp	paranoid_exit
+            .else
+            jmp	error_exit
+            .endif
+
+            .if \paranoid == 1
+            /*
+             ,* Entry from userspace.  Switch stacks and treat it
+             ,* as a normal entry.  This means that paranoid handlers
+             ,* run in real process context if user_mode(regs).
+             ,*/
+    .Lfrom_usermode_switch_stack_\@:
+            call	error_entry
+
+            movq	%rsp, %rdi			/* pt_regs pointer */
+
+            .if \has_error_code
+            movq	ORIG_RAX(%rsp), %rsi		/* get error code */
+            movq	$-1, ORIG_RAX(%rsp)		/* no syscall to restart */
+            .else
+            xorl	%esi, %esi			/* no error code */
+            .endif
+
+            call	\do_sym
+
+            jmp	error_exit
+            .endif
+    END(\sym)
+    .endm
+  #+END_SRC
+
+*** =early_idt_handler_array=
+<<early_idt_handler_array>>
+=early_idt_handler_array= 是 32 个大小为 9 字节程序的数组
+如果异常有错误代码，什么也不做。如果异常没有错误代码 将 0 压入栈(保持栈统一)。然后将中断向量号压栈并调用 =early_idt_handler_common=
+
+#+BEGIN_SRC asm
+  // NUM_EXCEPTION_VECTORS 32, EARLY_IDT_HANDLER_SIZE 9
+  // arch/x86/include/asm/segment.h
+  extern const char early_idt_handler_array[NUM_EXCEPTION_VECTORS][EARLY_IDT_HANDLER_SIZE];
+
+  // arch/x86/kernel/head_64.S
+  ENTRY(early_idt_handler_array)
+          i = 0
+          .rept NUM_EXCEPTION_VECTORS
+          .if ((EXCEPTION_ERRCODE_MASK >> i) & 1) == 0 
+                  UNWIND_HINT_IRET_REGS
+                  pushq $0	# Dummy error code, to make stack frame uniform
+          .else
+                  UNWIND_HINT_IRET_REGS offset=8
+          .endif
+          pushq $i		# 72(%rsp) Vector number
+          jmp early_idt_handler_common
+          UNWIND_HINT_IRET_REGS
+          i = i + 1
+          .fill early_idt_handler_array + i*EARLY_IDT_HANDLER_SIZE - ., 1, 0xcc
+          .endr
+          UNWIND_HINT_IRET_REGS offset=16
+  END(early_idt_handler_array)
+#+END_SRC
+
+#+BEGIN_SRC asm
+  // arch/x86/kernel/head_64.S
+  early_idt_handler_common:
+          /*
+           ,* The stack is the hardware frame, an error code or zero, and the
+           ,* vector number.
+           ,*/
+          cld
+
+          incl early_recursion_flag(%rip)
+
+          /* The vector number is currently in the pt_regs->di slot. */
+          pushq %rsi				/* pt_regs->si */
+          movq 8(%rsp), %rsi			/* RSI = vector number */
+          movq %rdi, 8(%rsp)			/* pt_regs->di = RDI */
+          pushq %rdx				/* pt_regs->dx */
+          pushq %rcx				/* pt_regs->cx */
+          pushq %rax				/* pt_regs->ax */
+          pushq %r8				/* pt_regs->r8 */
+          pushq %r9				/* pt_regs->r9 */
+          pushq %r10				/* pt_regs->r10 */
+          pushq %r11				/* pt_regs->r11 */
+          pushq %rbx				/* pt_regs->bx */
+          pushq %rbp				/* pt_regs->bp */
+          pushq %r12				/* pt_regs->r12 */
+          pushq %r13				/* pt_regs->r13 */
+          pushq %r14				/* pt_regs->r14 */
+          pushq %r15				/* pt_regs->r15 */
+          UNWIND_HINT_REGS
+
+          cmpq $14,%rsi		/* Page fault? */
+          jnz 10f
+          GET_CR2_INTO(%rdi)	/* Can clobber any volatile register if pv */
+          call early_make_pgtable
+          andl %eax,%eax
+          jz 20f			/* All good */
+
+  10:
+          movq %rsp,%rdi		/* RDI = pt_regs; RSI is already trapnr */
+          call early_fixup_exception
+
+  20:
+          decl early_recursion_flag(%rip)
+          jmp restore_regs_and_return_to_kernel
+  END(early_idt_handler_common)
+#+END_SRC
+
+- =early_idt_handler_common=: 保存相关的寄存器，根据 =vector number= 调用相应得异常处理函数
+  - =early_make_pgtable=: 
+    1. 检查是否是无效地址，或者 early pgt 是否完成
+    2. 检查异常地址在不同等级的页表所在位置的值。
+       - 不为零: 向下级页表搜索
+       - 为零: 检查 =early_dynamic_pgts= 是否超过 64 若超过则重置，然后为异常地址所在位置的页表设置地址。
+  - =early_fixup_exception=: 针对非 fault page 异常的处理
+    1. 忽略 =X86_TRAP_NMI= 异常
+    2. 搜索异常表 [[exception-tables]]
+    3. 处理 bug 异常
+    4. 打印相关异常信息
+
+*** =early_ignore_irq=
+<<early_ignore_irq>>
+#+BEGIN_SRC asm
+  /* This is the default interrupt "handler" :- */
+  ENTRY(early_ignore_irq)
+          cld
+  #ifdef CONFIG_PRINTK
+          pushl %eax
+          pushl %ecx
+          pushl %edx
+          pushl %es
+          pushl %ds
+          movl $(__KERNEL_DS),%eax
+          movl %eax,%ds
+          movl %eax,%es
+          cmpl $2,early_recursion_flag
+          je hlt_loop
+          incl early_recursion_flag
+          pushl 16(%esp)
+          pushl 24(%esp)
+          pushl 32(%esp)
+          pushl 40(%esp)
+          pushl $int_msg
+          call printk
+
+          call dump_stack
+
+          addl $(5*4),%esp
+          popl %ds
+          popl %es
+          popl %edx
+          popl %ecx
+          popl %eax
+  #endif
+          iret
+
+  hlt_loop:
+          hlt
+          jmp hlt_loop
+  ENDPROC(early_ignore_irq)
+#+END_SRC
+
+*** =debug=
+<<debug>>
+#+BEGIN_SRC C
+  // arch/x86/include/asm/trap.h
+  asmlinkage void debug(void);
+  // arch/x86/entry/entry_64.S
+  idtentry debug do_debug has_error_code=0 paranoid=1 shift_ist=DEBUG_STACK
+#+END_SRC 
+
+*** =int3=
+<<int3>>
+
+* SMP
+** cpu_dev
+<<cpu_dev>>
+
+cpu_dev definition information which kernel support CPU types.
+
+#+BEGIN_SRC C
+  // arch/x86/kernel/cpu/cpu.h
+  /* attempt to consolidate cpu attributes */
+  struct cpu_dev {
+          const char	*c_vendor;
+
+          /* some have two possibilities for cpuid string */
+          const char	*c_ident[2];
+
+          void            (*c_early_init)(struct cpuinfo_x86 *);
+          void		(*c_bsp_init)(struct cpuinfo_x86 *);
+          void		(*c_init)(struct cpuinfo_x86 *);
+          void		(*c_identify)(struct cpuinfo_x86 *);
+          void		(*c_detect_tlb)(struct cpuinfo_x86 *);
+          void		(*c_bsp_resume)(struct cpuinfo_x86 *);
+          int		c_x86_vendor;
+  #ifdef CONFIG_X86_32
+          /* Optional vendor specific routine to obtain the cache size. */
+          unsigned int	(*legacy_cache_size)(struct cpuinfo_x86 *,
+                                               unsigned int);
+
+          /* Family/stepping-based lookup table for model names. */
+          struct legacy_cpu_model_info {
+                  int		family;
+                  const char	*model_names[16];
+          }		legacy_models[5];
+  #endif
+  };
+#+END_SRC 
+
+cpu_dev declare variable in the =.x86_cpu_dev.init= section by =cpu_dev_register=
+
+#+BEGIN_SRC C
+  #define cpu_dev_register(cpu_devX) \
+          static const struct cpu_dev *const __cpu_dev_##cpu_devX __used \
+          __attribute__((__section__(".x86_cpu_dev.init"))) = \
+          &cpu_devX;
+#+END_SRC
+
+** Per-CPU
+Per-CPU variables are one of the kernel features. We can create a variable and each processor core will have its own copy of this variable.
+
+*** Create per-cpu variables
+**** static variables declare
+#+caption: declare per-cpu variables macro =include/linux/percpu-defs.h=
+| macro                          | description                                    |
+| DECLARE_PER_CPU                | ordinary per-CPU variables                     |
+| DECLARE_PER_CPU_FIRST          | must come first in the set of variables        |
+| DECLARE_PER_CPU_SHARED_ALIGNED | must be cacheline aligned under SMP conditions |
+| DECLARE_PER_CPU_ALIGNED        | must be cacheline aligned                      |
+| DECLARE_PER_CPU_PAGE_ALIGNED   | must be page aligned                           |
+| DECLARE_PER_CPU_READ_MOSTLY    | muse be read mostly                            |
+| DECLARE_PER_CPU_DECRYPTED      | should be accessed as decrypted                |
+|                                | when encryption is enabled in the guest        |
+
+per-CPU is declared to =PER_CPU_BASE_SECTION + Subsection= according to the different macro of the above table.
+**** dynamic define
+
+*** per-cpu operate
+
+*** per-cpu areas initialization process
+
+* Drive
+
+* Networking
+The factors that determines the traversal of a packet in the network stack
+- lookup in the routing subsystem
+- netfilter subsystem(netfilter hook)
+- IPsec subsystem
+- the value of the =ttl= field in the IPv4 header of a packet being forwarded
+
+** Netlink Sockets
+The netlink protocol is socket-based Inter Process Communication(IPC) mechanism, based on [[https://tools.ietf.org/html/rfc3549][RFC 3549]].
+Netlink sockets can send asynchronous messages to userspace from the kernel. The netlink socket handles bidirectional communication with a kernel netlink socket, usually sending message to configure various system settings and getting responses back from the kernel.
+
+*** Netlink advantages
+- no need for polling when working with netlink sockets.
+- the kernel can be the initiator of sending asynchronous messages to userspace, without any need for the userspace to trigger any action.
+- support multicast transmission.
+
+*** Kernel Netlink Sockets
+Netlink sockets is created by =netlink_kernel_create()= in the kernel networking stack. *Each kernel sockets handles messages of different types*.
+
+#+BEGIN_SRC C
+  // include/linux/netlink.h
+  static inline struct sock *
+  netlink_kernel_create(struct net *net, int unit, struct netlink_kernel_cfg *cfg)
+#+END_SRC
+
+- =net=: the network namespace
+- =unit=: netlink protocol
+- =cfg=: consists of optional parameters for the netlink socket creation
+  #+BEGIN_SRC C
+    /* optional Netlink kernel configuration parameters */
+    // include/linux/netlink.h
+    struct netlink_kernel_cfg {
+            unsigned int	groups;
+            unsigned int	flags;
+            void		(*input)(struct sk_buff *skb);
+            struct mutex	*cb_mutex;
+            int		(*bind)(struct net *net, int group);
+            void		(*unbind)(struct net *net, int group);
+            bool		(*compare)(struct net *net, struct sock *sk);
+    };
+  #+END_SRC  
+  - =groups=: for specifying a multicast group(or a mask of multicast groups)
+  - =flags=: =NL_CFG_F_NONROOT_RECV= or =NL_CFG_F_NONROOT_SEND=
+    - =NL_CFG_F_NONROOT_RECV=: It is set, a non-superuser can bind to a multicast group, And it is not set, then when binding to a multicast group the =netlink_capable()= method will return 0, and you get =-EPRM= error
+    - =NL_CFG_F_NONROOT_SEND=: It is set, a non-superuser is allowed to send multicast
+  - =input=: when the input member is NULL, the kernel socket won't be able to receive data from userspace(sending data from the kernel to userspace is possible, though)
+  - =mutex=: when not defining a mutex, you use the default one(=cb_def_mutex=)
