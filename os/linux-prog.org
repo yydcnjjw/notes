@@ -1,3 +1,5 @@
+[[file:~/resources/os/book/linux_program/linux_system_programming_2nd_edition.pdf][linux programming]]
+
 * File I/O
 ** File Descriptors
 A file descriptor is a non-negative integer. When we want to read or write a file, we
@@ -94,19 +96,12 @@ Seeking past the end of a file dose nothing
 ** Truncating Files
 [[man:truncate(2)]]
 
+** Multiplexed I/O
+[[man:select(2)]]
+* Buffered I/O
+- block is an abstraction representing the smallest unit of storage on a filesystem. Inside the kernel, all filesystem operations occur in terms of blocks.
+- =user-buffer I/O=: a way for applications to read and write data in whatever amounts fell natural but have the actual I/O occur in units of the filesystem block size.
+- block size: blocks are usually 512, 1024, 2048, 4096, or 8192 bytes in size.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+** Opening Files
+[[man:fopen(3)]]

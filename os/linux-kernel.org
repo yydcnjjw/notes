@@ -972,17 +972,19 @@ X       +------------------------+
        #+END_SRC 
    11. setup different parameters as information about a screen
    12. memory map setup: copy =e820_table= to =e820_table_kexec= and =e820_table_firmware=, then print e820 information
-   13. =parse_setup_data=: 
+   13. =parse_setup_data=: [[https://elixir.bootlin.com/linux/latest/source/Documentation/x86/boot.txt][bootparam:setup_data]]
    14. =copy_edd()=: copy the BIOS =EDD= information from =boot_params= into a safe place
    15. memory descriptor initialization
        1. [[mm_struct]] initialization
        2. =mpx_mm_init=: initialization of the intel Memory Protection Extensions
        3. initialization of the code/data/bss resources
-   16. configure nx
-   17. parse early param
-   18. print nx information of cpu according to cpu feature, command line option and More
-   19. 
-
+   16. =x86_configure_nx()=: configure nx
+   17. =parse_early_param()=: parse early param
+   18. =x86_report_nx()=: print nx information of cpu according to cpu feature, command line option and More
+   19. =memblock_x86_reserve_range_setup_data()=: remaps memory for the =setup_data= and reserved memory block for the setup_data
+   20. *TODO* [[https://en.wikipedia.org/wiki/MultiProcessor_Specification][MPS]]
+   21. finish with memory parsing
+       1. =e820__reserve_setup_data()=: 
 
 * Misc
 ** linux 构建过程

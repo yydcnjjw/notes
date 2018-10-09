@@ -1,8 +1,18 @@
-- 由于 python3.6 更新至 python3.7 导致 lsp-python 无法检索到 python3.7
-  修复方式 创建 Python3.6 的符号链接
+* system configure
 - idea conf:
-  - 配置 =/etc/profile=
+  - configure =/etc/profile=
     =export IDEA_PROPERTIES=/home/yydcnjjw/.IntelliJIdea/idea.properties=
-
-
+- docker conf:
+  - install
+    #+BEGIN_SRC shell
+      yaourt -S docker nvidia-docker
+    #+END_SRC 
+  - configure =/etc/systemd/system/docker.service.d/docker-storage.conf=
+    modify docker file dir
+- pac conf:
+  - install
+    #+BEGIN_SRC shell
+      pip install --user genpac
+    #+END_SRC
+* idea
 

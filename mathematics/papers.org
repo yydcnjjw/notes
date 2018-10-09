@@ -420,12 +420,12 @@ Once we have our region proposals, we feed them straight into what is essentiall
 cite:lin16_featur_pyram_networ_objec_detec
 
 - Summary:
-- Problem: recognizing objects at vastly different scales
-- Experiment
-  - Date:
-  - Model:
-
+  The approach is to reuse the pyramidal feature hierarchy computed by a ConvNet as if it were a featured image pyramid.
+- Problem:
+  Deep learning object detectors have avoided pyramid representations, in part because they are compute and memory intensive.    
+    
 *** Method:
+
 
 ** TODO 2017 - Mask R-Cnn
  :PROPERTIES:
@@ -454,8 +454,5 @@ cite:he17_mask_r_cnn
  :END:
 
 cite:zhao18_objec_detec_with_deep_learn
-** reference blog
-- review
-  [[https://medium.com/comet-app/review-of-deep-learning-algorithms-for-object-detection-c1f3d437b852][Review of Deep Learning Algorithms for Object Detection]]
-  [[https://towardsdatascience.com/deep-learning-for-object-detection-a-comprehensive-review-73930816d8d9][Deep Learning for Object Detection: A Comprehensive Review]]
+
 
