@@ -1,7 +1,3 @@
-* library 用法
-** log library
-*** loguru
-
 * Effective C++
 ** 让自己习惯 c++
 *** 视 c++ 为一个语言联邦
@@ -281,7 +277,7 @@
 *** 让自己熟悉包括 TR1 在内的标准程序库
 *** 让自己熟悉 Boost
 * std c++
-[[file:~/resources/basic/books/lang/c_c++/C++%E6%A0%87%E5%87%86%E5%BA%93_%E7%AC%AC2%E7%89%88.pdf][c++ std lib]]
+[[file:~/resources/basic/books/lang/c_c++/C++std.pdf][c++ std]]
 #+caption: STL 容器能力一览表
 |                    | Array        | Vector          | Deque           | List               | Forward List       | Associative     | Unordered      |
 |                    |              |                 |                 |                    |                    | Container       | Container      |
@@ -322,3 +318,8 @@
 |                    |              |                 |                 |                    |                    | (但是 comparing | (但是 hashing  |
 |                    |              |                 |                 |                    |                    | 不能抛出异常)   | 和 comparing   |
 |                    |              |                 |                 |                    |                    |                 | 不能抛出异常)  |
+* misc
+** thirdparty
+- json parse
+  - [[http://rapidjson.org/zh-cn/][RapidJSON]]
+

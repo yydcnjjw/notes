@@ -441,6 +441,15 @@ cite:lin16_featur_pyram_networ_objec_detec
 
 cite:he17_mask_r_cnn
 
+- Summary: 
+- Problem:
+- Experiment
+  - Date:
+  - Model:
+
+*** Method:
+
+
 ** TODO 2018 - Object Detection With Deep Learning: a Review
  :PROPERTIES:
   :Custom_ID: zhao18_objec_detec_with_deep_learn

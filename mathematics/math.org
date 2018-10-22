@@ -835,6 +835,9 @@ CART 算法由以下两步组成:
      \end{equation}
 - 分类树的生成:
   
+** TODO Transfer Learning
+[[https://machinelearningmastery.com/transfer-learning-for-deep-learning/]]
+
 
 * Deep learning
 ** 前馈神经网络
@@ -2221,6 +2224,8 @@ LSTM 有通过精心设计的称作为"门"的结构来去除或者增加信息�
 - 如果你的训练集太小, 你可以实现数据增强。
 - 如果你需要一个稀疏的模型, 你可以添加 l1 正则化混合(并可以选择在训练后将微小的权重归零)。如果您需要更稀疏的模型, 您可以尝试使用 FTRL 而不是 Adam 优化以及 l1 正则化。
 - 如果在运行时需要快速模型, 则可能需要删除批量标准化, 并可能用 leakyReLU 替换 ELU 激活函数。有一个稀疏的模型也将有所帮助
+** reference
+https://www.deeplearningbook.org
 * 信息论
 <<信息论>>
 信息论的基本想法是一个不太可能的事件居然发生了, 要比一个非常可能的事件发生, 能提供更多的信息。消息说: "今天早上太阳升起" 信息量是如此之少以至于没有必要发送,但一条消息说："今天早上有日食" 信息量就很丰富。

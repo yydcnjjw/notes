@@ -98,6 +98,8 @@ Seeking past the end of a file dose nothing
 
 ** Multiplexed I/O
 [[man:select(2)]]
+[[man:poll(2)]]
+
 * Buffered I/O
 - block is an abstraction representing the smallest unit of storage on a filesystem. Inside the kernel, all filesystem operations occur in terms of blocks.
 - =user-buffer I/O=: a way for applications to read and write data in whatever amounts fell natural but have the actual I/O occur in units of the filesystem block size.
@@ -105,3 +107,97 @@ Seeking past the end of a file dose nothing
 
 ** Opening Files
 [[man:fopen(3)]]
+** Closing Streams
+[[man:fclose(3)]]
+[[man:fcloseall(3)]]
+
+** Reading from a Stream
+[[man:fgetc(3)]]
+[[man:fread(3)]]
+
+** Writing to a Stream
+[[man:fputc(3)]]
+[[man:fwrite(3)]]
+
+** Seeking a Stream
+[[man:fseek(3)]]
+** Flushing a Stream
+[[man:fflush(3)]]
+=fflush()= merely writes the user-buffered data out to the kernel buffer. The effect is the same as if user buffer was not employed and write() was used directly.
+So, For writing user-buffered directly to the hard disk, you can call =fflush()=, followed immediately by =fsync()=.
+
+** Errors and End-of-file
+[[man:ferror(3)]]
+
+** Obtaining the Associated File Descriptor
+[[man:fileno(3)]]
+
+** Controlling the Buffering
+[[man:setbuf(3)]]
+Standard I/O implements three types of user buffering and provides developers with an interface for controlling the type and size of the buffer.
+- Unbuffered(=_IONBF=): No user buffering is performed.
+  Date is submitted directly to the kernel. As this disables user buffering, negating any benefit, this option is not commonly used, with a lone exception: standard error, by default, is unbuffered.
+- Line-buffered(=_IOLBF=):  Buffering is performed on a per-line basis.
+  *With each newline character, the buffer is submitted to the kernel*. Line buffering makes sense for streams being output to the screen, since messages printed to the screen are delimited with newlines.
+- Block-buffered(=_IOFBF=): Buffering is performed on a per-block basis, where a block is a fixed number of bytes.
+  By default, all streams associated with files are block-buffered. Standard I/o uses the term full buffering for block buffering.
+
+Note:
+=setvbuf=: 
+- must be called after opening the stream but before any other operations have been performed  on it.
+- The supplied buffer, if any, must exits when the stream is closed. A common mistake is to declare the buffer as an automatic variable in a scope that ends before the stream is closed.
+
+** Thread Safety
+The standard I/o functions are inherently thread-safe.
+
+*** Manual File Locking
+[[man:flockfile(3)]]
+
+*** Unlocked Stream Operations
+[[man:unlocked_stdio(3)]]
+There is a second reason or performing manual locking on streams. With the finergrained and more precise control of locking that only the application programmer can provide, it might be possible to minimize the over head of locking and to improve performance.
+
+** Critiques of Standard I/O
+* Advanced File I/O
+** Scatter/gather I/O
+Allows a single call to read from or write data to many buffers at once; useful for bunching together fields of different data structures to from one I/O transaction.
+[[man:readv(2)]]
+
+optimizing the count:
+During a vectored I/O operation, the Linux kernel must allocate internal data structures to represent each segment. *Normally, this allocation occurs dynamically*, based on the size of count. As an optimization, however, the Linux kernel creates a small array of segments on the stack that it uses if count is sufficiently small(Less than 8), negating the need to dynamically allocate the segments and thereby providing a small boost in performance.
+
+** Event Poll
+[[man:epoll(7)]]
+Both =poll()= and =select()= require the full list of file descriptors(fixed) to watch on each invocation. When this list grows large walking the list on each invocation becomes a scalability bottleneck.
+Epoll circumvents this problem by decoupling the monitor registration from the actual monitoring.
+
+*** Creating a New Epoll Instance
+[[man:epoll_create1(2)]]
+#+BEGIN_SRC C
+  int epfd;
+  epfd = epoll_create1(0);
+  if (epfd < 0) {
+    perror("epoll_create1");
+  }
+#+END_SRC
+
+*** Controlling Epoll
+[[man:epoll_ctl(2)]]
+
+*** Waiting for Events with Epoll
+[[man:epoll_wait(2)]]
+
+*** TODO Edge-Versus Level-Triggered Events
+
+** Mapping Files info Memory
+[[man:mmap(2)]]
+The =mmap()= system call operates on pages. Both the addr and offset parameters must be aligned on a page-sized boundary.
+
+*** Resizing a Mapping
+man:mremap(2)
+
+*** Changing the Protection of a Mapping
+man:mprotect(2)
+
+*** Synchronizing a File with a Mapping
+man:msync(2)

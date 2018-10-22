@@ -952,6 +952,9 @@ X       +------------------------+
    1. get the bootstrap processor id with a call to =smp_processor_id=
    2. set current CPU mask for online, active, present and possible
 6. print linux banner
+   #+BEGIN_EXAMPLE
+     [    0.000000] Linux version 4.19.0-rc6 (yydcnjjw@own) (gcc version 8.2.1 20180831 (GCC)) #1 SMP Sun Oct 7 10:19:25 CST 2018
+   #+END_EXAMPLE
 7. =setup_arch=: architecture-dependent parts of initialization
    1. memory init
       1. reserve memory block for the kernel =_text= and =_data= which starts from the =_text= symbol and ends before =_bss_stop=
@@ -972,6 +975,15 @@ X       +------------------------+
        #+END_SRC 
    11. setup different parameters as information about a screen
    12. memory map setup: copy =e820_table= to =e820_table_kexec= and =e820_table_firmware=, then print e820 information
+       #+BEGIN_EXAMPLE
+         [    0.000000] BIOS-provided physical RAM map:
+         [    0.000000] BIOS-e820: [mem 0x0000000000000000-0x000000000009fbff] usable
+         [    0.000000] BIOS-e820: [mem 0x000000000009fc00-0x000000000009ffff] reserved
+         [    0.000000] BIOS-e820: [mem 0x00000000000f0000-0x00000000000fffff] reserved
+         [    0.000000] BIOS-e820: [mem 0x0000000000100000-0x0000000007fdffff] usable
+         [    0.000000] BIOS-e820: [mem 0x0000000007fe0000-0x0000000007ffffff] reserved
+         [    0.000000] BIOS-e820: [mem 0x00000000fffc0000-0x00000000ffffffff] reserved
+       #+END_EXAMPLE
    13. =parse_setup_data=: [[https://elixir.bootlin.com/linux/latest/source/Documentation/x86/boot.txt][bootparam:setup_data]]
    14. =copy_edd()=: copy the BIOS =EDD= information from =boot_params= into a safe place
    15. memory descriptor initialization
@@ -981,10 +993,54 @@ X       +------------------------+
    16. =x86_configure_nx()=: configure nx
    17. =parse_early_param()=: parse early param
    18. =x86_report_nx()=: print nx information of cpu according to cpu feature, command line option and More
+       #+BEGIN_EXAMPLE
+         [    0.000000] NX (Execute Disable) protection: active
+       #+END_EXAMPLE
    19. =memblock_x86_reserve_range_setup_data()=: remaps memory for the =setup_data= and reserved memory block for the setup_data
    20. *TODO* [[https://en.wikipedia.org/wiki/MultiProcessor_Specification][MPS]]
-   21. finish with memory parsing
-       1. =e820__reserve_setup_data()=: 
+   21. finish with memory parsing: 
+       1. =e820__reserve_setup_data()=: This function does almost the same as =memblock_x86_reserve_range_setup_data()=, but it also calls =e820__range_update= which add new regions to the =e820map= with the given type which is =E820_RESERVED_KERN=.
+       2. =e820__finish_early_params()=:
+       3. =e820_add_kernel_range()=: checks that =.text=, =.data= and =.bss= marked as =E820RAM= in the =e820map= . prints the warning message and remark if not.
+       4. =trm_bios_range()=: update first 4096 bytes in =e820Map= as =E820_RESERVED=
+       5. =e820__end_of_ram_pfn()=: takes maximum page frame number on the certain architecture(=MAX_ARCH_PFN= is =0x4000000000= for x86_64).And print information about last page frame number and return it.
+       6. calculate =max_low_pfn= which is the GB page frame number in the low memory or below first 4 GB. if installed more than 4 GB of RAM, =max_low_pfn= will be result of the =e820_end_of_low_ram_pfn=.
+   22. DMI(Desktop management interface) scanning: collecting information about computer with the DMI and following function:
+       1. =dmi_scan_machine()=: the function goes through the [[http://en.wikipedia.org/wiki/System_Management_BIOS][System Management BIOS]] structures and extracts information. And print.
+          #+BEGIN_EXAMPLE
+            [    0.000000] SMBIOS 2.8 present.
+            [    0.000000] DMI: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.11.0-20171110_100015-anatol 04/01/2014
+          #+END_EXAMPLE
+       2. =dmi_memdev_walk()=: go over memory devices
+   23. =find_smp_config()=: finding of the SMP configuration.
+       =x86_init.mpparse.find_smp_config()= is the =default_find_smp_config= function from the =arch/x86/kernel/mpparse.c=
+       Scan several specific locations by =smp_scan_config= that going in a loop through the  given memory range and tries to find =MP floating pointer structure=. It checks that current byte points to the =SMP= signature, checks checksum, checks if =mpf->specification= is 1 or 4(it must be 1 or 4 by specification) in the loop.
+       #+BEGIN_EXAMPLE
+         [    0.014511] found SMP MP-table at [mem 0x000f5d60-0x000f5d6f] mapped at [(____ptrval____)]
+       #+END_EXAMPLE
+   24. Additional early memory initialization routines
+       1. =early_alloc_pgt_buf()=: extend brk by add 6/12 pgtable(4KB).
+       2. =reserve_brk()=: remap brk
+       3. =cleanup_highmap()=: clean entries which are not between =_text= and =end=
+       4. =memblock_set_current_limit=: set the limit for the =memblock= allocation.
+       5. =e820__memblock_alloc_reserved_mpc_new()=: allocates additional slots in the =e820map= for MultiProcessor Specification table.
+   25. =reserve_real_mode()=: reserves low memory from =0x0= to =1mb= for the trampoline to the real mode(for rebooting, etc.).
+   26. =trim_platform_memory_ranges()=: trims certain memory regions.
+   27. =trim_low_memory_range()=: reserves the first =4kb= page in =memblock=
+   28. =init_mem_mapping()=: reconstructs direct memory mappng and setups the direct mapping of the physical memory at =PAGE_OFFSET=
+   29. =idt_setup_early_pf()=: Initialize the idt table with early pagefault handler.(head64.c has Initialized ?)
+   30. =setup_log_buf(1)=: setup kernel early cyclic buffer.
+   31. =reserve_inintrd()=: relocated =initrd= ramdisk image.
+   32. =acpi_table_ugrade()=
+   33. =vsmp_init()=
+   34. =io_delay_init()=
+   35. =acpi_boot_table_init()=
+   36. =early_acpi_boot_init()=
+   37. =initmem_init()=
+   38. Allocate are for DMA
+       1. =dma_contiguous_reserve()=: allocate area for the =Direct memory access=
+       2. 
+
 
 * Misc
 ** linux 构建过程
@@ -1654,6 +1710,8 @@ ioremap used to map device memory into kernel address space.
 ** mm_struct
 <<mm_struct>>
 [[https://0xax.gitbooks.io/linux-insides/content/Initialization/linux-initialization-5.html][memory descriptor initialization]]
+** DMA
+http://en.wikipedia.org/wiki/Direct_memory_access
 
 * Interrupts
 ** 异常表(exception-tables)
