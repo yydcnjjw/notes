@@ -804,7 +804,7 @@ CART 算法由以下两步组成:
        &R_{1}(j,s)=\{x|x^{j}\leq s\}\ \ R_{2}(j,s)=\{x|x^{j}>s\}\\
      \end{align}
 
-     遍历变量 $j$, 对固定的切分变量 $j$ 扫描切分点 $s$, 选择使 [[Eqn,(1.3.3.3)]] 达到最小值的对 $j,s$
+     遍历变量 $j$, 对固定的切分变量 $j$ 扫描切分点 $s$, 选择使 [[Eqn.(1.3.3.3)]] 达到最小值的对 $j,s$
   2. 用选定的对 $(j,s)$ 划分区域并决定相应的输出值:
      <<Eqn.(1.3.3.4)>>
      #+BEGIN_SRC latex :results raw :exports none
@@ -837,6 +837,175 @@ CART 算法由以下两步组成:
   
 ** TODO Transfer Learning
 [[https://machinelearningmastery.com/transfer-learning-for-deep-learning/]]
+
+** linear factor model
+*** EM algorithm
+E-Step：通过observed data和现有模型估计参数估计值 missing data；
+M-Step：假设missing data已知的情况下，最大化似然函数。
+假设我们有一个估计问题, 其中由训练样本集 $x^{(1)},\dots,x^{(m)}$ 包含了 $m$ 个独立样本。使用模型 $p(x,z)$ 对数据进行建模
+1. 初始化分布参数 $\theta$
+2. 重复 E-step 和 M-step 直到收敛
+   1. E-step: 根据参数的初始值或上次迭代的模型参数来计算出隐性变量的后验概率(条件概率), 其实就是隐性变量的期望。作为隐性变量的现有估计值: 
+      <<Eqn.(1.5.1.0-1)>>
+      #+BEGIN_SRC latex :results raw :exports none
+        \begin{equation}
+        Q_{i}(z^{(i)}):=p(z^{(i)}|x^{(i)};\theta)
+        \end{equation}
+      #+END_SRC 
+
+      #+RESULTS:
+      \begin{equation}
+      Q_{i}(z^{(i)}):=p(z^{(i)}|x^{(i)};\theta)
+      \end{equation}
+   2. M-step: 最大化似然函数从而获得新的参数值:
+      <<Eqn.(1.5.1.0-2)>>
+      #+BEGIN_SRC latex :results raw :exports none
+        \begin{equation}
+          \theta:=arg\max\limit_{\theta}\sum_{i}\sum_{z^{(i)}}Q_{i}(z^{(i)})\log\frac{p(x^{(i)},z^{(i)};\theta)}{Q_{i}(z^{(i)})}
+        \end{equation}
+      #+END_SRC 
+
+      #+RESULTS:
+      \begin{equation}
+        \theta:=arg\max\limit_{\theta}\sum_{i}\sum_{z^{(i)}}Q_{i}(z^{(i)})\log\frac{p(x^{(i)},z^{(i)};\theta)}{Q_{i}(z^{(i)})}
+      \end{equation}
+
+**** Jensen inequality
+<<Jensen>>
+定理:
+- 设 $f$ 是一个凸函数, 且设 $X$ 是一随机变量(random variable)。然后则有:
+  <<Eqn.(1.5.1.1)>>
+  #+BEGIN_SRC latex :results raw :exports none
+    \begin{equation}
+      E[f(X)] \geq f(E(X))
+    \end{equation}
+  #+END_SRC 
+
+  #+RESULTS:
+  \begin{equation}
+    E[f(X)] \geq f(E(X))
+  \end{equation}
+
+  - 函数的期望小于等于期望的函数值
+  - *如果函数 $f$ 是严格凸函数, 那么 $E[f(X)]=f(E(X))$ 当且仅当 $X=E[X]$ 的概率 为 1 的时候成立(例如 $X$ 是一个常数)*
+  - Jensen 不等式也适用于凹函数(concave) $f$, 但不等式的方向要反过来, 也就是对于凹函数, $E[f(X)] \leq f(E(X))$ 。
+
+[[file:image/Machine%20learning/screenshot_2018-10-22_20-31-15.png]]
+
+上图中, $f$ 是一个凸函数, 在图中用实线表示。另外 $X$ 是一个随机变量, 有 $0.5$ 的概率取值为 $a$, 另外有 $0.5$ 的概率取值为 $b$(在图中 $x$ 轴上标出了)。这样, $X$ 的期望值就在图中所示的 $a$ 和 $b$ 的中点位置。图中在 $y$ 轴上也标出了 $f(a)$, $f(b)$ 和 $f(E[X])$ 。接下来函数的期望值 $E[f(X)]$ 在 $y$ 轴上就处于 $f(a)$ 和 $f(b)$ 之间的中点的位置。如图中所示,在这个例子中由于 $f$ 是凸函数,很明显 $E[f(X)] \geq f(E(X))$ 。
+
+**** EM algorithm 推导
+假设我们有一个估计问题, 其中由训练样本集 $x^{(1)},\dots,x^{(m)}$ 包含了 $m$ 个独立样本。使用模型 $p(x,z)$ 对数据进行建模，拟合其参数，其中的似然函数如下所示:
+<<Eqn.(1.5.1.2)>>
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{align}
+    l(\theta)&=\sum_{i=1}^{m}\log{p(x;\theta)}\\
+             &=\sum_{i=1}^{m}\log{\sum_{z}p(x,z;\theta)}
+  \end{align}
+#+END_SRC 
+
+#+RESULTS:
+\begin{align}
+  l(\theta)&=\sum_{i=1}^{m}\log{p(x;\theta)}\\
+           &=\sum_{i=1}^{m}\log{\sum_{z}p(x,z;\theta)}
+\end{align}
+
+对于每个 $i$, 设 $Q_{i}$ 是某个对 $z$ 的分布, $\sum_{z}Q_{i}(z)=1, Q_{i}(z)\geq 0$ 。则有下列式子:
+<<Eqn.(1.5.1.3)>>
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{align}
+    \sum_{i}\log{p(x^{(i)};\theta)}&=\sum_{i}\log{\sum_{z^{(i)}}p \left( x^{(i)},z^{(i)};\theta \right)}\\
+                                   &=\sum_{i}\log{\sum_{z^{(i)}}Q_{i}(z^{(i)})\frac{p(x^{(i)},z^{(i)};\theta)}{Q_{i}(z^{(i)})}}\\
+    &\geq\sum_{i}\sum_{z^{(i)}}Q_{i}(z^{(i)})\log\frac{p(x^{(i)},z^{(i)};\theta)}{Q_{i}(z^{(i)})}
+  \end{align}
+#+END_SRC 
+
+#+RESULTS:
+\begin{align}
+  \sum_{i}\log{p(x^{(i)};\theta)}&=\sum_{i}\log{\sum_{z^{(i)}}p \left( x^{(i)},z^{(i)};\theta \right)}\\
+                                 &=\sum_{i}\log{\sum_{z^{(i)}}Q_{i}(z^{(i)})\frac{p(x^{(i)},z^{(i)};\theta)}{Q_{i}(z^{(i)})}}\\
+  &\geq\sum_{i}\sum_{z^{(i)}}Q_{i}(z^{(i)})\log\frac{p(x^{(i)},z^{(i)};\theta)}{Q_{i}(z^{(i)})}
+\end{align}
+
+上面推导的最后一步使用了 [[Jensen]] 不等式。其中的 $f(x)=\log(x)$ 是一个凹函数 $E(f(X))\leq f(E[X])$ , 因为其二阶导数 $f''(x)=\frac{-1}{x^{2}}\leq 0$ 在整个定义域 $x\in R^{+}$ 上都成立
+上式的求和中的单项: 
+<<Eqn.(1.5.1.4)>>
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{equation}
+    \sum_{z^{(i)}}Q_{i}(z^{(i)}) \left[ \frac{p(x^{(i)},z^{(i)};\theta)}{Q_{i}(z^{(i)})} \right]
+  \end{equation}
+#+END_SRC 
+
+#+RESULTS:
+\begin{equation}
+  \sum_{z^{(i)}}Q_{i}(z^{(i)}) \left[ \frac{p(x^{(i)},z^{(i)};\theta)}{Q_{i}(z^{(i)})} \right]
+\end{equation}
+
+是变量 $\frac{p(x^{(i)},z^{(i)};\theta)}{Q_{i}(z^{(i)})}$ 基于 $z^{(i)}$ 的期望, 其中 $z^{(i)}$ 是根据 $Q_{i}$ 给定的分布确定。然后利用 [[Jensen]] 不等式就得到了
+
+<<Eqn.(1.5.1.5)>>
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{equation}
+    f \left( E_{z^{(i)}\sim Q_{i}}\left[ \frac{p(x^{(i)},z^{(i)};\theta)}{Q_{i}(z^{(i)})} \right] \right) \geq E_{z^{(i)}\sim Q_{i}}\left[f \left( \frac{p(x^{(i)},z^{(i)};\theta)}{Q_{i}(z^{(i)})} \right) \right]
+  \end{equation}
+#+END_SRC 
+
+#+RESULTS:
+\begin{equation}
+  f \left( E_{z^{(i)}\sim Q_{i}}\left[ \frac{p(x^{(i)},z^{(i)};\theta)}{Q_{i}(z^{(i)})} \right] \right) \geq E_{z^{(i)}\sim Q_{i}}\left[f \left( \frac{p(x^{(i)},z^{(i)};\theta)}{Q_{i}(z^{(i)})} \right) \right]
+\end{equation}
+
+为了使上式相等, 只需确保对一个常数值随机变量求期望([[Jensen]]):
+
+<<Eqn.(1.5.1.6)>>
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{equation}
+  \frac{p(x^{(i)},z^{(i)};\theta)}{Q_{i}(z^{(i)})}=c
+  \end{equation}
+#+END_SRC 
+
+#+RESULTS:
+\begin{equation}
+\frac{p(x^{(i)},z^{(i)};\theta)}{Q_{i}(z^{(i)})}=c
+\end{equation}
+
+其中常数 $c$ 不依赖 $z^{(i)}$ 。要实现这一条件, 只需满足：
+
+<<Eqn.(1.5.1.7)>>
+n#+BEGIN_SRC latex :results raw :exports none
+  \begin{equation}
+    Q_{i}(z^{(i)})\propto p(x^{(i)},z^{(i)};\theta)
+  \end{equation}
+#+END_SRC 
+
+#+RESULTS:
+\begin{equation}
+  Q_{i}(z^{(i)})\propto p(x^{(i)},z^{(i)};\theta)
+\end{equation}
+
+实际上, 由于我们已知 $\sum_{z}Q_{i}(z^{(i)})=1$, 这就进一步表明: 在给定 $x^{(i)}$ 和参数 $\theta$ 的设置下, 我们可以简单地把 $Q_{i}$ 设置为 $z^{(i)}$ 的后验分布
+
+<<Eqn.(1.5.1.8)>>
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{align}
+    \sum_{z}p(x^{(i)},z^{(i)};\theta)&=\sum_{z}Q_{i}(z^{(i)})c\\
+    \sum_{z}p(x^{(i)},z^{(i)};\theta)&=c\\
+    Q_{i}(z^{(i)})&=\frac{p(x^{(i)},z^{(i)};\theta)}{\sum_{z}p(x^{(i)},z;\theta)}\\
+                                     &=\frac{p(x^{(i)},z^{(i)};\theta)}{p(x^{(i)};\theta)}\\
+                                     &=p(z^{(i)}|x^{(i)};\theta)
+  \end{align}
+#+END_SRC 
+
+#+RESULTS:
+\begin{align}
+  \sum_{z}p(x^{(i)},z^{(i)};\theta)&=\sum_{z}Q_{i}(z^{(i)})c\\
+  \sum_{z}p(x^{(i)},z^{(i)};\theta)&=c\\
+  Q_{i}(z^{(i)})&=\frac{p(x^{(i)},z^{(i)};\theta)}{\sum_{z}p(x^{(i)},z;\theta)}\\
+                                   &=\frac{p(x^{(i)},z^{(i)};\theta)}{p(x^{(i)};\theta)}\\
+                                   &=p(z^{(i)}|x^{(i)};\theta)
+\end{align}
+*** factor analysis
+
 
 
 * Deep learning
@@ -2226,8 +2395,8 @@ LSTM 有通过精心设计的称作为"门"的结构来去除或者增加信息�
 - 如果在运行时需要快速模型, 则可能需要删除批量标准化, 并可能用 leakyReLU 替换 ELU 激活函数。有一个稀疏的模型也将有所帮助
 ** reference
 https://www.deeplearningbook.org
-* 信息论
-<<信息论>>
+* Information theory
+<<Information theory>>
 信息论的基本想法是一个不太可能的事件居然发生了, 要比一个非常可能的事件发生, 能提供更多的信息。消息说: "今天早上太阳升起" 信息量是如此之少以至于没有必要发送,但一条消息说："今天早上有日食" 信息量就很丰富。
 
 ** 信息量
@@ -2343,3 +2512,10 @@ KL 散度得大小是想对于训练数据集而言的，并没有绝对意义�
 \begin{equation}
   \text{information gain ratio}(p,q)=\frac{KL(p||q)}{H(p)}
 \end{equation}
+
+
+
+
+
+
+

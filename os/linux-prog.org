@@ -201,3 +201,157 @@ man:mprotect(2)
 
 *** Synchronizing a File with a Mapping
 man:msync(2)
+Without invocation of =msync()=, there is no guarantee that a dirty mapping will be written back to disk until the file is unmapped.
+
+*** Giving Advice on a Mapping
+man:madvise(2)
+
+** Advice for Normal File I/O
+man:posix_fadvise(2)
+man:readahead(2)
+
+** Synchronized, nonsynchronized or Synchronous, Asynchronous Operations
+#+CAPTION: Synchronicity of write operations
+|              | Synchronized                                   | Nonsynchronized                                |
+|--------------+------------------------------------------------+------------------------------------------------|
+| Synchronous  | Write operations do not return until the       | Write operations do not return until the data  |
+|              | data is flushed to disk. This is the behavior  | is stored in kernel buffers. This is the usual |
+|              | if =O_SYNC= is specified during file open      | behavior                                       |
+| Asynchronous | Write operations return as soon as the request | Write operations return as soon as the request |
+|              | is queued. Once the write operation ultimately | is queued. Once the write operation ultimately |
+|              | executes, the data is guaranteed to be on disk | executes, the data is guaranteed to at least   |
+|              |                                                | be stored in kernel buffers.                   |
+
+
+#+CAPTION: Synchronicity of read operations
+|              | Synchronized                                                          |
+|--------------+-----------------------------------------------------------------------|
+| Synchronous  | Read operations do not return until the data, which is up-to-date,    |
+|              | is stored in the provided buffer(this is the usual behavior).         |
+| Asynchronous | Read operations return as soon as the request is queued, but when the |
+|              | read operation ultimately executes, the data returned is up-to-date   |
+
+*** Asynchronous I/O
+man:aio(7)
+
+** I/O Schedulers and I/O Performance
+*** The Life of an I/O Scheduler
+I/O schedulers perform two basic operations: merging and sorting.
+- =Merging=: is the process of taking two or more adjacent I/O requests and combining them into a single request.
+- =Sorting=: is the process of arranging pending I/O requests in ascending block order.
+
+*** Helping Out Reads
+- =read latency= problem:
+- =write-starving-reads= problem:
+
+**** The Deadline I/O Scheduler
+
+**** The Anticipatory I/O Scheduler
+**** The CFQ I/O Scheduler
+**** The Noop I/O Scheduler
+*** Selecting and Configuring Your I/O Scheduler
+*** Optimizing I/O Performance
+* Process Management
+** The Process ID
+- The =idle process=: the kernel "runs" when there are no other runnable process, has the pid 0.
+- The =init process=: the kernel executes after booting the system, has the pid 1.
+
+Unless the user explicitly tells the kernel what process to run(through the init kernel command-line parameter), the kernel has to identify a suitable init process on its own --- a rare example where the kernel dictates policy. The Linux kernel tries four executables, in the following order:
+1. =/sbin/init=: The preferred and most likely location for the init process.
+2. =/etc/init=: Another likely location for the init process.
+3. =/bin/init=: A fallback location for the init process.
+4. =/bin/sh=: The location of the Bourne shell, which the kernel tries to run if it fails to find an init process.
+
+The first of these process that exists is executed as the init process. If all four processes fail to execute, the Linux kernel halts the system with a panic.
+
+*** Process ID Allocation
+- By default, the kernel imposes a maximum process ID value of 32768.
+- System administrators can set the value higher via =/proc/sys/kernel/pid_max=.
+
+*** Obtaining the Process ID and Parent Process ID
+man:getpid(2)
+man:getppid(2)
+
+** Running a New Process
+- =executing=: the act loads a binary program into memory, replacing the previous contents of the address space, and begins execution of the new program.
+- =forking=: the act create a new process which initially is a near-duplicate of its parent process, and then an exec to load a new binary int o that process---are thus required to execute a new program in a new process.
+
+*** The Exec Family of Calls
+man:exec(3)
+A successful =execl()= call changes not only the address space and process image, but certain other attributes of the process:
+- Any pending signals are lost.
+- Any signals that the process is catching are returned to their default behavior, as the signal handlers no longer exist in the process's address space.
+- Any memory locks are dropped.
+- Most thread attributes are returned to the default values.
+- Most process statistics are reset.
+- Anything related to the process's memory address spaces, including any mapped files, is cleared.
+- Anything that exists solely in user spaces, including feature of the C library, such as =atexit()= behavior, is cleared.
+
+*** The fork() System Call
+The child and the parent process are identical in nearly every facet, except for a few necessary differences:
+- The pid of the child is, of course, newly allocated and different from that of the parent.
+- The child's parent pid is set to the pid of its parent process.
+- Resource statistics are reset to zero in the child.
+- Any pending signals are cleared and not inherited by the child.
+- Any acquired file locks are not inherited by the child.
+
+** Terminalting a Process
+man:exit(2)
+Before terminating the process, the C library performs the following shutdown steps, in order:
+1. Call any functions registered with =atexit()= or =on_exit()=, in the reverse order of their registration.
+2. Flush all open standard I/O streams.
+3. Remove any temporary files created with the =tmpfile()= function.
+These steps finish all the work the process needs to do in user space, so =exit()= invokes the system call =_exit()= to let the kernel handle the rest of the termination process.
+When a process exits, the kernel cleans up all of the resources that it created on the process's behalf that are no longer in use. The includes, but is not limited to, allocated memory, open files and System V semaphores. After cleanup, the kernel destroys the process and notifies the parent of its child's demise.
+
+man:atexit(3) and man:on_exit(3): used to register functions to be invoked upon process termination
+- If a process invokes an exec function, the list of registered functions is cleared.
+- If a process terminates via a signal, the registered functions are not called.
+- support at least =ATEXIT_MAX= registered functions.
+
+** Waiting for Terminated Child Processes
+=zombie= state: when a child dies before its parent. Only a minimal skeleton of what was once the process---some basic kernel data structures containing potentially useful data---is retained. 
+A process in this state waits for its parent to inquire about its status(a procedure known as waiting on the zombie process). Only after the parent obtains the information preserved about the terminated child does the process formally exit and cease to exist even as a zombie.
+
+- man:wait(2)
+- man:waitpid(2):waiting for a specific process
+- man:waitid(2): is used to wait for and obtain information about the status change(termination, stopping, continuing) of a child process.
+- man:wait3(2): wait for process to change state
+
+man:system(3): exec shell command
+During execution of the command, =SIGCHLD= is blocked, and =SIGINT= and =SIGQUIT= are ignored. Ignoring =SIGINT= and =SIGQUIT= has several implications, particularly if =system()= is invoked inside a loop. If calling =system()= from within a loop, you should ensure that the program properly checks the exit status of the child
+
+** User and Groups
+- =Real user ID=: is the uid of the user who originally ran the process. It is set to the real user ID of the process's parent, and does not change during an exec call.
+- =effective user ID=: the user ID that the process is currently wielding. Permission verifications normally check against this value. *by executing a setuid(suid) binary, the process can change its effective user ID. To be exact, the effective user ID is set to the user ID of the owner of the program file.*
+- =saved user ID=: is the process's original effective user ID.
+The effective user ID is the value that matters: it's the user Id that is checked in the course of validating a process's credentials.
+The real user ID and saved user ID act as surrogates or potential user ID values that nonroot processes are allowed to switch to and from.
+The real user ID is the effective user ID belonging to the user actually running the program, and the saved user ID is the effective user ID from before a suid binary caused a change during exec.
+
+- changing the real or saved user or group id
+  man:setuid(2)
+  man:setgid(2)
+  man:setreuid(2)
+  man:setregid(2)
+  man:setresuid(2)
+  man:setresuid(2)
+  Nonroot processes should use =seteuid()= to change their effective user IDs. Root processes should use =setuid()= if they wish to change all three user IDs and =seteuid()= if they wish to temporarily change just the effective user ID.
+- obtaining the user and group ids
+  man:getuid(2)/man:geteuid(2)
+  man:getgid(2)/man:getegid(2)
+
+** Session and Process Groups
+man:setsid(2): creates a new session, assuming that the process is not already a process group leader. The calling process is made the session leader and sole member of the new session, which has no controlling tty.
+
+** Daemons
+man:daemon(7)
+man:daemon(3)
+A daemon is a process that runs int the background, not connecting to any controlling terminal.
+In general, a program performs the following steps to become a daemon:
+1. Call =fork()=. This creates a new process, which will become the daemon.
+2. In the parent, call =exit()=. This ensures that the original parent(the daemon's grandparent) is satisfied that its child terminated, that the daemon's parent is no longer running, and that the daemon is not a process group leader. This last point is a requirement for the successful completion of the next step.
+3. Call =setsid()=, giving the daemon a new process group and session, both of which have it as leader. This also ensures that the process has no associated controlling terminal(as the process just created a new session and will not assign one).
+4. Change the working directory to the root directory via =chdir()=. This is done because the inherited working directory can be anywhere on the filesystem. Daemons tend to run for the duration of the system's uptime, and you don't want to keep some random directory open and thus prevent an administrator from unmounting the filesystem containing that directory.
+5. Close all file descriptors. You do not want tot inherit open file descriptors, and, unaware, hold them open.
+6. Open file descriptors 0, 1, and 2 and redirect them to =/dev/null=.

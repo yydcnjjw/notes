@@ -1037,10 +1037,44 @@ X       +------------------------+
    35. =acpi_boot_table_init()=
    36. =early_acpi_boot_init()=
    37. =initmem_init()=
-   38. Allocate are for DMA
-       1. =dma_contiguous_reserve()=: allocate area for the =Direct memory access=
-       2. 
-
+   38. Allocate are for [[DMA]]: =dma_contiguous_reserve()=: allocate area for the =Direct memory access=
+   39. =x86_init.paging.pagetable_init()=: initialize sparse memory and zone sizes.
+   40. =prefil_possible_map()=: calculates and writes to the =cpu_possible_mask= actual number of the CPUs
+8. =mm_init_cpumask()=: set the [[cpumask]] pointer to the memory descriptor =cpumask= (clear 0).
+9. =setup_command_line()=: takes pointer to the kernel command line allocates a couple of buffers to store command line.
+   1. =saved_command_line=: will contain boot command line
+   2. =initcall_command_line=: will contain boot command line. will be used in the =do_initcall_level=
+   3. =static_command_line=: will contain command line for parameters parsing
+10. =setup_nr_cpu_ids()=: set =nr_cpu_ids= (number of CPUs) according to the last bit in the =cpu_possible_mask=
+11. =setup_per_cpu_areas()=: setups memory areas for the =percpu= variables.
+12. =smp_prepare_boot_cpu()=: =arch/x86/kernel/smpboot.c=
+    1. load the original GDT
+    2. reload the per-cpu base
+    3. fill =cpu_callout_mask= bitmap with the current cpu: indicate which secondary processor can be initialized next.
+    4. set cpu state as online with the setting =cpu_state= percpu variable for the current processor
+13. =build_all_zonelists(NULL)=: set up the order of zones that allocations are preferred from
+14. =page_alloc_init()=: setup the =startup= and =teardown= callbacks for the =CPUHP_PAGE_ALLOC_DEAD= cpu hotplug state.
+15. =parse_early_param()=: handle linux kernel command line for no all architecture.
+16. =jump_label_init()=: initialize [[https://lwn.net/Articles/412072/][jump label]]
+17. =setup_log_buf()=: setup the =printk= log buffer
+18. =vfs_caches_init_early()=: do early initialization of the virtual file system
+19. =sort_main_extable()=: sort the kernel's built-in exception table entries which are between =__start___ex_table= and =__stop___ex_table=
+20. =trap_init()=: initialize trap handlers
+21. =mm_init()=: initialization of the memory manager
+    1. =page_ext_init_flatmem()=: initializes extended data per page handing
+    2. =mem_init()=: releases all =bootmem=
+    3. =kmem_cache_init()=: initialize kernel cache
+    4. =pgtable_init()=: initialize the =page->pt1= kernel cache
+    5. =vmalloc_init()=: initialize =vmalloc=
+22. =sched_init()=: Scheduler initialization
+    1. =wait_bit_init()=: initialization of the array of =waitqueues=
+       The =bit_wait_table= is array of wait queues that will be used for wait/wake up of processes depends on the value of a designated bit.
+    2. initialization of =waitqueues= array is calculating size of memory to allocate for the =root_task_group(sched_entity)= and =runqueues=.
+    3. allocate a space with the =kzalloc= functions and set pointers of =sched_entity= and =runqueues=.
+    4. initialize a =bandwidth= of CPU for =real-time= and =deadline= tasks.
+    5. initialization of the =root domain=: The real-time scheduler requires global resources to make scheduling decision. But unfortunately scalability bottlenecks appear as the number of CPUs increase. The concept of =root_domains= was introduced for improving scalability ans avoid such bottlenecks.
+    6. =set_load_weight()=: initialization of =per-cpu= run queues with default values, we need to setup =load weight= of the first task in the system
+    7. =init_sched_fair_class()=: Calculating next time period of the next calculation of CPU load and initialization of the =fair= class.
 
 * Misc
 ** linux 构建过程
@@ -1711,6 +1745,8 @@ ioremap used to map device memory into kernel address space.
 <<mm_struct>>
 [[https://0xax.gitbooks.io/linux-insides/content/Initialization/linux-initialization-5.html][memory descriptor initialization]]
 ** DMA
+<<DMA>>
+Direct memory access
 http://en.wikipedia.org/wiki/Direct_memory_access
 
 * Interrupts
@@ -2059,6 +2095,8 @@ per-CPU is declared to =PER_CPU_BASE_SECTION + Subsection= according to the diff
 
 *** per-cpu areas initialization process
 
+** Cpumasks
+<<cpumask>>
 * Drive
 
 * Networking

@@ -82,3 +82,732 @@
 特点:
 - 只能匹配路由
 - 前缀列表既可以匹配网络号，也可以匹配掩码
+
+* experiment
+** CA-L2L-VPN
+#+caption: Topology
+[[file:image/experiment/screenshot_2018-10-25_15-26-03.png]]
+
+需求:
+- 证书认证的 L2L-VPN
+- client 在线申请
+- client2 离线申请
+
+配置:
+1. 接口配置
+   - CA:
+     #+BEGIN_EXAMPLE
+       interface Ethernet0/0
+        ip address 10.1.1.10 255.255.255.0
+     #+END_EXAMPLE
+   - client:
+     #+BEGIN_EXAMPLE
+       interface Loopback1
+        ip address 1.1.1.1 255.255.255.0
+       interface Ethernet0/0
+        ip address 10.1.1.1 255.255.255.0
+     #+END_EXAMPLE
+   - client2:
+     #+BEGIN_EXAMPLE
+       interface Loopback1
+        ip address 2.2.2.2 255.255.255.0
+       interface Ethernet0/0
+        ip address 10.1.1.2 255.255.255.0
+     #+END_EXAMPLE
+2. 配置 NTP 服务器
+   - CA:
+     #+BEGIN_EXAMPLE
+       !
+       clock timezone UTC +8
+       !
+       ntp authentication-key 1 md5 cisco
+       ntp authenticate
+       ntp trusted-key 1
+       ntp master
+     #+END_EXAMPLE
+   - client:
+     #+BEGIN_EXAMPLE
+       !
+       clock timezone UTC +8
+       !
+       ntp authentication-key 1 md5 cisco
+       ntp authenticate
+       ntp trusted-key 1
+       ntp server 10.1.1.10 key 1
+     #+END_EXAMPLE
+     状态:
+     #+BEGIN_EXAMPLE
+       client#show ntp status
+       Clock is synchronized, stratum 9, reference is 10.1.1.10      
+       nominal freq is 250.0000 Hz, actual freq is 250.0000 Hz, precision is 2**10
+       ntp uptime is 8200 (1/100 of seconds), resolution is 4000
+       reference time is DF7BDE4D.31EB85A8 (14:16:45.195 UTC Thu Oct 25 2018)
+       clock offset is 0.0000 msec, root delay is 2.00 msec
+       root dispersion is 7941.77 msec, peer dispersion is 7938.47 msec
+       loopfilter state is 'CTRL' (Normal Controlled Loop), drift is 0.000000000 s/s
+       system poll interval is 64, last update was 1 sec ago.
+     #+END_EXAMPLE
+   - client2:
+     #+BEGIN_EXAMPLE
+       !
+       clock timezone UTC +8
+       !
+       ntp authentication-key 1 md5 cisco
+       ntp authenticate
+       ntp trusted-key 1
+       ntp server 10.1.1.10 key 1
+     #+END_EXAMPLE
+     状态:
+     #+BEGIN_EXAMPLE
+       client2#show ntp status
+       Clock is synchronized, stratum 9, reference is 10.1.1.10      
+       nominal freq is 250.0000 Hz, actual freq is 250.0000 Hz, precision is 2**10
+       ntp uptime is 19000 (1/100 of seconds), resolution is 4000
+       reference time is DF7BDF2F.78106398 (14:20:31.469 UTC Thu Oct 25 2018)
+       clock offset is 0.0000 msec, root delay is 2.00 msec
+       root dispersion is 68.84 msec, peer dispersion is 64.87 msec
+       loopfilter state is 'CTRL' (Normal Controlled Loop), drift is 0.000000000 s/s
+       system poll interval is 64, last update was 44 sec ago.
+     #+END_EXAMPLE
+3. 架设证书服务器(CA)
+   #+BEGIN_EXAMPLE
+     !
+     ip http server
+     !
+     ip domain name cumt.edu
+     !
+     crypto pki server CA
+      issuer-name cn=CA.cumt.edu, o=cumt, ou=xuhai, l=xuzhou
+      lifetime certificate 180
+      lifetime ca-certificate 365
+      no shutdown
+   #+END_EXAMPLE
+   状态:
+   #+BEGIN_EXAMPLE
+     CA Certificate
+       Status: Available
+       Certificate Serial Number (hex): 01
+       Certificate Usage: Signature
+       Issuer: 
+         cn=CA.cumt.edu
+         o=cumt
+         ou=xuhai
+         l=xuzhou
+       Subject: 
+         cn=CA.cumt.edu
+         o=cumt
+         ou=xuhai
+         l=xuzhou
+       Validity Date: 
+         start date: 14:21:06 UTC Oct 25 2018
+         end   date: 14:21:06 UTC Oct 25 2019
+       Associated Trustpoints: CA 
+   #+END_EXAMPLE
+4. 在线申请证书(client)
+   - 配置信任点:
+     #+BEGIN_EXAMPLE
+       crypto pki trustpoint client
+        enrollment url http://10.1.1.10:80
+        subject-name cn=client.cumt.edu, o=cumt, ou=xuhai.client, l=xuzhou
+        revocation-check crl
+     #+END_EXAMPLE
+   - 认证证书服务器
+     #+BEGIN_EXAMPLE
+       client(config)#crypto pki authenticate client
+       Certificate has the following attributes:
+              Fingerprint MD5: 0D02F0B1 AA0928C3 A9A02440 0D976E67 
+             Fingerprint SHA1: C4E724FD B6664E5B 45351364 D665C8C2 5CEBA4C1 
+
+       % Do you accept this certificate? [yes/no]: yes
+       Trustpoint CA certificate accepted.
+     #+END_EXAMPLE
+   - 申请个人证书
+     #+BEGIN_EXAMPLE
+       client(config)#crypto pki enroll client
+       %
+       % Start certificate enrollment .. 
+       % Create a challenge password. You will need to verbally provide this
+          password to the CA Administrator in order to revoke your certificate.
+          For security reasons your password will not be saved in the configuration.
+          Please make a note of it.
+
+       Password: 
+       Re-enter password: 
+       % The subject name in the certificate will include: cn=client.cumt.edu, o=cumt, ou=xuhai.client, l=xuzhou
+       % The subject name in the certificate will include: client.cumt.edu
+       % Include the router serial number in the subject name? [yes/no]: yes
+       % The serial number in the certificate will be: 67108912
+       % Include an IP address in the subject name? [no]: no
+       Request certificate from CA? [yes/no]: yes
+       % Certificate request sent to Certificate Authority
+       % The 'show crypto pki certificate verbose client' commandwill show the fingerprint.
+     #+END_EXAMPLE
+   - CA 下发个人证书
+     #+BEGIN_EXAMPLE
+       crypto pki server CA grant all
+     #+END_EXAMPLE
+   - client 查看证书
+     #+BEGIN_EXAMPLE
+       Oct 25 06:30:32.576: %PKI-6-CERTRET: Certificate received from Certificate Authority
+
+       client(config)#do sho crypto pki certificates 
+       CA Certificate
+         Status: Available
+         Certificate Serial Number (hex): 01
+         Certificate Usage: Signature
+         Issuer: 
+           cn=CA.cumt.edu
+           o=cumt
+           ou=xuhai
+           l=xuzhou
+         Subject: 
+           cn=CA.cumt.edu
+           o=cumt
+           ou=xuhai
+           l=xuzhou
+         Validity Date: 
+           start date: 14:21:06 UTC Oct 25 2018
+           end   date: 14:21:06 UTC Oct 25 2019
+         Associated Trustpoints: client 
+
+
+       Certificate
+         Subject:
+           Name: client.cumt.edu
+           Serial Number: 67108912
+          Status: Pending
+          Key Usage: General Purpose
+          Certificate Request Fingerprint MD5: B437E97F B378CB30 254E849B 59ED5910 
+          Certificate Request Fingerprint SHA1: 89314932 E4D30B0D 13E427C5 8A8DA19B 7F14FF4D 
+          Associated Trustpoint: client 
+     #+END_EXAMPLE
+5. 离线申请证书(client2)
+   - 配置信任点
+     #+BEGIN_EXAMPLE
+       crypto pki trustpoint client2
+        enrollment terminal
+        subject-name cn=client2.cumt.edu, o=cumt, ou=xuhai.client2, l=xuzhou
+        revocation-check none
+     #+END_EXAMPLE
+   - 认证证书服务器
+     - CA 导出根证书
+       #+BEGIN_EXAMPLE
+         CA(config)#crypto pki export CA pem terminal 
+         % The specified trustpoint is not enrolled (CA).
+         % Only export the CA certificate in PEM format.
+         % CA certificate:
+         -----BEGIN CERTIFICATE-----
+         MIICZTCCAc6gAwIBAgIBATANBgkqhkiG9w0BAQQFADBGMQ8wDQYDVQQHEwZ4dXpo
+         b3UxDjAMBgNVBAsTBXh1aGFpMQ0wCwYDVQQKEwRjdW10MRQwEgYDVQQDEwtDQS5j
+         dW10LmVkdTAeFw0xODEwMjUwNjIxMDZaFw0xOTEwMjUwNjIxMDZaMEYxDzANBgNV
+         BAcTBnh1emhvdTEOMAwGA1UECxMFeHVoYWkxDTALBgNVBAoTBGN1bXQxFDASBgNV
+         BAMTC0NBLmN1bXQuZWR1MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCwOr7J
+         FwBiGLrx6idmID0wr3zjSI2wrkTOlCnlRKxLvg6nMvngmrhj+BOr3FvHP1Cpijpp
+         nG0mBtfsyNPysb/dhblhFk/d7jRgEuT7EFo4E0wBEQniSlxElF4x3gfTZcnD3Fx6
+         wpqkAjTYBzSCvxc5zJNcuZVDhM/Y155Xx/KG+QIDAQABo2MwYTAPBgNVHRMBAf8E
+         BTADAQH/MA4GA1UdDwEB/wQEAwIBhjAfBgNVHSMEGDAWgBTIk8/sCQqlCeOPCGq2
+         9A44vr2+VjAdBgNVHQ4EFgQUyJPP7AkKpQnjjwhqtvQOOL69vlYwDQYJKoZIhvcN
+         AQEEBQADgYEAN9tvZlERtKlRQ+XjtZpI2jix/sO0muiigq4Y8AN/U+GJzRGdBn8z
+         0jX835QmP+Yymw9SM/qb1SiPshqEYxIg5YmL9UDoupzpMkM+UJPDAWk7/4HE3L/p
+         i9O/JIMWdeaNGBMco9B4toiX4BdAsHae4Nf0LGI+iPfTLNkHc2zBm20=
+         -----END CERTIFICATE-----
+       #+END_EXAMPLE
+     - 客户端认证证书服务器
+       #+BEGIN_EXAMPLE
+         client2(config)#crypto pki authenticate client2
+
+         Enter the base 64 encoded CA certificate.
+         End with a blank line or the word "quit" on a line by itself
+
+         -----BEGIN CERTIFICATE-----
+         MIICZTCCAc6gAwIBAgIBATANBgkqhkiG9w0BAQQFADBGMQ8wDQYDVQQHEwZ4dXpo
+         b3UxDjAMBgNVBAsTBXh1aGFpMQ0wCwYDVQQKEwRjdW10MRQwEgYDVQQDEwtDQS5j
+         dW10LmVkdTAeFw0xODEwMjUwNjIxMDZaFw0xOTEwMjUwNjIxMDZaMEYxDzANBgNV
+         BAcTBnh1emhvdTEOMAwGA1UECxMFeHVoYWkxDTALBgNVBAoTBGN1bXQxFDASBgNV
+         BAMTC0NBLmN1bXQuZWR1MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCwOr7J
+         FwBiGLrx6idmID0wr3zjSI2wrkTOlCnlRKxLvg6nMvngmrhj+BOr3FvHP1Cpijpp
+         nG0mBtfsyNPysb/dhblhFk/d7jRgEuT7EFo4E0wBEQniSlxElF4x3gfTZcnD3Fx6
+         wpqkAjTYBzSCvxc5zJNcuZVDhM/Y155Xx/KG+QIDAQABo2MwYTAPBgNVHRMBAf8E
+         BTADAQH/MA4GA1UdDwEB/wQEAwIBhjAfBgNVHSMEGDAWgBTIk8/sCQqlCeOPCGq2
+         9A44vr2+VjAdBgNVHQ4EFgQUyJPP7AkKpQnjjwhqtvQOOL69vlYwDQYJKoZIhvcN
+         AQEEBQADgYEAN9tvZlERtKlRQ+XjtZpI2jix/sO0muiigq4Y8AN/U+GJzRGdBn8z
+         0jX835QmP+Yymw9SM/qb1SiPshqEYxIg5YmL9UDoupzpMkM+UJPDAWk7/4HE3L/p
+         i9O/JIMWdeaNGBMco9B4toiX4BdAsHae4Nf0LGI+iPfTLNkHc2zBm20=
+         -----END CERTIFICATE-----
+
+         Certificate has the following attributes:
+                Fingerprint MD5: 0D02F0B1 AA0928C3 A9A02440 0D976E67 
+               Fingerprint SHA1: C4E724FD B6664E5B 45351364 D665C8C2 5CEBA4C1 
+
+         % Do you accept this certificate? [yes/no]: yes
+         Trustpoint CA certificate accepted.
+         % Certificate successfully imported
+       #+END_EXAMPLE
+     - 查看根证书
+       #+BEGIN_EXAMPLE
+         client2(config)#do sho cry pki cer
+         CA Certificate
+           Status: Available
+           Certificate Serial Number (hex): 01
+           Certificate Usage: Signature
+           Issuer: 
+             cn=CA.cumt.edu
+             o=cumt
+             ou=xuhai
+             l=xuzhou
+           Subject: 
+             cn=CA.cumt.edu
+             o=cumt
+             ou=xuhai
+             l=xuzhou
+           Validity Date: 
+             start date: 14:21:06 UTC Oct 25 2018
+             end   date: 14:21:06 UTC Oct 25 2019
+           Associated Trustpoints: client2
+       #+END_EXAMPLE
+   - 申请个人证书
+     - client2 导出个人信息
+       #+BEGIN_EXAMPLE
+         client2(config)#crypto pki enroll client2
+         % Start certificate enrollment .. 
+
+         % The subject name in the certificate will include: cn=client2.cumt.edu, o=cumt, ou=xuhai.client2, l=xuzhou
+         % The subject name in the certificate will include: client2
+         % Include the router serial number in the subject name? [yes/no]: 
+         % Please answer 'yes' or 'no'.
+         % Include the router serial number in the subject name? [yes/no]: yes
+         % The serial number in the certificate will be: 67108896
+         % Include an IP address in the subject name? [no]: no
+         Display Certificate Request to terminal? [yes/no]: yes
+         Certificate Request follows:
+
+         MIIBWDCCAQICAQAwfDEPMA0GA1UEBxMGeHV6aG91MRYwFAYDVQQLEw14dWhhaS5j
+         bGllbnQyMQ0wCwYDVQQKEwRjdW10MRkwFwYDVQQDExBjbGllbnQyLmN1bXQuZWR1
+         MScwDwYDVQQFEwg2NzEwODg5NjAUBgkqhkiG9w0BCQIWB2NsaWVudDIwXDANBgkq
+         hkiG9w0BAQEFAANLADBIAkEAtYyHVkLFcKDhK+Y1lWgNvdtlcwI5edCIT7YfW2jk
+         tpw8F75kVUlEncVgX6Xz6z2oM0e3KrNMyNUd8/uYEoF6qQIDAQABoCEwHwYJKoZI
+         hvcNAQkOMRIwEDAOBgNVHQ8BAf8EBAMCBaAwDQYJKoZIhvcNAQEFBQADQQBu8wxU
+         lPFkIO2Qp6cYd5L0SIJTy3uSAPOo5Q5cg4pKEn9czqnJ/I1OrYEeT2DBiLcDMAKQ
+         /5UEDUdClr+Lw0cw
+       #+END_EXAMPLE
+     - CA 加载 client2 个人信息
+       #+BEGIN_EXAMPLE
+         CA#crypto pki server CA request pkcs10 terminal
+         PKCS10 request in base64 or pem
+
+         % Enter Base64 encoded or PEM formatted PKCS10 enrollment request.
+         % End with a blank line or "quit" on a line by itself.
+         MIIBWDCCAQICAQAwfDEPMA0GA1UEBxMGeHV6aG91MRYwFAYDVQQLEw14dWhhaS5j
+         bGllbnQyMQ0wCwYDVQQKEwRjdW10MRkwFwYDVQQDExBjbGllbnQyLmN1bXQuZWR1
+         MScwDwYDVQQFEwg2NzEwODg5NjAUBgkqhkiG9w0BCQIWB2NsaWVudDIwXDANBgkq
+         hkiG9w0BAQEFAANLADBIAkEAtYyHVkLFcKDhK+Y1lWgNvdtlcwI5edCIT7YfW2jk
+         tpw8F75kVUlEncVgX6Xz6z2oM0e3KrNMyNUd8/uYEoF6qQIDAQABoCEwHwYJKoZI
+         hvcNAQkOMRIwEDAOBgNVHQ8BAf8EBAMCBaAwDQYJKoZIhvcNAQEFBQADQQBu8wxU
+         lPFkIO2Qp6cYd5L0SIJTy3uSAPOo5Q5cg4pKEn9czqnJ/I1OrYEeT2DBiLcDMAKQ
+         /5UEDUdClr+Lw0cw
+
+         % Enrollment request pending, reqId=2
+       #+END_EXAMPLE
+     - CA 下发证书
+       #+BEGIN_EXAMPLE
+         CA#crypto pki server CA grant all
+         % Granted certificate:
+         MIICRjCCAa+gAwIBAgIBAzANBgkqhkiG9w0BAQQFADBGMQ8wDQYDVQQHEwZ4dXpo
+         b3UxDjAMBgNVBAsTBXh1aGFpMQ0wCwYDVQQKEwRjdW10MRQwEgYDVQQDEwtDQS5j
+         dW10LmVkdTAeFw0xODEwMjUwNjQyNDVaFw0xOTA0MjMwNjQyNDVaMHwxDzANBgNV
+         BAcTBnh1emhvdTEWMBQGA1UECxMNeHVoYWkuY2xpZW50MjENMAsGA1UEChMEY3Vt
+         dDEZMBcGA1UEAxMQY2xpZW50Mi5jdW10LmVkdTEnMA8GA1UEBRMINjcxMDg4OTYw
+         FAYJKoZIhvcNAQkCFgdjbGllbnQyMFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBALWM
+         h1ZCxXCg4SvmNZVoDb3bZXMCOXnQiE+2H1to5LacPBe+ZFVJRJ3FYF+l8+s9qDNH
+         tyqzTMjVHfP7mBKBeqkCAwEAAaNSMFAwDgYDVR0PAQH/BAQDAgWgMB8GA1UdIwQY
+         MBaAFMiTz+wJCqUJ448Iarb0Dji+vb5WMB0GA1UdDgQWBBSt3TJpNmnEm6yCtn88
+         2hUVU148JjANBgkqhkiG9w0BAQQFAAOBgQB4FspC1vFjWf+uK2uEel/Jkn74L4q+
+         Til9x/TnFdtGHUPg/are6lib2kMUBl2SbJ1h8xhd5XILHHtyOQs4AC8MCDwxm/1d
+         KYLOF+T1K/tdqJ1YfxU6jCgzbwYK0RoElqjxN1x3VhmP4lf9jPb/FuYoh0NoGMi3
+         4uu1U5Mn7FWIyQ==
+       #+END_EXAMPLE
+     - client2 导入个人证书
+       #+BEGIN_EXAMPLE
+         client2(config)#crypto pki import client2 certificate 
+
+         Enter the base 64 encoded certificate.
+         End with a blank line or the word "quit" on a line by itself
+
+         MIICRjCCAa+gAwIBAgIBAzANBgkqhkiG9w0BAQQFADBGMQ8wDQYDVQQHEwZ4dXpo
+         b3UxDjAMBgNVBAsTBXh1aGFpMQ0wCwYDVQQKEwRjdW10MRQwEgYDVQQDEwtDQS5j
+         dW10LmVkdTAeFw0xODEwMjUwNjQyNDVaFw0xOTA0MjMwNjQyNDVaMHwxDzANBgNV
+         BAcTBnh1emhvdTEWMBQGA1UECxMNeHVoYWkuY2xpZW50MjENMAsGA1UEChMEY3Vt
+         dDEZMBcGA1UEAxMQY2xpZW50Mi5jdW10LmVkdTEnMA8GA1UEBRMINjcxMDg4OTYw
+         FAYJKoZIhvcNAQkCFgdjbGllbnQyMFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBALWM
+         h1ZCxXCg4SvmNZVoDb3bZXMCOXnQiE+2H1to5LacPBe+ZFVJRJ3FYF+l8+s9qDNH
+         tyqzTMjVHfP7mBKBeqkCAwEAAaNSMFAwDgYDVR0PAQH/BAQDAgWgMB8GA1UdIwQY
+         MBaAFMiTz+wJCqUJ448Iarb0Dji+vb5WMB0GA1UdDgQWBBSt3TJpNmnEm6yCtn88
+         2hUVU148JjANBgkqhkiG9w0BAQQFAAOBgQB4FspC1vFjWf+uK2uEel/Jkn74L4q+
+         Til9x/TnFdtGHUPg/are6lib2kMUBl2SbJ1h8xhd5XILHHtyOQs4AC8MCDwxm/1d
+         KYLOF+T1K/tdqJ1YfxU6jCgzbwYK0RoElqjxN1x3VhmP4lf9jPb/FuYoh0NoGMi3
+         4uu1U5Mn7FWIyQ==
+
+         % Router Certificate successfully imported
+       #+END_EXAMPLE
+     - client2 查看证书
+       #+BEGIN_EXAMPLE
+         client2#show crypto pki certificates 
+         Certificate
+           Status: Available
+           Certificate Serial Number (hex): 03
+           Certificate Usage: General Purpose
+           Issuer: 
+             cn=CA.cumt.edu
+             o=cumt
+             ou=xuhai
+             l=xuzhou
+           Subject:
+             Name: client2
+             Serial Number: 67108896
+             serialNumber=67108896+hostname=client2
+             cn=client2.cumt.edu
+             o=cumt
+             ou=xuhai.client2
+             l=xuzhou
+           Validity Date: 
+             start date: 14:42:45 UTC Oct 25 2018
+             end   date: 14:42:45 UTC Apr 23 2019
+           Associated Trustpoints: client2 
+
+         CA Certificate
+           Status: Available
+           Certificate Serial Number (hex): 01
+           Certificate Usage: Signature
+           Issuer: 
+             cn=CA.cumt.edu
+             o=cumt
+             ou=xuhai
+             l=xuzhou
+           Subject: 
+             cn=CA.cumt.edu
+             o=cumt
+             ou=xuhai
+             l=xuzhou
+           Validity Date: 
+             start date: 14:21:06 UTC Oct 25 2018
+             end   date: 14:21:06 UTC Oct 25 2019
+           Associated Trustpoints: client
+       #+END_EXAMPLE
+6. 配置证书认证的 L2L-VPN
+   - client
+     #+BEGIN_EXAMPLE
+       crypto pki certificate map client.map 10
+        subject-name co o = cumt
+       crypto isakmp policy 10
+       crypto isakmp profile isaprof
+          ca trust-point client
+          match certificate client.map
+       crypto ipsec transform-set cisco esp-des esp-md5-hmac
+       crypto map cisco 10 ipsec-isakmp 
+        set peer 10.1.1.2
+        set transform-set cisco 
+        set isakmp-profile isaprof
+        match address vpn
+        crypto map cisco
+       !
+       ip access-list extended vpn
+        permit ip 1.1.1.0 0.0.0.255 2.2.2.0 0.0.0.255
+       !
+       interface Ethernet0/0
+        ip address 10.1.1.1 255.255.255.0
+        crypto map cisco
+     #+END_EXAMPLE
+   - client2
+     #+BEGIN_EXAMPLE
+       crypto pki certificate map client2.map 10
+        subject-name co cn = client.cumt.edu
+       crypto isakmp policy 10
+       crypto isakmp profile isaprof
+          ca trust-point client2
+          match certificate client2.map
+       crypto ipsec transform-set cisco esp-des esp-md5-hmac 
+       crypto map cisco 10 ipsec-isakmp 
+        set peer 10.1.1.1
+        set transform-set cisco 
+        set isakmp-profile isaprof
+        match address vpn
+        crypto map cisco
+       !
+       ip access-list extended vpn
+        permit ip 2.2.2.0 0.0.0.255 1.1.1.0 0.0.0.255
+       !
+       interface Ethernet0/0
+        ip address 10.1.1.2 255.255.255.0
+        crypto map cisco
+ 
+     #+END_EXAMPLE
+   - 测试连通性:
+     [[file:image/experiment/screenshot_2018-10-25_15-24-11.png]]
+   - 查看加解密:
+     [[file:image/experiment/screenshot_2018-10-25_15-25-38.png]]
+
+** RRI & DPD
+#+caption: Topology
+[[file:image/experiment/screenshot_2018-10-26_09-14-30.png]]
+
+configure:
+- branch:
+  #+BEGIN_EXAMPLE
+    !
+    crypto isakmp policy 10
+     encr 3des
+     hash md5
+     authentication pre-share
+     group 2
+    crypto isakmp key cisco address 202.100.1.1    
+    crypto isakmp key cisco address 61.128.1.2     
+    crypto isakmp keepalive 10 periodic
+    !
+    crypto ipsec transform-set cisco esp-des esp-md5-hmac 
+    !
+    crypto map cisco 10 ipsec-isakmp 
+     set peer 202.100.1.1 default
+     set peer 61.128.1.2
+     set security-association idle-time 60
+     set transform-set cisco 
+     match address vpn
+    !
+    interface Loopback1
+     ip address 1.1.1.1 255.255.255.0
+    !
+    interface Ethernet0/0
+     ip address 11.1.1.1 255.255.255.0
+     crypto map cisco
+    !
+    router ospf 110
+     network 1.1.1.0 0.0.0.255 area 0
+     network 11.1.1.0 0.0.0.255 area 0
+    !
+    ip route 0.0.0.0 0.0.0.0 11.1.1.10
+    !
+    ip access-list extended vpn
+     permit ip 1.1.1.0 0.0.0.255 5.5.5.0 0.0.0.255
+  #+END_EXAMPLE
+- active:
+  #+BEGIN_EXAMPLE
+    !
+    crypto isakmp policy 10
+     encr 3des
+     hash md5
+     authentication pre-share
+     group 2
+    crypto isakmp key cisco address 11.1.1.1       
+    crypto isakmp keepalive 10 periodic
+    !
+    crypto ipsec transform-set cisco esp-des esp-md5-hmac 
+    !
+    crypto map cisco 10 ipsec-isakmp 
+     set peer 11.1.1.1
+     set transform-set cisco 
+     set reverse-route tag 10
+     match address vpn
+     reverse-route
+    !
+    interface Ethernet0/0
+     ip address 202.100.1.1 255.255.255.0
+     crypto map cisco
+    !
+    interface Ethernet0/1
+     ip address 10.1.1.1 255.255.255.0
+    !
+    router ospf 110
+     redistribute static subnets route-map RRI
+     network 10.1.1.0 0.0.0.255 area 0
+    !
+    ip route 0.0.0.0 0.0.0.0 202.100.1.10
+    !
+    ip access-list extended vpn
+     permit ip 5.5.5.0 0.0.0.255 1.1.1.0 0.0.0.255
+    !
+    route-map RRI permit 10
+     match tag 10
+    !
+  #+END_EXAMPLE
+- standby:
+  #+BEGIN_EXAMPLE
+    !
+    crypto isakmp policy 10
+     encr 3des
+     hash md5
+     authentication pre-share
+     group 2
+    crypto isakmp key cisco address 11.1.1.1       
+    crypto isakmp keepalive 10 periodic
+    !
+    crypto ipsec transform-set cisco esp-des esp-md5-hmac 
+    !
+    crypto map cisco 10 ipsec-isakmp 
+     set peer 11.1.1.1
+     set transform-set cisco 
+     set reverse-route tag 20
+     match address vpn
+     reverse-route
+    !
+    interface Ethernet0/0
+     ip address 61.128.1.2 255.255.255.0
+     crypto map cisco
+    !
+    interface Ethernet0/1
+     ip address 10.1.1.2 255.255.255.0
+    !
+    router ospf 110
+     redistribute static subnets route-map RRI
+     network 10.1.1.0 0.0.0.255 area 0
+    !
+    ip route 0.0.0.0 0.0.0.0 61.128.1.10
+    !
+    ip access-list extended vpn
+     permit ip 5.5.5.0 0.0.0.255 1.1.1.0 0.0.0.255
+    !
+    route-map RRI permit 10
+     match tag 20
+  #+END_EXAMPLE
+- server:
+  #+BEGIN_EXAMPLE
+    !
+    interface Loopback1
+     ip address 5.5.5.5 255.255.255.0
+    !
+    interface Ethernet0/0
+     ip address 10.1.1.100 255.255.255.0
+    !
+    router ospf 110
+     network 5.5.5.0 0.0.0.255 area 0
+     network 10.1.1.0 0.0.0.255 area 0
+    !
+  #+END_EXAMPLE
+
+Test redundancy:
+[[file:image/experiment/screenshot_2018-10-26_09-32-48.png]]
+
+** L2L-redundancy
+#+caption: Topology
+[[file:image/experiment/screenshot_2018-10-26_09-36-17.png]]
+
+Configure:
+- Route:
+  #+BEGIN_EXAMPLE
+    !
+    crypto isakmp policy 10
+     encr 3des
+     hash md5
+     authentication pre-share
+     group 2
+    crypto isakmp key cisco address 202.1.1.100    
+    crypto isakmp keepalive 10 periodic
+    !
+    !
+    crypto ipsec transform-set cisco esp-des esp-md5-hmac 
+    !
+    crypto map cisco 10 ipsec-isakmp 
+     set peer 202.1.1.100
+     set transform-set cisco 
+     match address vpn
+    !
+    interface Loopback1
+     ip address 1.1.1.1 255.255.255.0
+    !
+    interface Ethernet0/0
+     ip address 192.168.1.100 255.255.255.0
+     crypto map cisco
+    !
+    ip route 0.0.0.0 0.0.0.0 192.168.1.10
+    !
+    ip access-list extended vpn
+     permit ip 1.1.1.0 0.0.0.255 2.2.2.0 0.0.0.255
+    !
+  #+END_EXAMPLE
+- active:
+  #+BEGIN_EXAMPLE
+    !
+    crypto isakmp policy 10
+     encr 3des
+     hash md5
+     authentication pre-share
+     group 2
+    crypto isakmp key cisco address 192.168.1.100  
+    crypto isakmp keepalive 10 periodic
+    !
+    crypto ipsec transform-set cisco esp-des esp-md5-hmac 
+    !
+    crypto map cisco 10 ipsec-isakmp 
+     set peer 192.168.1.100
+     set transform-set cisco 
+     set reverse-route tag 100
+     match address vpn
+     reverse-route static
+    !
+    interface Ethernet0/0
+     ip address 202.1.1.1 255.255.255.0
+     standby 1 ip 202.1.1.100
+     standby 1 priority 110
+     standby 1 preempt
+     standby 1 name vpn
+     crypto map cisco redundancy vpn 
+    !
+    interface Ethernet0/1
+     ip address 10.1.1.1 255.255.255.0
+    !
+    router ospf 110
+     redistribute static subnets route-map vpn
+     network 10.1.1.0 0.0.0.255 area 0
+    !
+    ip route 0.0.0.0 0.0.0.0 202.1.1.10
+    !
+    ip access-list extended vpn
+     permit ip 2.2.2.0 0.0.0.255 1.1.1.0 0.0.0.255
+    !
+    route-map vpn permit 10
+     match tag 100
+    !
+  #+END_EXAMPLE
+- standby:
+  #+BEGIN_EXAMPLE
+    !
+    crypto isakmp policy 10
+     encr 3des
+     hash md5
+     authentication pre-share
+     group 2
+    crypto isakmp key cisco address 192.168.1.100  
+    crypto isakmp keepalive 10 periodic
+    !
+    crypto ipsec transform-set cisco esp-des esp-md5-hmac 
+    !
+    crypto map cisco 10 ipsec-isakmp 
+     set peer 192.168.1.100
+     set transform-set cisco 
+     set reverse-route tag 100
+     match address vpn
+     reverse-route static
+    !
+    interface Ethernet0/0
+     ip address 202.1.1.2 255.255.255.0
+     standby 1 ip 202.1.1.100
+     standby 1 name vpn
+     crypto map cisco redundancy vpn 
+    !
+    interface Ethernet0/1
+     ip address 10.1.1.2 255.255.255.0
+    !
+    router ospf 110
+     redistribute static subnets route-map vpn
+     network 10.1.1.0 0.0.0.255 area 0
+    !
+    ip route 0.0.0.0 0.0.0.0 202.1.1.10
+    !
+    ip access-list extended vpn
+     permit ip 2.2.2.0 0.0.0.255 1.1.1.0 0.0.0.255
+    !
+    route-map vpn permit 10
+     match tag 100
+    !
+  #+END_EXAMPLE
+
+#+caption: Test redundancy
+    [[file:image/experiment/screenshot_2018-10-26_09-39-19.png]]
