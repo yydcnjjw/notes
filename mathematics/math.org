@@ -842,7 +842,7 @@ CART 算法由以下两步组成:
 *** EM algorithm
 E-Step：通过observed data和现有模型估计参数估计值 missing data；
 M-Step：假设missing data已知的情况下，最大化似然函数。
-假设我们有一个估计问题, 其中由训练样本集 $x^{(1)},\dots,x^{(m)}$ 包含了 $m$ 个独立样本。使用模型 $p(x,z)$ 对数据进行建模
+假设我们有一个估计问题, 其中由训练样本集 $x^{(1)},\dots,x^{(m)}$ 包含了 $m$ 个独立样本。使用模型 $p(x,z)=p(x|z)p(z)$ 对数据进行建模
 1. 初始化分布参数 $\theta$
 2. 重复 E-step 和 M-step 直到收敛
    1. E-step: 根据参数的初始值或上次迭代的模型参数来计算出隐性变量的后验概率(条件概率), 其实就是隐性变量的期望。作为隐性变量的现有估计值: 
@@ -1006,7 +1006,155 @@ n#+BEGIN_SRC latex :results raw :exports none
 \end{align}
 *** factor analysis
 
+*** Gaussian mixture models
+设训练样本集 $x^{1},\dots,x^{m}$, 用联合分布 $p(x^{i}, z^{j})=p(x^{i}|z^{j})p(z^{j})$ 对数据进行建模
+- $z^{j}\sim{Multinomial(\varphi)}$
+- $x^{i}|z^{j}\sim{N(\mu_{j},\Sigma_{j})}$
+设 $k$ 来表示 $z^{j}$ 能取的值的个数($z^{j}$ 是潜在的随机变量)
 
+假设每个 $x^{i}$ 都是从 $z^{j}\{1,\dots,k\}$ 中随机选取来生成的, 然后 $x^{i}$ 就是从一个 $z^{j}$ 上的高斯分布中的 $k$ 个值当中的一个, 这就是 Gaussian mixture models.
+
+对 $\varphi,\mu,\Sigma$ 使用似然函数进行估计:
+<<Eqn.(1.5.3.1)>>
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{align}
+    l(\varphi,\mu,\Sigma)&=\sum_{i=1}^{m}\log{p(x^{i};\varphi,\mu,\Sigma)}\\
+                         &=\sum_{i=1}^{m}\log{\sum_{j=1}^{k}p(x^{i}|z^{j};\mu,\Sigma)p(z^{j};\varphi)}
+  \end{align}
+#+END_SRC 
+
+#+RESULTS:
+\begin{align}
+  l(\varphi,\mu,\Sigma)&=\sum_{i=1}^{m}\log{p(x^{i};\varphi,\mu,\Sigma)}\\
+                       &=\sum_{i=1}^{m}\log{\sum_{j=1}^{k}p(x^{i}|z^{j};\mu,\Sigma)p(z^{j};\varphi)}
+\end{align}
+
+使用 EM 算法, "猜测" $z^{j}$ 的值和更新参数:
+<<Eqn.(1.5.3.2)>>
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{align}
+    l(\varphi,\mu,\Sigma)&=\sum_{i=1}^{m}\sum_{j=1}^{k}p(z^{j})\log\frac{p(x^{i}|z^{j};\mu,\Sigma)p(z^{j};\varphi)}{p(z^{j})}\\
+                         &=\sum_{i=1}^{m}\sum_{j=1}^{k}w_{j}^{i}\log\frac{\frac{1}{(2\pi)^{\frac{n}{2}}|\Sigma_{j}|^{\frac{1}{2}}}\exp(-\frac{1}{2}(x^{i}-\mu_{j})^{T}\Sigma_{j}^{-1}(x^{i}-\mu_{j}))\cdot\varphi_{j}}{w_{j}^{i}}
+  \end{align}
+#+END_SRC 
+
+#+RESULTS:
+\begin{align}
+  l(\varphi,\mu,\Sigma)&=\sum_{i=1}^{m}\sum_{j=1}^{k}p(z^{j})\log\frac{p(x^{i}|z^{j};\mu,\Sigma)p(z^{j};\varphi)}{p(z^{j})}\\
+                       &=\sum_{i=1}^{m}\sum_{j=1}^{k}w_{j}^{i}\log\frac{\frac{1}{(2\pi)^{\frac{n}{2}}|\Sigma_{j}|^{\frac{1}{2}}}\exp(-\frac{1}{2}(x^{i}-\mu_{j})^{T}\Sigma_{j}^{-1}(x^{i}-\mu_{j}))\cdot\varphi_{j}}{w_{j}^{i}}
+\end{align}
+
+算法如下: 
+重复下列过程直至收敛: {
+1. E-step: 对每个 i, j, 设
+   <<Eqn.(1.5.3.3)>>
+   #+BEGIN_SRC latex :results raw :exports none
+     \begin{equation}
+       w_{j}^{i}:=p(z^{j}|x^{i};\varphi,\mu,\Sigma)
+     \end{equation}
+   #+END_SRC 
+
+   #+RESULTS:
+   \begin{equation}
+     w_{j}^{i}:=p(z^{j}|x^{i};\varphi,\mu,\Sigma)
+   \end{equation}
+
+2. M-step: 更新参数
+   <<Eqn.(1.5.3.4)>>
+   #+BEGIN_SRC latex :results raw :exports none
+     \begin{align}
+       \varphi_{j}&:=\frac{1}{m}\sum_{i=1}^{m}w_{j}^{i}\\
+       \mu_{j}&:=\frac{\sum_{i=1}^{m}w_{j}^{i}x^{i}}{\sum_{i=1}^{m}w_{j}^{i}}\\
+       \Sigma_{j}&:=\frac{\sum_{i=1}^{m}w_{j}^{i}(x^{i}-\mu_{j})(x^{i}-\mu_{j})^{T}}{\sum_{i=1}^{m}w_{j}^{i}}
+     \end{align}
+   #+END_SRC 
+
+   #+RESULTS:
+   \begin{align}
+     \varphi_{j}&:=\frac{1}{m}\sum_{i=1}^{m}w_{j}^{i}\\
+     \mu_{j}&:=\frac{\sum_{i=1}^{m}w_{j}^{i}x^{i}}{\sum_{i=1}^{m}w_{j}^{i}}\\
+     \Sigma_{j}&:=\frac{\sum_{i=1}^{m}w_{j}^{i}(x^{i}-\mu_{j})(x^{i}-\mu_{j})^{T}}{\sum_{i=1}^{m}w_{j}^{i}}
+   \end{align}
+}
+
+推导: 
+- E-step:
+  <<Eqn.(1.5.3.5)>>
+  #+BEGIN_SRC latex :results raw :exports none
+    \begin{equation}
+      p(z^{j}|x^{i};\varphi,\mu,\Sigma)=\frac{p(x^{i}|z^{j};\mu,\Sigma)p(z^{j};\varphi)}{\sum_{j=1}^{k}p(x^{i}|z^{j};\mu,\Sigma)p(z^{i};\varphi)}
+    \end{equation}
+  #+END_SRC 
+
+  #+RESULTS:
+  \begin{equation}
+    p(z^{j}|x^{i};\varphi,\mu,\Sigma)=\frac{p(x^{i}|z^{j};\mu,\Sigma)p(z^{j};\varphi)}{\sum_{j=1}^{k}p(x^{i}|z^{j};\mu,\Sigma)p(z^{i};\varphi)}
+  \end{equation}
+- M-step:
+  - $\varphi_{j}$ 更新规则: 计算 $\varphi_{j}$ 的偏导
+    <<Eqn.(1.5.3.6)>>
+    #+BEGIN_SRC latex :results raw :exports none
+      \begin{equation}
+        \sum_{i=1}^{m}\sum_{j=1}^{k}w_{j}^{i}\log{\varphi_{j}}
+      \end{equation}
+    #+END_SRC 
+
+    #+RESULTS:
+    \begin{equation}
+      \sum_{i=1}^{m}\sum_{j=1}^{k}w_{j}^{i}\log{\varphi_{j}}
+    \end{equation}
+    由于 $\varphi_{j}$ 的和为 1, 为了保证约束条件成立, 构建 [[https://zh.wikipedia.org/wiki/%E6%8B%89%E6%A0%BC%E6%9C%97%E6%97%A5%E4%B9%98%E6%95%B0][拉格朗日函数]]
+    <<Eqn.(1.5.3.7)>>
+    #+BEGIN_SRC latex :results raw :exports none
+      \begin{equation}
+        \mathcal{L}(\varphi)=\sum_{i=1}^{m}\sum_{j=1}^{k}w_{j}^{i}\log{\varphi_{j}}+\beta(\sum_{j=1}^{k}\varphi_{j}-1)
+      \end{equation}
+    #+END_SRC 
+
+    #+RESULTS:
+    \begin{equation}
+      \mathcal{L}(\varphi)=\sum_{i=1}^{m}\sum_{j=1}^{k}w_{j}^{i}\log{\varphi_{j}}+\beta(\sum_{j=1}^{k}\varphi_{j}-1)
+    \end{equation}
+
+    其中的 $\beta$ 是拉格朗日乘数。求导后得到:
+    <<Eqn.(1.5.3.8)>>
+    #+BEGIN_SRC latex :results raw :exports none
+      \begin{align}
+        \frac{\partial}{\partial\varphi_{j}}\mathcal{L}(\varphi)=\sum_{i=1}^{m}\frac{w_{j}^{i}}{\varphi_{j}}+\beta&=0\\
+        \varphi_{j}&=\frac{\sum_{i=1}^{m}w_{j}^{i}}{-\beta}\\
+        \sum_{j=1}^{k}\varphi_{j}&=\sum_{j=1}^{k}\frac{\sum_{i=1}^{m}w_{j}^{i}}{-\beta}\\
+        -\beta&=\sum_{i=1}^{m}\sum_{j=1}^{k}w_{j}^{i}=\sum_{i=1}^{m}1=m\\
+        \varphi_{j}:=\frac{1}{m}\sum_{i=1}^{m}w_{j}^{i}
+      \end{align}
+    #+END_SRC 
+
+    #+RESULTS:
+    \begin{align}
+      \frac{\partial}{\partial\varphi_{j}}\mathcal{L}(\varphi)=\sum_{i=1}^{m}\frac{w_{j}^{i}}{\varphi_{j}}+\beta&=0\\
+      \varphi_{j}&=\frac{\sum_{i=1}^{m}w_{j}^{i}}{-\beta}\\
+      \sum_{j=1}^{k}\varphi_{j}&=\sum_{j=1}^{k}\frac{\sum_{i=1}^{m}w_{j}^{i}}{-\beta}\\
+      -\beta&=\sum_{i=1}^{m}\sum_{j=1}^{k}w_{j}^{i}=\sum_{i=1}^{m}1=m\\
+      \varphi_{j}:=\frac{1}{m}\sum_{i=1}^{m}w_{j}^{i}
+    \end{align}
+  - $\mu_{j}$ 更新规则: 计算 $\mu_{j}$ 的偏导数
+    <<Eqn.(1.5.3.9)>>
+    #+BEGIN_SRC latex :results raw :exports none
+      \begin{align}
+        &-\nabla_{\mu_{j}}\sum_{i=1}^{m}\sum_{j=1}^{k}w_{j}^{i}\frac{1}{2}(x^{i}-\mu_{j})^{T}\Sigma_{j}^{-1}(x^{i}-\mu_{j})\\
+        &=\frac{1}{2}\sum_{i=1}^{m}w_{j}^{i}\nabla_{\mu_{j}}2\mu_{j}^{T}\Sigma_{j}^{-1}x^{i}-\mu_{j}^{T}\Sigma_{j}^{-1}\mu_{j}\\
+        &=\sum_{i=1}^{m}w_{j}^{i}(\Sigma_{j}^{-1}x^{i}-\Sigma_{j}^{-1}\mu_{j})=0\\
+        &\mu_{j}:=\frac{\sum_{i=1}^{m}w_{j}^{i}x^{i}}{\sum_{i=1}^{m}w_{j}^{i}}
+      \end{align}
+    #+END_SRC 
+
+    #+RESULTS:
+    \begin{align}
+      &-\nabla_{\mu_{j}}\sum_{i=1}^{m}\sum_{j=1}^{k}w_{j}^{i}\frac{1}{2}(x^{i}-\mu_{j})^{T}\Sigma_{j}^{-1}(x^{i}-\mu_{j})\\
+      &=\frac{1}{2}\sum_{i=1}^{m}w_{j}^{i}\nabla_{\mu_{j}}2\mu_{j}^{T}\Sigma_{j}^{-1}x^{i}-\mu_{j}^{T}\Sigma_{j}^{-1}\mu_{j}\\
+      &=\sum_{i=1}^{m}w_{j}^{i}(\Sigma_{j}^{-1}x^{i}-\Sigma_{j}^{-1}\mu_{j})=0\\
+      &\mu_{j}:=\frac{\sum_{i=1}^{m}w_{j}^{i}x^{i}}{\sum_{i=1}^{m}w_{j}^{i}}
+    \end{align}
+  - $\Sigma_{j}$ 更新规则: 计算 $\Sigma_{j}$ 的偏导数
 
 * Deep learning
 ** 前馈神经网络

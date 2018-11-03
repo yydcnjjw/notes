@@ -659,8 +659,7 @@ X       +------------------------+
        #define __init_task_data /**/
        #endif
      #+END_SRC
-5. *TODO* 加载 gdt, 设置段寄存器
-      
+5. 加载 gdt
    #+BEGIN_SRC asm
      // arch/x86/kernel/head_64.S 461
      early_gdt_descr:
@@ -752,11 +751,29 @@ X       +------------------------+
        #endif
        } };
      #+END_SRC
-6. 跳转到 =x86_64_start_kernel= (arch/x86/kernel/head64.c, c code)
+6. 设置段寄存器
+   #+BEGIN_SRC asm
+             xorl %eax,%eax
+             movl %eax,%ds
+             movl %eax,%ss
+             movl %eax,%es
+
+             movl %eax,%fs
+             movl %eax,%gs
+
+             movl	$MSR_GS_BASE,%ecx
+             movl	initial_gs(%rip),%eax
+             movl	initial_gs+4(%rip),%edx
+             wrmsr
+
+   #+END_SRC 
+   
+   the =gs= register always points to the bottom of the =irqstack= union. On the x86_64, the =gs= register is shared by per-cpu area and stack canary. All per-cpu symbols are zero based and the =gs= points to the base of the per-cpu area. You already know that =segmented memory model= is abolished in the long mode, but we can set the base address for the two segment registers-=fs= and =gs= with the [[http://en.wikipedia.org/wiki/Model-specific_register][Model specific registers]] and these registers can be still be used as address registers.
+
+7. 跳转到 =x86_64_start_kernel= (arch/x86/kernel/head64.c, c code)
 
 ** arch/x86/kernel/head64.c:x86_64_start_kernel
 1. 检查下列的值是否符合条件，若不符合则编译错误。
-
    #+BEGIN_SRC C
      // arch/x86/boot/boot.h !!condition 相当于 condition != 0
      #define BUILD_BUG_ON(condition) ((void)sizeof(char[1 - 2*!!(condition)]))
@@ -1066,6 +1083,7 @@ X       +------------------------+
     3. =kmem_cache_init()=: initialize kernel cache
     4. =pgtable_init()=: initialize the =page->pt1= kernel cache
     5. =vmalloc_init()=: initialize =vmalloc=
+    6. =init_espfix_bsp()=: prevent leaking of =31:16= bits of the =esp= register during returning to 16-bit stack
 22. =sched_init()=: Scheduler initialization
     1. =wait_bit_init()=: initialization of the array of =waitqueues=
        The =bit_wait_table= is array of wait queues that will be used for wait/wake up of processes depends on the value of a designated bit.
@@ -1075,7 +1093,514 @@ X       +------------------------+
     5. initialization of the =root domain=: The real-time scheduler requires global resources to make scheduling decision. But unfortunately scalability bottlenecks appear as the number of CPUs increase. The concept of =root_domains= was introduced for improving scalability ans avoid such bottlenecks.
     6. =set_load_weight()=: initialization of =per-cpu= run queues with default values, we need to setup =load weight= of the first task in the system
     7. =init_sched_fair_class()=: Calculating next time period of the next calculation of CPU load and initialization of the =fair= class.
+23. *TODO* =preempt_disable()=: disable preemption
+24. check IRQs state and disabling
+25. +Initialization of the integer ID management+
+26. =radix_tree_init()=: initialize kernel implementation of the [[http://en.wikipedia.org/wiki/Radix_tree][Radix tree]]
+27. [[RCU]] initialization:
+    1. =rcu_bootup_announce()=: print information about the RCU
+    2. =rcu_init_geometry()=: compute the node tree geometry depends on the amount of CPUs
+    3. =rcu_init_one()=: 
+28. =trace_init()=: initialize [[https://en.wikipedia.org/wiki/Tracing_%28software%29][tracing]] subsystem
+29. =acpi_early_init()=:
+30. =thread_stack_cache_init()=: allocates cache for the =thread_stack_cache=
+31. =cred_init()=: allocate cache for the credentials(like =uid=, =gid=, etc)
+32. =fork_init()=: 
+    1. =arch_task_cache_init()=: initialization of the architecture-specific caches.
+       allocate cache for the =task_xstate= which represents =FPU= state and sets up offsets and sizes of all extended states in =xsave= area.
+    2. =set_max_threads(MAX_THREADS)=: calculate default maximum number of threads
+    3. initialize =signal= handler: set resource limit about signal
+33. =proc_caches_init()=: allocate caches for the memory descriptors(or =mm_struct= structure)
+    1. allocate different [[http://en.wikipedia.org/wiki/Slab_allocation][SLAB]] caches with the call of the =kmem_cache_create=
+       - =sighand_cachep=: manage information about installed signal handlers
+       - =signal_cachep=: manage information about process signal descriptor
+       - =files_cachep=: manage information about opened files
+       - =fs_cachep=: manage filesystem information
+       - =mm_cachep=: =mm_struct=
+       - =vm_area_cachep=: allocate =SLAB= cache for the important =vm_area_struct= which used by the kernel to manage virtual memory space
+    2. =mmap_init()=: initialize virtual memory area =SLAB=
+    3. =nsproxy_cache_init()=: initialize =SLAB= for namespaces
+34. =buffer_init()=:
+    - allocate cache for the =buffer_head= (used for managing buffers)
+    - calculate the maximum size of the buffers in memory(equal to the =10%= of the =ZONE_NORMAL(all RAM from the 4GB on the x86_64)=)
+35. =vfs_caches_init()=:
+36. =pagecache_init()=: initialize the ratio for the dirty pages.
+37. =signals_init()=: allocate a cache for the =sigqueue= structures which represents queue of the real time signals.
+38. =proc_root_init()=: create the root for the [[https://en.wikipedia.org/wiki/Procfs][procfs]]
+39. =cgroup_init()=: make initialization of the rest of the cgroup subsystem
+40. =taskstats_init_early()=: export per-task statistic to the user-space
+41. =delayacct_init()=: initializes per-task delay accounting
+42. =check_bugs()=: fix some architecture dependent bugs
+43. =rest_init()=:
+    1. =rcu_scheduler_starting()=: make RCU scheduler active
+    2. =smpboot_thread_init()=: register the =smpboot_thread_notifier= CPU notifier
+    3. 
+    
 
+* Memory management
+** Paging
+linux 采用五级分页模型
+五种页表分别为:位数根据具体的计算机体系结构有关
+- 页全局目录(page global directory)
+- p4d
+- 页上级目录(page upper directory)
+- 页中间目录(page middle directory)
+- 页表(page table)
+
+*** arch x86
+#+CAPTION: x86 的分页
+*TODO* PAE 分析
+| page mode | macro    |   PGD |   P4D | PUD | PMD |  PTE | max-lin   |
+|           |          |       |       |     |     |      | -add-spac |
+|-----------+----------+-------+-------+-----+-----+------+-----------|
+|           | PTRS_PER |  1024 |     1 |   1 |   1 | 1024 |           |
+| 32-bit    | SHIFT    |    22 |    22 |  22 |  22 |   12 | 4GB       |
+|           | SIZE     |   4MB |   4MB | 4MB | 4MB |  4KB |           |
+|-----------+----------+-------+-------+-----+-----+------+-----------|
+|           | PTRS_PER |     4 |     1 |   1 | 512 |  512 |           |
+| PAE       | SHIFT    |    30 |    30 |  30 |  21 |   12 | 64GB      |
+|           | SIZE     |     ? |   2MB | 2MB | 2MB |  4KB |           |
+|-----------+----------+-------+-------+-----+-----+------+-----------|
+|           | PTRS_PER |   512 |     1 | 512 | 512 |  512 |           |
+| 4-level   | SHIFT    |    39 |    39 |  30 |  21 |   12 | 256TB     |
+|           | SIZE     | 512GB | 512GB | 1GB | 2MB |  4KB |           |
+|-----------+----------+-------+-------+-----+-----+------+-----------|
+|           | PTRS_PER |   512 |   512 | 512 | 512 |  512 |           |
+| 5-level   | SHIFT    |    48 |    39 |  30 |  21 |   12 | 128PB     |
+|           | SIZE     | 256TB | 512GB | 1GB | 2MB |  4KB |           |
+
+=arch/x86/include/asm/= 下的 =pgtable_types.h= 定义了页表格式, 其中包含
+- 若配置 =x86_32= 包含 =pgtable_32_types.h=
+  - 若配置 =x86_PAE= 包含 =pgtable-3level_types.h=: PAE 相关定义
+  - 若没有配置 包含 =pgtable-2level_types.h=: 32-bit 相关定义
+- 若配置 =x86_64= 包含 =pgtable_64_types.h=: 4-level 和 5-level 相关定义
+然后根据选择的分页模式修复(折叠)五种页表, 如果 =CONFIG_PGTABLE_LEVELS < 4= 则包含 =include/asm-generic/pgtable-nop4d.h= (使 =P4D_PTRS_PER_P4D=1= 等等)。以此类推...
+** Memblock
+<<memblock>>
+Memblock is a method of managing memory regions during the early boot period when the usual kernel memory allocators are not up and running.
+Memblock views the system memory as collections of contiguous regions. There are several types of these collections:
+- =memory=: describes the physical memory available to the kernel. This may differ from the actual physical memory installed in the system, for instance when the memory is restricted with
+- =mem==: command line parameter
+- =reserved=: describes the regions that were allocated
+- =physmap=: describes the actual physical memory regardless of the possible restrictions(the =physmap= type is only available on some architectures)
+
+reference:
+- [[https://www.kernel.org/doc/html/latest/core-api/boot-time-mm.html]]
+- [[https://elixir.bootlin.com/linux/latest/source/mm/memblock.c]]
+- [[https://elixir.bootlin.com/linux/latest/source/include/linux/memblock.h]]
+** ioremap
+ioremap used to map device memory into kernel address space. 
+** mm_struct
+<<mm_struct>>
+[[https://0xax.gitbooks.io/linux-insides/content/Initialization/linux-initialization-5.html][memory descriptor initialization]]
+** DMA
+<<DMA>>
+Direct memory access
+http://en.wikipedia.org/wiki/Direct_memory_access
+** SLAB
+* Interrupts
+
+- [[https://en.wikipedia.org/wiki/Advanced_Programmable_Interrupt_Controller][APIC]]
+
+** exception-tables
+<<exception-tables>>
+异常表位于段 =.__ex_table= 中，保存着指定代码地址的异常处理。
+There it uses the address of the instruction that caused the exception(i.e. =regs->eip=) to *find an address where the execution can continue(fixup) and execution customized exception handler function*. If this search is successful, the fault handler modifies the return address (again regs->eip) and returns. The execution will continue at the address in =fixup=.
+
+*** =__ex_table= 结构
+#+BEGIN_SRC C
+  // arch/x86/include/asm/extable.h
+  struct exception_table_entry {
+	  int insn, fixup, handler;
+  };
+#+END_SRC
+#+BEGIN_SRC asm
+  // arch/x86/include/asm/asm.h
+# define _ASM_EXTABLE_HANDLE(from, to, handler)   \
+         .pushsection "__ex_table","a" ;          \
+         .balign 4 ;                              \
+         .long (from) - . ;                       \
+         .long (to) - . ;                         \
+         .long (handler) - . ;                    \
+         .popsection                              \
+#+END_SRC
+- =insn=: 指定代码(可能发生异常)的地址和异常表位置的相对偏移
+- =fixup=: 异常处理结束返回的地址(通常位于 =.fixup= 段中)和异常表位置的相对偏移
+  =.fixup= 里的代码包含 =jmp= 跳转回 =from= 之后得代码
+- =handler=: 异常处理的地址和异常表位置的相对偏移
+
+** early interrupt handler
+<<early_idt_handler>>
+- 设置中断: 填充 =idt_descr= 并将 idt_descr 的地址加载到 idt
+  - x86_64: 为前32个中断(异常)设置中断处理程序 [[early_idt_handler_array]]
+  - x86_32: 为所有的中断设置中断处理程序 [[early_ignore_irq]]
+  #+BEGIN_SRC C
+    extern gate_desc idt_table[]; // arch/x86/include/asm/desc.h
+    gate_desc idt_table[IDT_ENTRIES] __page_aligned_bss; // IDT_ENTRIES 256 arch/x86/kernel/idt.c
+  #+END_SRC
+
+** interrupt handler function
+*** 相关的宏
+- =idtentry=: define an interrupt/exception entry point
+  - =sym=: name of the interrupt entry point
+  - =do_sym=: name of the interrupt handler
+  - =has_error_code=: has interrupt error code or not
+  - =paranoid=: if this parameter = 1, switch to special stack(read above)
+  - =shift_ist=: stack to switch during interrupt
+  #+BEGIN_SRC asm
+    .macro idtentry sym do_sym has_error_code:req paranoid=0 shift_ist=-1
+    ENTRY(\sym)
+            UNWIND_HINT_IRET_REGS offset=\has_error_code*8
+
+            /* Sanity check */
+            .if \shift_ist != -1 && \paranoid == 0
+            .error "using shift_ist requires paranoid=1"
+            .endif
+
+            ASM_CLAC
+
+            .if \has_error_code == 0
+            pushq	$-1				/* ORIG_RAX: no syscall to restart */
+            .endif
+
+            .if \paranoid == 1
+            testb	$3, CS-ORIG_RAX(%rsp)		/* If coming from userspace, switch stacks */
+            jnz	.Lfrom_usermode_switch_stack_\@
+            .endif
+
+            .if \paranoid
+            call	paranoid_entry
+            .else
+            call	error_entry
+            .endif
+            UNWIND_HINT_REGS
+            /* returned flag: ebx=0: need swapgs on exit, ebx=1: don't need it */
+
+            .if \paranoid
+            .if \shift_ist != -1
+            TRACE_IRQS_OFF_DEBUG			/* reload IDT in case of recursion */
+            .else
+            TRACE_IRQS_OFF
+            .endif
+            .endif
+
+            movq	%rsp, %rdi			/* pt_regs pointer */
+
+            .if \has_error_code
+            movq	ORIG_RAX(%rsp), %rsi		/* get error code */
+            movq	$-1, ORIG_RAX(%rsp)		/* no syscall to restart */
+            .else
+            xorl	%esi, %esi			/* no error code */
+            .endif
+
+            .if \shift_ist != -1
+            subq	$EXCEPTION_STKSZ, CPU_TSS_IST(\shift_ist)
+            .endif
+
+            call	\do_sym
+
+            .if \shift_ist != -1
+            addq	$EXCEPTION_STKSZ, CPU_TSS_IST(\shift_ist)
+            .endif
+
+            /* these procedures expect "no swapgs" flag in ebx */
+            .if \paranoid
+            jmp	paranoid_exit
+            .else
+            jmp	error_exit
+            .endif
+
+            .if \paranoid == 1
+            /*
+             ,* Entry from userspace.  Switch stacks and treat it
+             ,* as a normal entry.  This means that paranoid handlers
+             ,* run in real process context if user_mode(regs).
+             ,*/
+    .Lfrom_usermode_switch_stack_\@:
+            call	error_entry
+
+            movq	%rsp, %rdi			/* pt_regs pointer */
+
+            .if \has_error_code
+            movq	ORIG_RAX(%rsp), %rsi		/* get error code */
+            movq	$-1, ORIG_RAX(%rsp)		/* no syscall to restart */
+            .else
+            xorl	%esi, %esi			/* no error code */
+            .endif
+
+            call	\do_sym
+
+            jmp	error_exit
+            .endif
+    END(\sym)
+    .endm
+  #+END_SRC
+
+*** =early_idt_handler_array=
+<<early_idt_handler_array>>
+=early_idt_handler_array= 是 32 个大小为 9 字节程序的数组
+如果异常有错误代码，什么也不做。如果异常没有错误代码 将 0 压入栈(保持栈统一)。然后将中断向量号压栈并调用 =early_idt_handler_common=
+
+#+BEGIN_SRC asm
+  // NUM_EXCEPTION_VECTORS 32, EARLY_IDT_HANDLER_SIZE 9
+  // arch/x86/include/asm/segment.h
+  extern const char early_idt_handler_array[NUM_EXCEPTION_VECTORS][EARLY_IDT_HANDLER_SIZE];
+
+  // arch/x86/kernel/head_64.S
+  ENTRY(early_idt_handler_array)
+          i = 0
+          .rept NUM_EXCEPTION_VECTORS
+          .if ((EXCEPTION_ERRCODE_MASK >> i) & 1) == 0 
+                  UNWIND_HINT_IRET_REGS
+                  pushq $0	# Dummy error code, to make stack frame uniform
+          .else
+                  UNWIND_HINT_IRET_REGS offset=8
+          .endif
+          pushq $i		# 72(%rsp) Vector number
+          jmp early_idt_handler_common
+          UNWIND_HINT_IRET_REGS
+          i = i + 1
+          .fill early_idt_handler_array + i*EARLY_IDT_HANDLER_SIZE - ., 1, 0xcc
+          .endr
+          UNWIND_HINT_IRET_REGS offset=16
+  END(early_idt_handler_array)
+#+END_SRC
+
+#+BEGIN_SRC asm
+  // arch/x86/kernel/head_64.S
+  early_idt_handler_common:
+          /*
+           ,* The stack is the hardware frame, an error code or zero, and the
+           ,* vector number.
+           ,*/
+          cld
+
+          incl early_recursion_flag(%rip)
+
+          /* The vector number is currently in the pt_regs->di slot. */
+          pushq %rsi				/* pt_regs->si */
+          movq 8(%rsp), %rsi			/* RSI = vector number */
+          movq %rdi, 8(%rsp)			/* pt_regs->di = RDI */
+          pushq %rdx				/* pt_regs->dx */
+          pushq %rcx				/* pt_regs->cx */
+          pushq %rax				/* pt_regs->ax */
+          pushq %r8				/* pt_regs->r8 */
+          pushq %r9				/* pt_regs->r9 */
+          pushq %r10				/* pt_regs->r10 */
+          pushq %r11				/* pt_regs->r11 */
+          pushq %rbx				/* pt_regs->bx */
+          pushq %rbp				/* pt_regs->bp */
+          pushq %r12				/* pt_regs->r12 */
+          pushq %r13				/* pt_regs->r13 */
+          pushq %r14				/* pt_regs->r14 */
+          pushq %r15				/* pt_regs->r15 */
+          UNWIND_HINT_REGS
+
+          cmpq $14,%rsi		/* Page fault? */
+          jnz 10f
+          GET_CR2_INTO(%rdi)	/* Can clobber any volatile register if pv */
+          call early_make_pgtable
+          andl %eax,%eax
+          jz 20f			/* All good */
+
+  10:
+          movq %rsp,%rdi		/* RDI = pt_regs; RSI is already trapnr */
+          call early_fixup_exception
+
+  20:
+          decl early_recursion_flag(%rip)
+          jmp restore_regs_and_return_to_kernel
+  END(early_idt_handler_common)
+#+END_SRC
+
+- =early_idt_handler_common=: 保存相关的寄存器，根据 =vector number= 调用相应得异常处理函数
+  - =early_make_pgtable=: 
+    1. 检查是否是无效地址，或者 early pgt 是否完成
+    2. 检查异常地址在不同等级的页表所在位置的值。
+       - 不为零: 向下级页表搜索
+       - 为零: 检查 =early_dynamic_pgts= 是否超过 64 若超过则重置，然后为异常地址所在位置的页表设置地址。
+  - =early_fixup_exception=: 针对非 fault page 异常的处理
+    1. 忽略 =X86_TRAP_NMI= 异常
+    2. 搜索异常表 [[exception-tables]]
+    3. 处理 bug 异常
+    4. 打印相关异常信息
+
+*** =early_ignore_irq=
+<<early_ignore_irq>>
+#+BEGIN_SRC asm
+  /* This is the default interrupt "handler" :- */
+  ENTRY(early_ignore_irq)
+          cld
+  #ifdef CONFIG_PRINTK
+          pushl %eax
+          pushl %ecx
+          pushl %edx
+          pushl %es
+          pushl %ds
+          movl $(__KERNEL_DS),%eax
+          movl %eax,%ds
+          movl %eax,%es
+          cmpl $2,early_recursion_flag
+          je hlt_loop
+          incl early_recursion_flag
+          pushl 16(%esp)
+          pushl 24(%esp)
+          pushl 32(%esp)
+          pushl 40(%esp)
+          pushl $int_msg
+          call printk
+
+          call dump_stack
+
+          addl $(5*4),%esp
+          popl %ds
+          popl %es
+          popl %edx
+          popl %ecx
+          popl %eax
+  #endif
+          iret
+
+  hlt_loop:
+          hlt
+          jmp hlt_loop
+  ENDPROC(early_ignore_irq)
+#+END_SRC
+
+*** =debug=
+<<debug>>
+#+BEGIN_SRC C
+  // arch/x86/include/asm/trap.h
+  asmlinkage void debug(void);
+  // arch/x86/entry/entry_64.S
+  idtentry debug do_debug has_error_code=0 paranoid=1 shift_ist=DEBUG_STACK
+#+END_SRC 
+
+*** =int3=
+<<int3>>
+
+* Synchronization primitives
+** RCU
+<<RCU>>
+* SMP
+** cpu_dev
+<<cpu_dev>>
+
+cpu_dev definition information which kernel support CPU types.
+
+#+BEGIN_SRC C
+  // arch/x86/kernel/cpu/cpu.h
+  /* attempt to consolidate cpu attributes */
+  struct cpu_dev {
+          const char	*c_vendor;
+
+          /* some have two possibilities for cpuid string */
+          const char	*c_ident[2];
+
+          void            (*c_early_init)(struct cpuinfo_x86 *);
+          void		(*c_bsp_init)(struct cpuinfo_x86 *);
+          void		(*c_init)(struct cpuinfo_x86 *);
+          void		(*c_identify)(struct cpuinfo_x86 *);
+          void		(*c_detect_tlb)(struct cpuinfo_x86 *);
+          void		(*c_bsp_resume)(struct cpuinfo_x86 *);
+          int		c_x86_vendor;
+  #ifdef CONFIG_X86_32
+          /* Optional vendor specific routine to obtain the cache size. */
+          unsigned int	(*legacy_cache_size)(struct cpuinfo_x86 *,
+                                               unsigned int);
+
+          /* Family/stepping-based lookup table for model names. */
+          struct legacy_cpu_model_info {
+                  int		family;
+                  const char	*model_names[16];
+          }		legacy_models[5];
+  #endif
+  };
+#+END_SRC 
+
+cpu_dev declare variable in the =.x86_cpu_dev.init= section by =cpu_dev_register=
+
+#+BEGIN_SRC C
+  #define cpu_dev_register(cpu_devX) \
+          static const struct cpu_dev *const __cpu_dev_##cpu_devX __used \
+          __attribute__((__section__(".x86_cpu_dev.init"))) = \
+          &cpu_devX;
+#+END_SRC
+
+** Per-CPU
+Per-CPU variables are one of the kernel features. We can create a variable and each processor core will have its own copy of this variable.
+
+*** Create per-cpu variables
+**** static variables declare
+#+caption: declare per-cpu variables macro =include/linux/percpu-defs.h=
+| macro                          | description                                    |
+| DECLARE_PER_CPU                | ordinary per-CPU variables                     |
+| DECLARE_PER_CPU_FIRST          | must come first in the set of variables        |
+| DECLARE_PER_CPU_SHARED_ALIGNED | must be cacheline aligned under SMP conditions |
+| DECLARE_PER_CPU_ALIGNED        | must be cacheline aligned                      |
+| DECLARE_PER_CPU_PAGE_ALIGNED   | must be page aligned                           |
+| DECLARE_PER_CPU_READ_MOSTLY    | muse be read mostly                            |
+| DECLARE_PER_CPU_DECRYPTED      | should be accessed as decrypted                |
+|                                | when encryption is enabled in the guest        |
+
+per-CPU is declared to =PER_CPU_BASE_SECTION + Subsection= according to the different macro of the above table.
+**** dynamic define
+
+*** per-cpu operate
+
+*** per-cpu areas initialization process
+
+** Cpumasks
+<<cpumask>>
+* Drive
+
+* Networking
+The factors that determines the traversal of a packet in the network stack
+- lookup in the routing subsystem
+- netfilter subsystem(netfilter hook)
+- IPsec subsystem
+- the value of the =ttl= field in the IPv4 header of a packet being forwarded
+
+** Netlink Sockets
+The netlink protocol is socket-based Inter Process Communication(IPC) mechanism, based on [[https://tools.ietf.org/html/rfc3549][RFC 3549]].
+Netlink sockets can send asynchronous messages to userspace from the kernel. The netlink socket handles bidirectional communication with a kernel netlink socket, usually sending message to configure various system settings and getting responses back from the kernel.
+
+*** Netlink advantages
+- no need for polling when working with netlink sockets.
+- the kernel can be the initiator of sending asynchronous messages to userspace, without any need for the userspace to trigger any action.
+- support multicast transmission.
+
+*** Kernel Netlink Sockets
+Netlink sockets is created by =netlink_kernel_create()= in the kernel networking stack. *Each kernel sockets handles messages of different types*.
+
+#+BEGIN_SRC C
+  // include/linux/netlink.h
+  static inline struct sock *
+  netlink_kernel_create(struct net *net, int unit, struct netlink_kernel_cfg *cfg)
+#+END_SRC
+
+- =net=: the network namespace
+- =unit=: netlink protocol
+- =cfg=: consists of optional parameters for the netlink socket creation
+  #+BEGIN_SRC C
+    /* optional Netlink kernel configuration parameters */
+    // include/linux/netlink.h
+    struct netlink_kernel_cfg {
+            unsigned int	groups;
+            unsigned int	flags;
+            void		(*input)(struct sk_buff *skb);
+            struct mutex	*cb_mutex;
+            int		(*bind)(struct net *net, int group);
+            void		(*unbind)(struct net *net, int group);
+            bool		(*compare)(struct net *net, struct sock *sk);
+    };
+  #+END_SRC  
+  - =groups=: for specifying a multicast group(or a mask of multicast groups)
+  - =flags=: =NL_CFG_F_NONROOT_RECV= or =NL_CFG_F_NONROOT_SEND=
+    - =NL_CFG_F_NONROOT_RECV=: It is set, a non-superuser can bind to a multicast group, And it is not set, then when binding to a multicast group the =netlink_capable()= method will return 0, and you get =-EPRM= error
+    - =NL_CFG_F_NONROOT_SEND=: It is set, a non-superuser is allowed to send multicast
+  - =input=: when the input member is NULL, the kernel socket won't be able to receive data from userspace(sending data from the kernel to userspace is possible, though)
+  - =mutex=: when not defining a mutex, you use the default one(=cb_def_mutex=)
 * Misc
 ** linux 构建过程
 *** linux kernel Makefile 文件组成
@@ -1633,49 +2158,36 @@ link-vmlinux 展开的值为 cmd_link-vmlinux
   #+END_SRC 
 ** bochs linux kernel
 1. 创建硬盘镜像 img，bs(柱面) = 16(磁头数) x 63(扇区数) x 512B
-
    #+BEGIN_SRC shell
      dd if=/dev/zero of=hd.img bs=516096c count=100
    #+END_SRC 
-
 2. 初始化磁盘并分区
- 
    #+BEGIN_SRC shell
      fdisk -u -C100 -S63 -H16 hd.img
    #+END_SRC 
-
 3. 挂载硬盘镜像
    - udisksctl 方式： =udisksctl loop-setup -f hd.img=
    - losetup 方式： =losetup -o 32256 /dev/loop0 hd.img=
-  
-#+BEGIN_QUOTE
-卸载方式
-- udisksctl： =udisksctl loop-delete -b /dev/loop0 /dev/loop0=
-- losetup： =losetup -d /dev/loop0=
-#+END_QUOTE
-
+   #+BEGIN_QUOTE
+     卸载方式
+     - udisksctl： =udisksctl loop-delete -b /dev/loop0 /dev/loop0=
+     - losetup： =losetup -d /dev/loop0=
+   #+END_QUOTE
 4. 格式化文件系统
-
    #+BEGIN_SRC shell
      mkfs.ext4 /dev/loop0p1
    #+END_SRC 
-
 5. 挂载文件系统
-
    #+BEGIN_SRC shell
      sudo mount /dev/loop0p1 rootfs
    #+END_SRC 
-
 6. 创建 boot 和 grub 目录： =mkdir -p rootfs/boot/grub=
 7. bzImage 到 rootfs/boot
 8. grub-install
-
    #+BEGIN_SRC shell
      sudo grub-install --target=i386-pc /dev/loop0 --boot-directory=rootfs/boot
    #+END_SRC 
-
 9. 配置 grub.cfg
-
    #+BEGIN_EXAMPLE
    set timeout=5
    # set pager=1
@@ -1685,464 +2197,5 @@ link-vmlinux 展开的值为 cmd_link-vmlinux
 	    linux /boot/bzImage root=/dev/sda1 ro rootdelay=5 panic=10 debug ignore_loglevel
             }
    #+END_EXAMPLE
-
 10. 配置 bochs
 
-* Memory management
-** Paging
-linux 采用五级分页模型
-五种页表分别为:位数根据具体的计算机体系结构有关
-- 页全局目录(page global directory)
-- p4d
-- 页上级目录(page upper directory)
-- 页中间目录(page middle directory)
-- 页表(page table)
-
-*** arch x86
-#+CAPTION: x86 的分页
-*TODO* PAE 分析
-| page mode | macro    |   PGD |   P4D | PUD | PMD |  PTE | max-lin   |
-|           |          |       |       |     |     |      | -add-spac |
-|-----------+----------+-------+-------+-----+-----+------+-----------|
-|           | PTRS_PER |  1024 |     1 |   1 |   1 | 1024 |           |
-| 32-bit    | SHIFT    |    22 |    22 |  22 |  22 |   12 | 4GB       |
-|           | SIZE     |   4MB |   4MB | 4MB | 4MB |  4KB |           |
-|-----------+----------+-------+-------+-----+-----+------+-----------|
-|           | PTRS_PER |     4 |     1 |   1 | 512 |  512 |           |
-| PAE       | SHIFT    |    30 |    30 |  30 |  21 |   12 | 64GB      |
-|           | SIZE     |     ? |   2MB | 2MB | 2MB |  4KB |           |
-|-----------+----------+-------+-------+-----+-----+------+-----------|
-|           | PTRS_PER |   512 |     1 | 512 | 512 |  512 |           |
-| 4-level   | SHIFT    |    39 |    39 |  30 |  21 |   12 | 256TB     |
-|           | SIZE     | 512GB | 512GB | 1GB | 2MB |  4KB |           |
-|-----------+----------+-------+-------+-----+-----+------+-----------|
-|           | PTRS_PER |   512 |   512 | 512 | 512 |  512 |           |
-| 5-level   | SHIFT    |    48 |    39 |  30 |  21 |   12 | 128PB     |
-|           | SIZE     | 256TB | 512GB | 1GB | 2MB |  4KB |           |
-
-=arch/x86/include/asm/= 下的 =pgtable_types.h= 定义了页表格式, 其中包含
-- 若配置 =x86_32= 包含 =pgtable_32_types.h=
-  - 若配置 =x86_PAE= 包含 =pgtable-3level_types.h=: PAE 相关定义
-  - 若没有配置 包含 =pgtable-2level_types.h=: 32-bit 相关定义
-- 若配置 =x86_64= 包含 =pgtable_64_types.h=: 4-level 和 5-level 相关定义
-然后根据选择的分页模式修复(折叠)五种页表, 如果 =CONFIG_PGTABLE_LEVELS < 4= 则包含 =include/asm-generic/pgtable-nop4d.h= (使 =P4D_PTRS_PER_P4D=1= 等等)。以此类推...
-** Memblock
-<<memblock>>
-Memblock is a method of managing memory regions during the early boot period when the usual kernel memory allocators are not up and running.
-Memblock views the system memory as collections of contiguous regions. There are several types of these collections:
-- =memory=: describes the physical memory available to the kernel. This may differ from the actual physical memory installed in the system, for instance when the memory is restricted with
-- =mem==: command line parameter
-- =reserved=: describes the regions that were allocated
-- =physmap=: describes the actual physical memory regardless of the possible restrictions(the =physmap= type is only available on some architectures)
-
-reference:
-- [[https://www.kernel.org/doc/html/latest/core-api/boot-time-mm.html]]
-- [[https://elixir.bootlin.com/linux/latest/source/mm/memblock.c]]
-- [[https://elixir.bootlin.com/linux/latest/source/include/linux/memblock.h]]
-** ioremap
-ioremap used to map device memory into kernel address space. 
-** mm_struct
-<<mm_struct>>
-[[https://0xax.gitbooks.io/linux-insides/content/Initialization/linux-initialization-5.html][memory descriptor initialization]]
-** DMA
-<<DMA>>
-Direct memory access
-http://en.wikipedia.org/wiki/Direct_memory_access
-
-* Interrupts
-** 异常表(exception-tables)
-<<exception-tables>>
-异常表位于段 =.__ex_table= 中，保存着指定代码地址的异常处理。
-There it uses the address of the instruction that caused the exception(i.e. =regs->eip=) to *find an address where the execution can continue(fixup) and execution customized exception handler function*. If this search is successful, the fault handler modifies the return address (again regs->eip) and returns. The execution will continue at the address in =fixup=.
-
-*** =__ex_table= 结构
-#+BEGIN_SRC C
-  // arch/x86/include/asm/extable.h
-  struct exception_table_entry {
-	  int insn, fixup, handler;
-  };
-#+END_SRC
-#+BEGIN_SRC asm
-  // arch/x86/include/asm/asm.h
-# define _ASM_EXTABLE_HANDLE(from, to, handler)   \
-         .pushsection "__ex_table","a" ;          \
-         .balign 4 ;                              \
-         .long (from) - . ;                       \
-         .long (to) - . ;                         \
-         .long (handler) - . ;                    \
-         .popsection                              \
-#+END_SRC
-- =insn=: 指定代码(可能发生异常)的地址和异常表位置的相对偏移
-- =fixup=: 异常处理结束返回的地址(通常位于 =.fixup= 段中)和异常表位置的相对偏移
-  =.fixup= 里的代码包含 =jmp= 跳转回 =from= 之后得代码
-- =handler=: 异常处理的地址和异常表位置的相对偏移
-
-** 早期的中断处理
-<<early_idt_handler>>
-- 设置中断: 填充 =idt_descr= 并将 idt_descr 的地址加载到 idt
-  - x86_64: 为前32个中断(异常)设置中断处理程序 [[early_idt_handler_array]]
-  - x86_32: 为所有的中断设置中断处理程序 [[early_ignore_irq]]
-  #+BEGIN_SRC C
-    extern gate_desc idt_table[]; // arch/x86/include/asm/desc.h
-    gate_desc idt_table[IDT_ENTRIES] __page_aligned_bss; // IDT_ENTRIES 256 arch/x86/kernel/idt.c
-  #+END_SRC
-
-** 中断处理函数
-*** 相关的宏
-- =idtentry=: define an interrupt/exception entry point
-  - =sym=: name of the interrupt entry point
-  - =do_sym=: name of the interrupt handler
-  - =has_error_code=: has interrupt error code or not
-  - =paranoid=: if this parameter = 1, switch to special stack(read above)
-  - =shift_ist=: stack to switch during interrupt
-  #+BEGIN_SRC asm
-    .macro idtentry sym do_sym has_error_code:req paranoid=0 shift_ist=-1
-    ENTRY(\sym)
-            UNWIND_HINT_IRET_REGS offset=\has_error_code*8
-
-            /* Sanity check */
-            .if \shift_ist != -1 && \paranoid == 0
-            .error "using shift_ist requires paranoid=1"
-            .endif
-
-            ASM_CLAC
-
-            .if \has_error_code == 0
-            pushq	$-1				/* ORIG_RAX: no syscall to restart */
-            .endif
-
-            .if \paranoid == 1
-            testb	$3, CS-ORIG_RAX(%rsp)		/* If coming from userspace, switch stacks */
-            jnz	.Lfrom_usermode_switch_stack_\@
-            .endif
-
-            .if \paranoid
-            call	paranoid_entry
-            .else
-            call	error_entry
-            .endif
-            UNWIND_HINT_REGS
-            /* returned flag: ebx=0: need swapgs on exit, ebx=1: don't need it */
-
-            .if \paranoid
-            .if \shift_ist != -1
-            TRACE_IRQS_OFF_DEBUG			/* reload IDT in case of recursion */
-            .else
-            TRACE_IRQS_OFF
-            .endif
-            .endif
-
-            movq	%rsp, %rdi			/* pt_regs pointer */
-
-            .if \has_error_code
-            movq	ORIG_RAX(%rsp), %rsi		/* get error code */
-            movq	$-1, ORIG_RAX(%rsp)		/* no syscall to restart */
-            .else
-            xorl	%esi, %esi			/* no error code */
-            .endif
-
-            .if \shift_ist != -1
-            subq	$EXCEPTION_STKSZ, CPU_TSS_IST(\shift_ist)
-            .endif
-
-            call	\do_sym
-
-            .if \shift_ist != -1
-            addq	$EXCEPTION_STKSZ, CPU_TSS_IST(\shift_ist)
-            .endif
-
-            /* these procedures expect "no swapgs" flag in ebx */
-            .if \paranoid
-            jmp	paranoid_exit
-            .else
-            jmp	error_exit
-            .endif
-
-            .if \paranoid == 1
-            /*
-             ,* Entry from userspace.  Switch stacks and treat it
-             ,* as a normal entry.  This means that paranoid handlers
-             ,* run in real process context if user_mode(regs).
-             ,*/
-    .Lfrom_usermode_switch_stack_\@:
-            call	error_entry
-
-            movq	%rsp, %rdi			/* pt_regs pointer */
-
-            .if \has_error_code
-            movq	ORIG_RAX(%rsp), %rsi		/* get error code */
-            movq	$-1, ORIG_RAX(%rsp)		/* no syscall to restart */
-            .else
-            xorl	%esi, %esi			/* no error code */
-            .endif
-
-            call	\do_sym
-
-            jmp	error_exit
-            .endif
-    END(\sym)
-    .endm
-  #+END_SRC
-
-*** =early_idt_handler_array=
-<<early_idt_handler_array>>
-=early_idt_handler_array= 是 32 个大小为 9 字节程序的数组
-如果异常有错误代码，什么也不做。如果异常没有错误代码 将 0 压入栈(保持栈统一)。然后将中断向量号压栈并调用 =early_idt_handler_common=
-
-#+BEGIN_SRC asm
-  // NUM_EXCEPTION_VECTORS 32, EARLY_IDT_HANDLER_SIZE 9
-  // arch/x86/include/asm/segment.h
-  extern const char early_idt_handler_array[NUM_EXCEPTION_VECTORS][EARLY_IDT_HANDLER_SIZE];
-
-  // arch/x86/kernel/head_64.S
-  ENTRY(early_idt_handler_array)
-          i = 0
-          .rept NUM_EXCEPTION_VECTORS
-          .if ((EXCEPTION_ERRCODE_MASK >> i) & 1) == 0 
-                  UNWIND_HINT_IRET_REGS
-                  pushq $0	# Dummy error code, to make stack frame uniform
-          .else
-                  UNWIND_HINT_IRET_REGS offset=8
-          .endif
-          pushq $i		# 72(%rsp) Vector number
-          jmp early_idt_handler_common
-          UNWIND_HINT_IRET_REGS
-          i = i + 1
-          .fill early_idt_handler_array + i*EARLY_IDT_HANDLER_SIZE - ., 1, 0xcc
-          .endr
-          UNWIND_HINT_IRET_REGS offset=16
-  END(early_idt_handler_array)
-#+END_SRC
-
-#+BEGIN_SRC asm
-  // arch/x86/kernel/head_64.S
-  early_idt_handler_common:
-          /*
-           ,* The stack is the hardware frame, an error code or zero, and the
-           ,* vector number.
-           ,*/
-          cld
-
-          incl early_recursion_flag(%rip)
-
-          /* The vector number is currently in the pt_regs->di slot. */
-          pushq %rsi				/* pt_regs->si */
-          movq 8(%rsp), %rsi			/* RSI = vector number */
-          movq %rdi, 8(%rsp)			/* pt_regs->di = RDI */
-          pushq %rdx				/* pt_regs->dx */
-          pushq %rcx				/* pt_regs->cx */
-          pushq %rax				/* pt_regs->ax */
-          pushq %r8				/* pt_regs->r8 */
-          pushq %r9				/* pt_regs->r9 */
-          pushq %r10				/* pt_regs->r10 */
-          pushq %r11				/* pt_regs->r11 */
-          pushq %rbx				/* pt_regs->bx */
-          pushq %rbp				/* pt_regs->bp */
-          pushq %r12				/* pt_regs->r12 */
-          pushq %r13				/* pt_regs->r13 */
-          pushq %r14				/* pt_regs->r14 */
-          pushq %r15				/* pt_regs->r15 */
-          UNWIND_HINT_REGS
-
-          cmpq $14,%rsi		/* Page fault? */
-          jnz 10f
-          GET_CR2_INTO(%rdi)	/* Can clobber any volatile register if pv */
-          call early_make_pgtable
-          andl %eax,%eax
-          jz 20f			/* All good */
-
-  10:
-          movq %rsp,%rdi		/* RDI = pt_regs; RSI is already trapnr */
-          call early_fixup_exception
-
-  20:
-          decl early_recursion_flag(%rip)
-          jmp restore_regs_and_return_to_kernel
-  END(early_idt_handler_common)
-#+END_SRC
-
-- =early_idt_handler_common=: 保存相关的寄存器，根据 =vector number= 调用相应得异常处理函数
-  - =early_make_pgtable=: 
-    1. 检查是否是无效地址，或者 early pgt 是否完成
-    2. 检查异常地址在不同等级的页表所在位置的值。
-       - 不为零: 向下级页表搜索
-       - 为零: 检查 =early_dynamic_pgts= 是否超过 64 若超过则重置，然后为异常地址所在位置的页表设置地址。
-  - =early_fixup_exception=: 针对非 fault page 异常的处理
-    1. 忽略 =X86_TRAP_NMI= 异常
-    2. 搜索异常表 [[exception-tables]]
-    3. 处理 bug 异常
-    4. 打印相关异常信息
-
-*** =early_ignore_irq=
-<<early_ignore_irq>>
-#+BEGIN_SRC asm
-  /* This is the default interrupt "handler" :- */
-  ENTRY(early_ignore_irq)
-          cld
-  #ifdef CONFIG_PRINTK
-          pushl %eax
-          pushl %ecx
-          pushl %edx
-          pushl %es
-          pushl %ds
-          movl $(__KERNEL_DS),%eax
-          movl %eax,%ds
-          movl %eax,%es
-          cmpl $2,early_recursion_flag
-          je hlt_loop
-          incl early_recursion_flag
-          pushl 16(%esp)
-          pushl 24(%esp)
-          pushl 32(%esp)
-          pushl 40(%esp)
-          pushl $int_msg
-          call printk
-
-          call dump_stack
-
-          addl $(5*4),%esp
-          popl %ds
-          popl %es
-          popl %edx
-          popl %ecx
-          popl %eax
-  #endif
-          iret
-
-  hlt_loop:
-          hlt
-          jmp hlt_loop
-  ENDPROC(early_ignore_irq)
-#+END_SRC
-
-*** =debug=
-<<debug>>
-#+BEGIN_SRC C
-  // arch/x86/include/asm/trap.h
-  asmlinkage void debug(void);
-  // arch/x86/entry/entry_64.S
-  idtentry debug do_debug has_error_code=0 paranoid=1 shift_ist=DEBUG_STACK
-#+END_SRC 
-
-*** =int3=
-<<int3>>
-
-* SMP
-** cpu_dev
-<<cpu_dev>>
-
-cpu_dev definition information which kernel support CPU types.
-
-#+BEGIN_SRC C
-  // arch/x86/kernel/cpu/cpu.h
-  /* attempt to consolidate cpu attributes */
-  struct cpu_dev {
-          const char	*c_vendor;
-
-          /* some have two possibilities for cpuid string */
-          const char	*c_ident[2];
-
-          void            (*c_early_init)(struct cpuinfo_x86 *);
-          void		(*c_bsp_init)(struct cpuinfo_x86 *);
-          void		(*c_init)(struct cpuinfo_x86 *);
-          void		(*c_identify)(struct cpuinfo_x86 *);
-          void		(*c_detect_tlb)(struct cpuinfo_x86 *);
-          void		(*c_bsp_resume)(struct cpuinfo_x86 *);
-          int		c_x86_vendor;
-  #ifdef CONFIG_X86_32
-          /* Optional vendor specific routine to obtain the cache size. */
-          unsigned int	(*legacy_cache_size)(struct cpuinfo_x86 *,
-                                               unsigned int);
-
-          /* Family/stepping-based lookup table for model names. */
-          struct legacy_cpu_model_info {
-                  int		family;
-                  const char	*model_names[16];
-          }		legacy_models[5];
-  #endif
-  };
-#+END_SRC 
-
-cpu_dev declare variable in the =.x86_cpu_dev.init= section by =cpu_dev_register=
-
-#+BEGIN_SRC C
-  #define cpu_dev_register(cpu_devX) \
-          static const struct cpu_dev *const __cpu_dev_##cpu_devX __used \
-          __attribute__((__section__(".x86_cpu_dev.init"))) = \
-          &cpu_devX;
-#+END_SRC
-
-** Per-CPU
-Per-CPU variables are one of the kernel features. We can create a variable and each processor core will have its own copy of this variable.
-
-*** Create per-cpu variables
-**** static variables declare
-#+caption: declare per-cpu variables macro =include/linux/percpu-defs.h=
-| macro                          | description                                    |
-| DECLARE_PER_CPU                | ordinary per-CPU variables                     |
-| DECLARE_PER_CPU_FIRST          | must come first in the set of variables        |
-| DECLARE_PER_CPU_SHARED_ALIGNED | must be cacheline aligned under SMP conditions |
-| DECLARE_PER_CPU_ALIGNED        | must be cacheline aligned                      |
-| DECLARE_PER_CPU_PAGE_ALIGNED   | must be page aligned                           |
-| DECLARE_PER_CPU_READ_MOSTLY    | muse be read mostly                            |
-| DECLARE_PER_CPU_DECRYPTED      | should be accessed as decrypted                |
-|                                | when encryption is enabled in the guest        |
-
-per-CPU is declared to =PER_CPU_BASE_SECTION + Subsection= according to the different macro of the above table.
-**** dynamic define
-
-*** per-cpu operate
-
-*** per-cpu areas initialization process
-
-** Cpumasks
-<<cpumask>>
-* Drive
-
-* Networking
-The factors that determines the traversal of a packet in the network stack
-- lookup in the routing subsystem
-- netfilter subsystem(netfilter hook)
-- IPsec subsystem
-- the value of the =ttl= field in the IPv4 header of a packet being forwarded
-
-** Netlink Sockets
-The netlink protocol is socket-based Inter Process Communication(IPC) mechanism, based on [[https://tools.ietf.org/html/rfc3549][RFC 3549]].
-Netlink sockets can send asynchronous messages to userspace from the kernel. The netlink socket handles bidirectional communication with a kernel netlink socket, usually sending message to configure various system settings and getting responses back from the kernel.
-
-*** Netlink advantages
-- no need for polling when working with netlink sockets.
-- the kernel can be the initiator of sending asynchronous messages to userspace, without any need for the userspace to trigger any action.
-- support multicast transmission.
-
-*** Kernel Netlink Sockets
-Netlink sockets is created by =netlink_kernel_create()= in the kernel networking stack. *Each kernel sockets handles messages of different types*.
-
-#+BEGIN_SRC C
-  // include/linux/netlink.h
-  static inline struct sock *
-  netlink_kernel_create(struct net *net, int unit, struct netlink_kernel_cfg *cfg)
-#+END_SRC
-
-- =net=: the network namespace
-- =unit=: netlink protocol
-- =cfg=: consists of optional parameters for the netlink socket creation
-  #+BEGIN_SRC C
-    /* optional Netlink kernel configuration parameters */
-    // include/linux/netlink.h
-    struct netlink_kernel_cfg {
-            unsigned int	groups;
-            unsigned int	flags;
-            void		(*input)(struct sk_buff *skb);
-            struct mutex	*cb_mutex;
-            int		(*bind)(struct net *net, int group);
-            void		(*unbind)(struct net *net, int group);
-            bool		(*compare)(struct net *net, struct sock *sk);
-    };
-  #+END_SRC  
-  - =groups=: for specifying a multicast group(or a mask of multicast groups)
-  - =flags=: =NL_CFG_F_NONROOT_RECV= or =NL_CFG_F_NONROOT_SEND=
-    - =NL_CFG_F_NONROOT_RECV=: It is set, a non-superuser can bind to a multicast group, And it is not set, then when binding to a multicast group the =netlink_capable()= method will return 0, and you get =-EPRM= error
-    - =NL_CFG_F_NONROOT_SEND=: It is set, a non-superuser is allowed to send multicast
-  - =input=: when the input member is NULL, the kernel socket won't be able to receive data from userspace(sending data from the kernel to userspace is possible, though)
-  - =mutex=: when not defining a mutex, you use the default one(=cb_def_mutex=)

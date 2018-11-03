@@ -355,3 +355,56 @@ In general, a program performs the following steps to become a daemon:
 4. Change the working directory to the root directory via =chdir()=. This is done because the inherited working directory can be anywhere on the filesystem. Daemons tend to run for the duration of the system's uptime, and you don't want to keep some random directory open and thus prevent an administrator from unmounting the filesystem containing that directory.
 5. Close all file descriptors. You do not want tot inherit open file descriptors, and, unaware, hold them open.
 6. Open file descriptors 0, 1, and 2 and redirect them to =/dev/null=.
+* Advanced Process Management
+** Yielding the Processor
+man:sched_yield(2)
+** Process Priorities
+- man:nice(2): Passing 0 for inc is an easy way to obtain the current nice value.
+- man:getpriority(2)/man:setpriority(2):
+- man:ioprio_get(2)/man:ioprio_set(2): 
+
+** Processor Affinity
+man:sched_getaffinity(2)
+man:sched_setaffinity(2)
+
+** Resource Limits
+=resource limits=: place hard ceilings on the amount of kernel resources that a process can consume---that is, the number of open files, pages of memory, pending signals, and so on.
+man:getrlimit(2)
+man:setrlimit(2)
+
+#+caption: Default soft and hard resource limits
+| RLIMIT_AS         | RLIM_INFINITY        | RLIM_INFINITY        |
+| RLIMIT_CORE       | 0                    | RLIM_INFINITY        |
+| RLIMIT_CPU        | RLIM_INFINITY        | RLIM_INFINITY        |
+| RLIMIT_DATA       | RLIM_INFINITY        | RLIM_INFINITY        |
+| RLIMIT_FSIZE      | RLIM_INFINITY        | RLIM_INFINITY        |
+| RLIMIT_LOCKS      | RLIM_INFINITY        | RLIM_INFINITY        |
+| RLIMIT_MEMLOCK    | 8 pages              | 8 pages              |
+| RLIMIT_MSGQUEUE   | 800 KB               | 800 KB               |
+| RLIMIT_NICE       | 0                    | 0                    |
+| RLIMIT_NOFILE     | 1024                 | 1024                 |
+| RLIMIT_NPROC      | 0 (implies no limit) | 0 (implies no limit) |
+| RLIMIT_RSS        | RLIM_INFINITY        | RLIM_INFINITY        |
+| RLIMIT_RTPRIO     | 0                    | 0                    |
+| RLIMIT_SIGPENDING | 0                    | 0                    |
+| RLIMIT_STACK      | 8 MB                 | RLIM_INFINITY        |
+* Threading
+- man:pthread_create(3)
+- man:pthread_self(3): obtain TID(thread ID)
+- man:pthread_equal(3)
+- man:pthread_exit(3): terminating yourself
+- man:pthread_cancel(3): terminating others
+  return success is only demonstrative of successfully processing the cancellation request. The actual termination occurs asynchronously
+  - man:pthread_setcancelstate(3)/man:pthread_setcanceltype(3): set cancelability state and type
+- man:pthread_join(3): Joining allows one thread to block while waiting for the termination of another.
+- man:pthread_detach(3): 
+
+** Pthread Mutexes
+- initializing mutexes:
+  #+BEGIN_SRC C
+    pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZAER
+  #+END_SRC
+- locking mutexes: man:pthread_mutex_lock(3)
+- unlocking mutexes: man:pthread_mutex_unlock(3)
+* File and Directory Management
+
