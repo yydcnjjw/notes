@@ -1136,7 +1136,6 @@ X       +------------------------+
     2. =smpboot_thread_init()=: register the =smpboot_thread_notifier= CPU notifier
     3. 
     
-
 * Memory management
 ** Paging
 linux 采用五级分页模型

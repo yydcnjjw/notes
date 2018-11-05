@@ -1,0 +1,26 @@
+[[https://en.wikipedia.org/wiki/Software_design_pattern][Design Pattern]]
+
+* Creational Pattern
+[[https://en.wikipedia.org/wiki/Creational_pattern][Creational Pattern]]
+** Abstract factory
+[[https://en.wikipedia.org/wiki/Abstract_factory_pattern][Abstract factory]]
+** Builder
+[[https://en.wikipedia.org/wiki/Builder_pattern][Builder]]
+** Dependency Injection
+[[https://en.wikipedia.org/wiki/Dependency_injection][Dependency Injection]]
+** Factory method
+[[https://en.wikipedia.org/wiki/Factory_method_pattern][Factory method]]
+** Lazy initialization
+** Multiton
+** Object Pool
+** Prototype
+** Resource acquisition is initialization(RAII)
+** Singleton
+* Structural patterns
+** Adapter, Wrapper or Translator
+[[https://en.wikipedia.org/wiki/Adapter_pattern][Adapter]]
+** Decorator
+[[https://en.wikipedia.org/wiki/Decorator_pattern][Decorator]]
+* Behavioral patterns
+** Strategy
+[[https://en.wikipedia.org/wiki/Strategy_pattern][Strategy]]

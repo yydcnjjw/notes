@@ -407,4 +407,217 @@ man:setrlimit(2)
 - locking mutexes: man:pthread_mutex_lock(3)
 - unlocking mutexes: man:pthread_mutex_unlock(3)
 * File and Directory Management
+** Files and Their Metadata
+*** The Stat Family
+man:stat(2)
+*** Permissions
+man:chmod(2)
+*** Ownership
+man:chown(2)
+*** Extended Attributes
+**** Extended Attributes Operations
+POSIX defines four operations that applications may perform on a given file's  extended attributes:
+- man:listxattr(2): Given a file, return a list of all of the file's assigned extended attribute keys.
+- man:getxattr(2): Given a file and key, return the corresponding value.
+- man:setxattr(2): Given a file and key, and a value, assign that value to the key.
+- man:removexattr(2): Given a file and a key, remove that extended attribute from the file.
+For each operation, POSIX provides three system calls:
+- A version that operates on a given pathname; if the path refers to a symbolic link, the target of the link is operated upon(the usual behavior)
+- A version that operates on a given pathname; if the path refers to a symbolic link, the link itself is operated upon(*the standard l variant of a system call*)
+- A version that operates on a file descriptor(*the standard f variant*)
+** Directories
+*** current working directory
+- man:getcwd(3): get current working directory
+- man:chdir(2): change working directory
+technique: 
+=getcwd()= is to save the current working directory so that the process can return to it later
+It's better, to =open()= the current directory and the =fchdir()= to it later.
+#+BEGIN_SRC C
+  int swd_fd;
+  swd_fd = open (".", O_RDONLY);
+  if (swd_fd == −1) {
+    perror ("open");
+    exit (EXIT_FAILURE);
+  }
+  /* change to a different directory */
+  ret = chdir (some_other_dir);
+  if (ret) {
+    perror ("chdir");
+    exit (EXIT_FAILURE);
+  }
+  /* do some other work in the new directory... */
+  /* return to the saved directory */
+  ret = fchdir (swd_fd);
+  if (ret) {
+    perror ("fchdir");
+    exit (EXIT_FAILURE);
+  }
+  /* close the directory's fd */
+  ret = close (swd_fd);
+  if (ret) {
+    perror ("close");
+    exit (EXIT_FAILURE);
+  }
 
+#+END_SRC
+*** Creating Directories
+man:mkdir(2)
+*** Removing Directories
+man:rmdir(2)
+*** Reading a Directory' Contents
+1. man:opendir(3): create a directory steam
+   man:dirfd(3)
+2. man:readdir(3): return the next entry in the directory represented by dir
+3. man:closedir(3): close the directory stream represented by dir
+man:readdir(2)/man:getdents(2)
+** Links
+- man:link(2): hard link
+- man:symlink(2): symbolic link
+- man:unlink(2)
+** Copying and Moving Files
+man:rename(2)
+#+caption: Effects of moving to and from different types of files
+| Source/Destination | file                 | directory                     | link                    | not exist           |
+| file               | dest is overwritten  | Failure with EISDIR           | The file is renamed and | The file is renamed |
+|                    | by the source        |                               | dest is overwritten     |                     |
+| directory          | Failure with ENDTDIR | source is renamed as the dest | The dir is renamed, and | The dir is renamed  |
+|                    |                      | if the dest is empty; failure | the dest is overwritten |                     |
+|                    |                      | with ENOTEMPTY otherwise      |                         |                     |
+| link               | The link is renamed  | Failure with EISDIR           | The link is renamed and | The link is renamed |
+|                    | and the dest is ove- |                               | the dest is overwritten |                     |
+|                    | rwritten             |                               |                         |                     |
+| no  exist          | Failure with ENOENT  | Failure with ENOENT           | Failure with ENOENT     | Failure with ENOENT |
+** Device Nodes
+=Device nodes= are special files that allow applications to interface with device drivers.
+Each device node is assigned two numerical values, called a =major number= and a =minor number=.
+
+*** Special Device Nodes
+- =null device=: major number of 1 and a minor number of 3
+  It lives at =/dev/null=. The device file should be owned by root and be readable and writable by all users. The kernel silently discards all write requests to the device. All read requests to the file return end-of-file(EOF).
+- =zero device=: major number of 1 and a minor number of 5
+  It lives at =/dev/zero=. Like the null device, the kernel silently discards writes to the zero device. Reading from the device returns an infinite stream of null bytes.
+- =full device=: major number of 1 and a minor number of 7
+  It lives at =/dev/full=. As with the zero device, read requests return null characters(\0). Write requests, however, always trigger the =ENOSPC= error, signifying that the underlying device is full.
+
+*** The Random Number Generator
+- =/dev/random=: major number of 1 and a minor number of 8
+- =/dev/urandom=: major number of 1 and a minor number of 9
+Reads from /dev/random return entropy from this pool. The results are suitable for
+seeding random number generators, performing key generation, and other tasks that
+require cryptographically strong entropy.
+
+** Out-of-Band communication
+man:ioctl(2)
+
+** Monitoring File Events
+Linux provides an interface, =inotify=, for monitoring files
+man:inotify(7)
+- man:inotify_init(2): initialize inotify and return a file descriptor representing the initialized instance
+- man:inotify_add_watch(2): add a watch to an initialized inotify instance
+- man:inotify_rm_watch(2): remove an exitsting watch from an inotify instance
+- man:close(2): closing the inotify instance's file descriptor
+
+* Memory Management
+** allocating dynamic memory
+- man:malloc(3): allocating dynamic memory
+- man:calloc(3): allocate arrays and zero out memory
+  Note: We can use =calloc= for defining an "allocate and zero" function
+- man:realloc(3): resizing existing allocations
+- man:free(3): frees the memory at =ptr=
+- man:posix_memalign(3): allocate aligned memory
+
+** managing the data segment
+- man:brk(2): set the break point(the end of the data segment) to the address specified by end
+- man:sbrk(2): increment the end of the data segment by =increment= bytes, which may be a positive or negative delta. Return the revised break point. Thus, an increment of 0 provides the current break point.
+
+** Anonymous Memory Mappings
+man:mmap(2): creating anonymous memory mappings:
+#+BEGIN_SRC C
+  void *p;
+  p = mmap (NULL,                        /* do not care where */
+            512 * 1024,                  /* 512 KB */
+            PROT_READ | PROT_WRITE,      /* read/write */
+            MAP_ANONYMOUS | MAP_PRIVATE, /* anonymous, private */
+            −1,                          /* fd (ignored) */
+            0);                          /* offset (ignored) */
+
+  if (p == MAP_FAILED)
+    perror ("mmap");
+  else
+    /* 'p' points at 512 KB of anonymous memory... */
+
+#+END_SRC 
+man:munmap(2): free an anonymous mapping
+
+** Advanced Memory Allocation
+man:mallopt(3)
+| Parameter        | Origin         | Default value        | Valid values | Special values             |
+| M_CHECK_ACTION   | Linux-specific | 0                    | 0 – 2        |                            |
+| M_GRAIN          | XPG standard   | Unsupported on Linux |              |                            |
+| M_KEEP           | XPG standard   | Unsupported on Linux |              |                            |
+| M_MMAP_MAX       | Linux-specific | 64 * 1024            | >= 0         | 0 disables use of mmap()   |
+| M_MMAP_THRESHOLD | Linux-specific | 128 * 1024           | >= 0         | 0 disables use of the heap |
+| M_MXFAST         | XPG standard   | 64                   | 0 - 80       | 0 disables fast bins       |
+| M_NLBLKS         | XPG standard   | Unsupported on Linux |              |                            |
+| M_PERTURB        | Linux-specific | 0                    | 0 or 1       | 0 disables perturbation    |
+| M_TOP_PAD        | Linux-specific | 0                    | >= 0         | 0 disables top padding     |
+| M_TRIM_THRESHOLD | Linux-specific | 128 * 1024           | >= -1        | -1 disables trimming       |
+
+man:malloc_usable_size(3)
+man:malloc_trim(3)
+
+** Debugging Memory Allocations
+Programs can set the environment variable =MALLOC_CHECK_= to enable enhanced debugging in the memory subsystem.
+man:mallinfo(3): obtain memory allocation information
+man:malloc_stats(3): print memory allocation statistics
+
+** Stack-Based Allocations
+- man:alloca(3): allocate memory that is automatically freed
+- man:strdupa(3): duplicate a string
+
+Variable-Length Arrays(VLAs), which are arrays whose geometry is set at runtime, not at compile time
+
+** Choosing a Memory Allocation Mechanism
+#+caption: Approaches to memory allocation in Linux
+| Allocation approach | Pros                             | Cons                                          |
+| malloc()            | Easy,simple,common               | Returned memory not necessarily zeroed        |
+|---------------------+----------------------------------+-----------------------------------------------|
+| calloc()            | Makes allocating arrays, zeros   | Convoluted interface if not allocating        |
+|                     | returned memory                  | arrays                                        |
+|---------------------+----------------------------------+-----------------------------------------------|
+| realloc()           | Resizes existing allocations     | Useful only for resizing existing allocations |
+|---------------------+----------------------------------+-----------------------------------------------|
+| brk() and sbrk()    | Provides intimate control over   | Much too low-level for most users             |
+|                     | the heap                         |                                               |
+|---------------------+----------------------------------+-----------------------------------------------|
+| Anonymous memory    | Easy to work with, sharable,     | Suboptimal for small allocations;             |
+| mappings            | developer to adjust protection   | malloc() automatically uses anonymous         |
+|                     | level and provide advice;        | memory mappings when optimal                  |
+|                     | optimal for large mapping        |                                               |
+|---------------------+----------------------------------+-----------------------------------------------|
+| posix_memalign()    | Allocates memory aligned to any  | Relatively new and thus portability is        |
+|                     | reasonable boundary              | questionable; overkill unless alignment       |
+|                     |                                  | concerns are pressing                         |
+|---------------------+----------------------------------+-----------------------------------------------|
+| memalign() and      | More common on other Unix        | Note POSIX standard, offers less alignment    |
+| valloc()            | systems than posix_memalign()    | control than posix_memalign()                 |
+|---------------------+----------------------------------+-----------------------------------------------|
+| alloca()            | Very fast allocation, no need to | Unable to return error, no good for large     |
+|                     | explicitly free memory; great    | allocations, broken on some Unix systems      |
+|                     | for small allocations            |                                               |
+|---------------------+----------------------------------+-----------------------------------------------|
+| Variable-length     | Same as alloca(), but frees      | Useful only for arrays; alloca() freeing      |
+| arrays              | memory when array falls out of   | behavior may be preferable in some            |
+|                     | scope, not when function returns | situations; less common on other Unix systems |
+|                     |                                  | than alloca()                                 |
+** Manipulating Memory
+- man:memset(3): fill memory with a constant byte
+- man:memcmp(3): compare memory areas
+- man:memmove(3): copy memory area
+- man:memchr(3): scan memory for a character
+- man:memmem(3): locate a substring
+- man:memfrob(3): encrypt a memory area
+
+** Locking Memory
+man:mlock(2)
+man:mincore(2)
