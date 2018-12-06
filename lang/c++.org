@@ -66,13 +66,10 @@
 
 *** 为多态基类声明 =virtual= 析构函数
 - =polymorphic= (带多态性质的) =base classes= 应该声明一个 =virtual= 析构函数。如果 =class= 带有任何 =virtual= 函数，它就应该拥有一个 =virtual= 析构函数。
-  
   #+BEGIN_QUOTE
   若没有 =virtual= 析构函数存在内存泄漏问题，无法释放子类的内存
   #+END_QUOTE
-
 - =Classes= 的设计目的如果不是作为 =base classes= 使用，或不是为了具有多态性, 就不该声明 =virtual= 析构函数。
-
   #+BEGIN_QUOTE
   c++ 会为带有 =virtual= 函数的类创建 =vtbl(virtual table)=, 这样会造成不必要的内存占用
   #+END_QUOTE

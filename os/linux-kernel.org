@@ -525,9 +525,15 @@ X       +------------------------+
 ** arch/x86/kernel/head_64.S:startup_64
 1. 内核可能加载到与编译时不同的地址，需要修复在页表的物理地址并重新加载。
    1. 调用 =verify_cpu= ，检查 SSE 和 longmode，在 intel 将 xd 位清零(若 bootloader 进入 startup_64 则需要重新检查 cpu，防止一些 bootloader 没有进行 cpu 检查)。
-   2. 调用 =__startup_64= 修正早期的页表，早期的页表如下:
-      - 内核在物理内存的起始位置被映射到 =0xffffffff80000000= 加上物理地址的起始位置，直到内核大小的结束位置。
-      - 提供 =early_dynamic_pgts= (共 64 个页表)，进行页表管理。并初始化映射到内核物理内存所在的地址。
+   2. =__startup_64=  fixup early page table
+      - provide =early_dynamic_pgts= (64 page tables) for page table management
+      - three kernel physical address mapping(use =__PAGE_KERNEL_LARGE_EXEC=)
+        - =0x0000000000000000 - kernel size offset=
+        - =0x0000000040000000 - kernel size offset=
+        - =0xffffffff80000000 - kernel size offset=
+      - =0xffffffffff900000-0xfffffffffffaffff=: 4MB fixmap range
+      - =0xffffffffffb00000-0xffffffffffffffff=: 6MB reserved spaces
+      - =0xffffffffffe00000-0xffffffffffffffff=: 2MB unused hole
       
       #+BEGIN_SRC asm
         /* arch/x86/kernel/head_64.S 370 */
@@ -542,18 +548,15 @@ X       +------------------------+
                 __INITDATA
         NEXT_PGD_PAGE(early_top_pgt)
                 .fill	512,8,0
-                
                 // PGD需要 8k 对齐早期页表不需要这么严格
                 // 但是为了能够使用像 set_pgd() 的实现而不担心 4k 和 8k
                 // 配置 CONFIG_PAGE_TABLE_ISOLATION
+                // PTI_USER_PGD_FILL 512/0
                 .fill	PTI_USER_PGD_FILL,8,0 
-
-        NEXT_PAGE(early_dynamic_pgts)
+        NEXT_PAGE(early_dynamic_pgts) // EARLY_DYNAMIC_PAGE_TABLES 64
                 .fill	512*EARLY_DYNAMIC_PAGE_TABLES,8,0
                 .data
-
         // ...
-
         NEXT_PAGE(level3_kernel_pgt)
                 .fill	L3_START_KERNEL,8,0
                 /* (2^48-(2*1024*1024*1024)-((2^39)*511))/(2^30) = 510 */
@@ -586,7 +589,7 @@ X       +------------------------+
       #+END_SRC
 
       相关的变量和函数
-      - =load_delta=: 编译地址和运行地址的偏移
+      - =load_delta=: offset of compile address and run address
       - =fixup_pointer=: 返回变量实际的物理地址
         
         #+BEGIN_SRC C
@@ -597,8 +600,8 @@ X       +------------------------+
                   return ptr - (void *)_text + (void *)physaddr;
           }
         #+END_SRC
-2. 启动页表模式
-   1. 启动 =PAE mode= 和 =PGE mode=, 设置 =cr3= 为 =early_top_pgt=
+2. enable page mode
+   1. enable =PAE mode= and =PGE mode=, setting =cr3= with =early_top_pgt=
    2. 执行跳转操作确保在虚拟地址执行
       
       #+BEGIN_SRC asm
@@ -606,9 +609,14 @@ X       +------------------------+
                 ANNOTATE_RETPOLINE_SAFE
                 jmp	*%rax
       #+END_SRC
-3. *TODO* 检查 cpu nx 是否实现，并 ...
-4. 设置栈, 并清空标志位 (为运行任何代码 =c code=)
-
+3. 检查 cpu nx 是否实现，and setup EFER(Extended Feature Enable Register)
+4. setup cr0:
+   #+BEGIN_SRC C
+     #define CR0_STATE	(X86_CR0_PE | X86_CR0_MP | X86_CR0_ET | \
+                              X86_CR0_NE | X86_CR0_WP | X86_CR0_AM | \
+                              X86_CR0_PG)
+   #+END_SRC
+5. 设置栈, 并清空标志位 (为运行任何代码 =c code=)
    #+BEGIN_SRC asm
              MOVQ initial_stack（％RIP ），％RSP
              pushq  $ 0
@@ -617,9 +625,7 @@ X       +------------------------+
              GLOBAL(initial_stack)
              .quad  init_thread_union + THREAD_SIZE - SIZEOF_PTREGS
    #+END_SRC 
-
    - =THREAD_SIZE=: 线程大小取决于 [[https://github.com/torvalds/linux/tree/master/Documentation/dev-tools/kasan.rst][=KASAN=]] ，若没有配置 =KASAN= 则 =THREAD_SIZE= 为 16kb。
-        
       #+BEGIN_SRC C
         #ifdef CONFIG_KASAN
         #define KASAN_STACK_ORDER 1
@@ -630,7 +636,6 @@ X       +------------------------+
         #define THREAD_SIZE  (PAGE_SIZE << THREAD_SIZE_ORDER)#ifdef CONFIG_KASAN
       #+END_SRC
    - =init_thread_union=: =init_task= 被链接到 =init_thread_union= 的内部
-     
      #+BEGIN_SRC C
        // include/linux/sched.h 1560
        union thread_union {
@@ -659,7 +664,7 @@ X       +------------------------+
        #define __init_task_data /**/
        #endif
      #+END_SRC
-5. 加载 gdt
+6. 加载 gdt
    #+BEGIN_SRC asm
      // arch/x86/kernel/head_64.S 461
      early_gdt_descr:
@@ -751,7 +756,7 @@ X       +------------------------+
        #endif
        } };
      #+END_SRC
-6. 设置段寄存器
+7. 设置段寄存器
    #+BEGIN_SRC asm
              xorl %eax,%eax
              movl %eax,%ds
@@ -769,8 +774,7 @@ X       +------------------------+
    #+END_SRC 
    
    the =gs= register always points to the bottom of the =irqstack= union. On the x86_64, the =gs= register is shared by per-cpu area and stack canary. All per-cpu symbols are zero based and the =gs= points to the base of the per-cpu area. You already know that =segmented memory model= is abolished in the long mode, but we can set the base address for the two segment registers-=fs= and =gs= with the [[http://en.wikipedia.org/wiki/Model-specific_register][Model specific registers]] and these registers can be still be used as address registers.
-
-7. 跳转到 =x86_64_start_kernel= (arch/x86/kernel/head64.c, c code)
+8. 跳转到 =x86_64_start_kernel= (arch/x86/kernel/head64.c, c code)
 
 ** arch/x86/kernel/head64.c:x86_64_start_kernel
 1. 检查下列的值是否符合条件，若不符合则编译错误。
@@ -791,9 +795,8 @@ X       +------------------------+
    #+END_SRC
 2. 初始化 =cpu_tlbstate.cr4(percpu)= 为当前 cr4 值。
 3. 清理除内核占用的页表以外的 early page tables
-4. 清理 =bss= 段
-5. 清理 =init_top_pgt= (感觉没必要)，清理方式根据 cpu feature 选择
-   
+4. clear =bss= seg
+5. 清理 =init_top_pgt= (感觉没必要)，清理方式根据 cpu feature 选择   
    #+BEGIN_SRC C
      // arch/x86/include/asm/page_64.h 47
      static inline void clear_page(void *page)
@@ -811,11 +814,11 @@ X       +------------------------+
    #+END_SRC 
 6. *TODO* 对 SME 进行早期的初始化, SME 支持可能会更新 =early_pmd_flags= 以包含内存加密掩码，因此需要在可能产生页面错误的任何内容之前调用它。
 7. *TODO* =kasan_early_init=
-8. 使用早期处理程序初始化 idt 表(0-31) [[early_idt_handler]]
-9. 复制 =real_mode_data= 到 =boot_params(arch/x86/include/asm/setup.h 70)=, 重置某些 =boot_param= 保持规范。
+8. use early handler process initialize idt table(0-31) [[early_idt_handler]]
+9. copy =real_mode_data= to =boot_params=, reset some =boot_param= for keeping the specification
     *TODO*: =sme_unmap_bootdata=
 10. *TODO* =load_ucode_bsp=
-11. 设置 =init_top_pgt= 的内核映射
+11. set =init_top_pgt= kernel mapping
     #+BEGIN_SRC C
       init_top_pgt[511] = early_top_pgt[511];
     #+END_SRC 
@@ -964,21 +967,22 @@ X       +------------------------+
 1. 为 =init_stack= 的结尾设置 =STACK_END_MAGIC= (For easy inspection stack overflow)
 2. *TODO* =debug_objects_early_init=
 3. *TODO* =cgroup_init_early=
-4. =local_irq_disable=: Disable local IRQs(interrupts for current CPU). Do necessary setups, then enable them.
-5. =boot_cpu_init=: first processor activation
+4. =local_irq_disable=: *Disable local IRQs(interrupts for current CPU). Do necessary setups, then enable them.*
+5. =boot_cpu_init()=: first processor activation
    1. get the bootstrap processor id with a call to =smp_processor_id=
    2. set current CPU mask for online, active, present and possible
-6. print linux banner
+6. =page_address_init()=:
+7. print linux banner
    #+BEGIN_EXAMPLE
      [    0.000000] Linux version 4.19.0-rc6 (yydcnjjw@own) (gcc version 8.2.1 20180831 (GCC)) #1 SMP Sun Oct 7 10:19:25 CST 2018
    #+END_EXAMPLE
-7. =setup_arch=: architecture-dependent parts of initialization
+8. =setup_arch()=: architecture-dependent parts of initialization
    1. memory init
-      1. reserve memory block for the kernel =_text= and =_data= which starts from the =_text= symbol and ends before =_bss_stop=
+      1. reserve memory block for the kernel =_text= 、 =_data= and =_bss= which starts from the =_text= symbol and ends before =_bss_stop=
       2. reserve memory for initrd
    2. print kernel info which is the command line.
    3. *TODO* detects One Laptop Per Child support.
-   4. =idt_setup_early_traps=: initializes [[debug]] (#DB - raised when the =TF= flag of rflags is set) and [[int3]] (#BP)
+   4. =idt_setup_early_traps=: initializes [[debug]] (=INTG=, #DB - raised when the =TF= flag of rflags is set) and [[int3]] (=SYSG=, #BP), allow the =x86_64= architecture to have early exception processing for the purpose of debugging via the =kgdb=
    5. =early_cpu_init=: cpu init:
       1. print kernel supported cpus with [[cpu_dev]]
       2. initialization =boot_cpu_data= what is =struct cpuinfo_x86= for doing minimum CPU detection early
@@ -1045,7 +1049,7 @@ X       +------------------------+
    26. =trim_platform_memory_ranges()=: trims certain memory regions.
    27. =trim_low_memory_range()=: reserves the first =4kb= page in =memblock=
    28. =init_mem_mapping()=: reconstructs direct memory mappng and setups the direct mapping of the physical memory at =PAGE_OFFSET=
-   29. =idt_setup_early_pf()=: Initialize the idt table with early pagefault handler.(head64.c has Initialized ?)
+   29. =idt_setup_early_pf()=: Initialize the idt table with early pagefault handler.(head64.c has Initialized ?) [[page_fault]]
    30. =setup_log_buf(1)=: setup kernel early cyclic buffer.
    31. =reserve_inintrd()=: relocated =initrd= ramdisk image.
    32. =acpi_table_ugrade()=
@@ -1057,34 +1061,35 @@ X       +------------------------+
    38. Allocate are for [[DMA]]: =dma_contiguous_reserve()=: allocate area for the =Direct memory access=
    39. =x86_init.paging.pagetable_init()=: initialize sparse memory and zone sizes.
    40. =prefil_possible_map()=: calculates and writes to the =cpu_possible_mask= actual number of the CPUs
-8. =mm_init_cpumask()=: set the [[cpumask]] pointer to the memory descriptor =cpumask= (clear 0).
-9. =setup_command_line()=: takes pointer to the kernel command line allocates a couple of buffers to store command line.
-   1. =saved_command_line=: will contain boot command line
-   2. =initcall_command_line=: will contain boot command line. will be used in the =do_initcall_level=
-   3. =static_command_line=: will contain command line for parameters parsing
-10. =setup_nr_cpu_ids()=: set =nr_cpu_ids= (number of CPUs) according to the last bit in the =cpu_possible_mask=
-11. =setup_per_cpu_areas()=: setups memory areas for the =percpu= variables.
-12. =smp_prepare_boot_cpu()=: =arch/x86/kernel/smpboot.c=
+9. =boot_init_stack_canary()=: set the canary value to protect interrupt stack overflow
+10. =mm_init_cpumask()=: set the [[cpumask]] pointer to the memory descriptor =cpumask= (clear 0).
+11. =setup_command_line()=: takes pointer to the kernel command line allocates a couple of buffers to store command line.
+    1. =saved_command_line=: will contain boot command line
+    2. =initcall_command_line=: will contain boot command line. will be used in the =do_initcall_level=
+    3. =static_command_line=: will contain command line for parameters parsing
+12. =setup_nr_cpu_ids()=: set =nr_cpu_ids= (number of CPUs) according to the last bit in the =cpu_possible_mask=
+13. =setup_per_cpu_areas()=: setups memory areas for the =percpu= variables.
+14. =smp_prepare_boot_cpu()=: =arch/x86/kernel/smpboot.c=
     1. load the original GDT
     2. reload the per-cpu base
     3. fill =cpu_callout_mask= bitmap with the current cpu: indicate which secondary processor can be initialized next.
     4. set cpu state as online with the setting =cpu_state= percpu variable for the current processor
-13. =build_all_zonelists(NULL)=: set up the order of zones that allocations are preferred from
-14. =page_alloc_init()=: setup the =startup= and =teardown= callbacks for the =CPUHP_PAGE_ALLOC_DEAD= cpu hotplug state.
-15. =parse_early_param()=: handle linux kernel command line for no all architecture.
-16. =jump_label_init()=: initialize [[https://lwn.net/Articles/412072/][jump label]]
-17. =setup_log_buf()=: setup the =printk= log buffer
-18. =vfs_caches_init_early()=: do early initialization of the virtual file system
-19. =sort_main_extable()=: sort the kernel's built-in exception table entries which are between =__start___ex_table= and =__stop___ex_table=
-20. =trap_init()=: initialize trap handlers
-21. =mm_init()=: initialization of the memory manager
+15. =build_all_zonelists(NULL)=: set up the order of zones that allocations are preferred from
+16. =page_alloc_init()=: setup the =startup= and =teardown= callbacks for the =CPUHP_PAGE_ALLOC_DEAD= cpu hotplug state.
+17. =parse_early_param()=: handle linux kernel command line for no all architecture.
+18. =jump_label_init()=: initialize [[https://lwn.net/Articles/412072/][jump label]]
+19. =setup_log_buf()=: setup the =printk= log buffer
+20. =vfs_caches_init_early()=: do early initialization of the virtual file system
+21. =sort_main_extable()=: sort the kernel's built-in exception table entries which are between =__start___ex_table= and =__stop___ex_table=
+22. =trap_init()=: initialize trap handlers
+23. =mm_init()=: initialization of the memory manager
     1. =page_ext_init_flatmem()=: initializes extended data per page handing
     2. =mem_init()=: releases all =bootmem=
     3. =kmem_cache_init()=: initialize kernel cache
     4. =pgtable_init()=: initialize the =page->pt1= kernel cache
     5. =vmalloc_init()=: initialize =vmalloc=
     6. =init_espfix_bsp()=: prevent leaking of =31:16= bits of the =esp= register during returning to 16-bit stack
-22. =sched_init()=: Scheduler initialization
+24. =sched_init()=: Scheduler initialization
     1. =wait_bit_init()=: initialization of the array of =waitqueues=
        The =bit_wait_table= is array of wait queues that will be used for wait/wake up of processes depends on the value of a designated bit.
     2. initialization of =waitqueues= array is calculating size of memory to allocate for the =root_task_group(sched_entity)= and =runqueues=.
@@ -1093,24 +1098,24 @@ X       +------------------------+
     5. initialization of the =root domain=: The real-time scheduler requires global resources to make scheduling decision. But unfortunately scalability bottlenecks appear as the number of CPUs increase. The concept of =root_domains= was introduced for improving scalability ans avoid such bottlenecks.
     6. =set_load_weight()=: initialization of =per-cpu= run queues with default values, we need to setup =load weight= of the first task in the system
     7. =init_sched_fair_class()=: Calculating next time period of the next calculation of CPU load and initialization of the =fair= class.
-23. *TODO* =preempt_disable()=: disable preemption
-24. check IRQs state and disabling
-25. +Initialization of the integer ID management+
-26. =radix_tree_init()=: initialize kernel implementation of the [[http://en.wikipedia.org/wiki/Radix_tree][Radix tree]]
-27. [[RCU]] initialization:
+25. *TODO* =preempt_disable()=: disable preemption
+26. check IRQs state and disabling
+27. +Initialization of the integer ID management+
+28. =radix_tree_init()=: initialize kernel implementation of the [[http://en.wikipedia.org/wiki/Radix_tree][Radix tree]]
+29. [[RCU]] initialization:
     1. =rcu_bootup_announce()=: print information about the RCU
     2. =rcu_init_geometry()=: compute the node tree geometry depends on the amount of CPUs
     3. =rcu_init_one()=: 
-28. =trace_init()=: initialize [[https://en.wikipedia.org/wiki/Tracing_%28software%29][tracing]] subsystem
-29. =acpi_early_init()=:
-30. =thread_stack_cache_init()=: allocates cache for the =thread_stack_cache=
-31. =cred_init()=: allocate cache for the credentials(like =uid=, =gid=, etc)
-32. =fork_init()=: 
+30. =trace_init()=: initialize [[https://en.wikipedia.org/wiki/Tracing_%28software%29][tracing]] subsystem
+31. =acpi_early_init()=:
+32. =thread_stack_cache_init()=: allocates cache for the =thread_stack_cache=
+33. =cred_init()=: allocate cache for the credentials(like =uid=, =gid=, etc)
+34. =fork_init()=: 
     1. =arch_task_cache_init()=: initialization of the architecture-specific caches.
        allocate cache for the =task_xstate= which represents =FPU= state and sets up offsets and sizes of all extended states in =xsave= area.
     2. =set_max_threads(MAX_THREADS)=: calculate default maximum number of threads
     3. initialize =signal= handler: set resource limit about signal
-33. =proc_caches_init()=: allocate caches for the memory descriptors(or =mm_struct= structure)
+35. =proc_caches_init()=: allocate caches for the memory descriptors(or =mm_struct= structure)
     1. allocate different [[http://en.wikipedia.org/wiki/Slab_allocation][SLAB]] caches with the call of the =kmem_cache_create=
        - =sighand_cachep=: manage information about installed signal handlers
        - =signal_cachep=: manage information about process signal descriptor
@@ -1120,18 +1125,18 @@ X       +------------------------+
        - =vm_area_cachep=: allocate =SLAB= cache for the important =vm_area_struct= which used by the kernel to manage virtual memory space
     2. =mmap_init()=: initialize virtual memory area =SLAB=
     3. =nsproxy_cache_init()=: initialize =SLAB= for namespaces
-34. =buffer_init()=:
+36. =buffer_init()=:
     - allocate cache for the =buffer_head= (used for managing buffers)
     - calculate the maximum size of the buffers in memory(equal to the =10%= of the =ZONE_NORMAL(all RAM from the 4GB on the x86_64)=)
-35. =vfs_caches_init()=:
-36. =pagecache_init()=: initialize the ratio for the dirty pages.
-37. =signals_init()=: allocate a cache for the =sigqueue= structures which represents queue of the real time signals.
-38. =proc_root_init()=: create the root for the [[https://en.wikipedia.org/wiki/Procfs][procfs]]
-39. =cgroup_init()=: make initialization of the rest of the cgroup subsystem
-40. =taskstats_init_early()=: export per-task statistic to the user-space
-41. =delayacct_init()=: initializes per-task delay accounting
-42. =check_bugs()=: fix some architecture dependent bugs
-43. =rest_init()=:
+37. =vfs_caches_init()=:
+38. =pagecache_init()=: initialize the ratio for the dirty pages.
+39. =signals_init()=: allocate a cache for the =sigqueue= structures which represents queue of the real time signals.
+40. =proc_root_init()=: create the root for the [[https://en.wikipedia.org/wiki/Procfs][procfs]]
+41. =cgroup_init()=: make initialization of the rest of the cgroup subsystem
+42. =taskstats_init_early()=: export per-task statistic to the user-space
+43. =delayacct_init()=: initializes per-task delay accounting
+44. =check_bugs()=: fix some architecture dependent bugs
+45. =rest_init()=:
     1. =rcu_scheduler_starting()=: make RCU scheduler active
     2. =smpboot_thread_init()=: register the =smpboot_thread_notifier= CPU notifier
     3. 
@@ -1198,8 +1203,19 @@ Direct memory access
 http://en.wikipedia.org/wiki/Direct_memory_access
 ** SLAB
 * Interrupts
-
 - [[https://en.wikipedia.org/wiki/Advanced_Programmable_Interrupt_Controller][APIC]]
+
+the state of stack when an exception occurs is following:
+#+BEGIN_EXAMPLE
+      +------------+
+  +40 | %SS        |
+  +32 | %RSP       |
+  +24 | %EFLAGS    |
+  +16 | %CS        |
+   +8 | %RIP       |
+    0 | ERROR CODE | <-- %RSP
+      +------------+
+#+END_EXAMPLE
 
 ** exception-tables
 <<exception-tables>>
@@ -1239,13 +1255,17 @@ There it uses the address of the instruction that caused the exception(i.e. =reg
   #+END_SRC
 
 ** interrupt handler function
-*** 相关的宏
-- =idtentry=: define an interrupt/exception entry point
+*** interrelated macro
+- =idtentry=: define an interrupt/exception entry point, and do following preparation before an actual exception handler.
+  =idtentry= allocates place for the registers(=pt_regs= structure) on the stack, pushes dump error code for the stack consistency if an interrupt/exception has no error code, checks the segment selector in the =cs= segment register and switches depends on the previous stats(userspace or kernelspace)
   - =sym=: name of the interrupt entry point
   - =do_sym=: name of the interrupt handler
-  - =has_error_code=: has interrupt error code or not
-  - =paranoid=: if this parameter = 1, switch to special stack(read above)
-  - =shift_ist=: stack to switch during interrupt
+  - =has_error_code=: has interrupt error code or not, information about existence of an error code of exception
+  - =paranoid=:  show us how we need to check current mode
+    helps us to know did we come from userpace or not to an exception handler.
+  - =shift_ist=: show us is an exception running at =Interrupt Stack Table=
+    Interrupt Stack Table: This feature allows to switch to a new stack for designated events such as an atomic exceptions like =double fault= and etc.
+
   #+BEGIN_SRC asm
     .macro idtentry sym do_sym has_error_code:req paranoid=0 shift_ist=-1
     ENTRY(\sym)
@@ -1468,6 +1488,9 @@ There it uses the address of the instruction that caused the exception(i.e. =reg
 
 *** =debug=
 <<debug>>
+=#DB= or =debug= exception occurs when a debug event occurs.
+[[https://en.wikipedia.org/wiki/X86_debug_registerx][x86 debug register]]
+
 #+BEGIN_SRC C
   // arch/x86/include/asm/trap.h
   asmlinkage void debug(void);
@@ -1475,12 +1498,47 @@ There it uses the address of the instruction that caused the exception(i.e. =reg
   idtentry debug do_debug has_error_code=0 paranoid=1 shift_ist=DEBUG_STACK
 #+END_SRC 
 
+#+BEGIN_EXAMPLE
+  +-----------------------------------------------------+
+  |Vector|Mnemonic|Description         |Type |Error Code|
+  +-----------------------------------------------------+
+  |1     | #DB    |Reserved            |F/T  |NO        |
+  +-----------------------------------------------------+
+#+END_EXAMPLE
+
 *** =int3=
 <<int3>>
+=#BP= or =breakpoint= exception occurs when processor executes the =int3= instruction.
 
+*** =page_fault=
+<<page_fault>>
+#+BEGIN_SRC C
+  // arch/x86/include/asm/trap.h
+  asmlinkage void page_fault(void);
+  // arch/x86/entry/entry_64.S
+  idtentry page_fault		do_page_fault		has_error_code=1
+#+END_SRC 
+
+#+BEGIN_SRC C
+  dotraplinkage void notrace
+  do_page_fault(struct pt_regs *regs, unsigned long error_code)
+  {
+          unsigned long address = read_cr2(); /* Get the faulting address */
+          enum ctx_state prev_state;
+
+          prev_state = exception_enter();
+          if (trace_pagefault_enabled())
+                  trace_page_fault_entries(address, regs, error_code);
+
+          __do_page_fault(regs, error_code, address);
+          exception_exit(prev_state);
+  }
+  NOKPROBE_SYMBOL(do_page_fault);
+#+END_SRC 
 * Synchronization primitives
-** RCU
+** TODO RCU
 <<RCU>>
+
 * SMP
 ** cpu_dev
 <<cpu_dev>>
@@ -1548,6 +1606,15 @@ per-CPU is declared to =PER_CPU_BASE_SECTION + Subsection= according to the diff
 *** per-cpu operate
 
 *** per-cpu areas initialization process
+1. =init/main.c setup_per_cpu_areas()=:
+   1. print information about:
+      - =NR_CPUs=: maximum number of CPUs
+      - =nr_cpumask_bits=: =NR_CPUs= bit for the new =cpumask= operators
+      - =nr_cpu_ids=: actual number of CPUs
+      - =nr_node_ids=: number of =NUMA= nodes
+   2. 
+2. 
+
 
 ** Cpumasks
 <<cpumask>>
@@ -2197,4 +2264,3 @@ link-vmlinux 展开的值为 cmd_link-vmlinux
             }
    #+END_EXAMPLE
 10. 配置 bochs
-

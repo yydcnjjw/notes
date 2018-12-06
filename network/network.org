@@ -811,3 +811,887 @@ Configure:
 
 #+caption: Test redundancy
     [[file:image/experiment/screenshot_2018-10-26_09-39-19.png]]
+** VPDN-PPTP
+#+caption: Topology
+[[file:image/experiment/screenshot_2018-11-08_15-48-47.png]]
+
+configure:
+- R1:
+  #+BEGIN_EXAMPLE
+    vpdn enable
+    !
+    vpdn-group 1
+     ! Default PPTP VPDN group
+     accept-dialin
+      protocol pptp
+      virtual-template 1
+    !
+    username pptp password 0 cisco
+    !
+    interface Loopback1
+     ip address 10.1.1.1 255.255.255.0
+    !
+    interface Ethernet0/0
+     ip address 172.16.196.111 255.255.255.0
+    !
+    !
+    interface Virtual-Template1
+     ip unnumbered Loopback1
+     peer default ip address pool ippool
+     ppp authentication chap
+    !
+    ip local pool ippool 111.1.1.100 111.1.1.200
+    !
+  #+END_EXAMPLE
+- PC: use =pptp-linux=
+  #+BEGIN_EXAMPLE
+    root@eve-ng:~# cat /etc/ppp/peers/my_tunnel
+    # written by pptpsetup
+    pty "pptp 172.16.196.111 --nolaunchpppd"
+    lock
+    noauth
+    nobsdcomp
+    nodeflate
+    name pptp
+    remotename my_tunnel
+    ipparam my_tunnel
+    # require-mppe-128
+
+    root@eve-ng:/etc/ppp/peers# cat /etc/ppp/chap-secrets 
+    # Secrets for authentication using CHAP
+    # client        server  secret                  IP addresses
+    # added by pptpsetup for my_tunnel
+    pptp my_tunnel "cisco" *
+  #+END_EXAMPLE
+
+Test:
+[[file:image/experiment/screenshot_2018-11-08_15-54-19.png]]
+
+[[file:image/experiment/screenshot_2018-11-08_15-54-42.png]]
+** VPDN-pppoe
+#+caption: Topology
+[[file:image/experiment/screenshot_2018-11-08_15-48-47.png]]
+
+configure:
+- R1:
+  #+BEGIN_EXAMPLE
+    vpdn enable
+    !
+    username pppoe password 0 cisco
+    !
+    bba-group pppoe global
+     virtual-template 1
+    !
+    interface Loopback0
+     ip address 10.1.1.1 255.255.255.0
+    !
+    interface Virtual-Template1
+     ip unnumbered Loopback0
+     peer default ip address pool ippool
+     ppp authentication pap
+    !
+    ip local pool ippool 202.100.2.100 202.100.2.200
+    !
+  #+END_EXAMPLE
+- PC:
+  #+BEGIN_EXAMPLE
+    root@eve-ng:/etc/ppp/peers# cat /etc/ppp/peers/dsl-provider 
+    # Minimalistic default options file for DSL/PPPoE connections
+
+    noipdefault
+    defaultroute
+    replacedefaultroute
+    hide-password
+    #lcp-echo-interval 30
+    #lcp-echo-failure 4
+    noauth
+    persist
+    #mtu 1492
+    #persist
+    #maxfail 0
+    #holdoff 20
+    plugin rp-pppoe.so
+    nic-pnet1
+    user "pppoe"
+    usepeerdns
+
+    root@eve-ng:/etc/ppp/peers# cat /etc/ppp/chap-secrets 
+    # Secrets for authentication using CHAP
+    # client        server  secret                  IP addresses
+    # added by pptpsetup for my_tunnel
+    "pppoe" * "cisco"
+  #+END_EXAMPLE
+
+Test:
+[[file:image/experiment/screenshot_2018-11-08_19-00-10.png]]
+[[file:image/experiment/screenshot_2018-11-08_19-02-23.png]]
+
+** VPDN-L2TP
+#+caption: Topology
+[[file:image/experiment/screenshot_2018-11-08_15-48-47.png]]
+
+configure:
+- R1:
+  #+BEGIN_EXAMPLE
+    vpdn enable
+    !         
+    vpdn-group 1
+     ! Default L2TP VPDN group
+     accept-dialin
+      protocol l2tp
+      virtual-template 1
+     no l2tp tunnel authentication
+    !
+    username cisco password 0 cisco
+    !
+    interface Loopback0
+     ip address 10.1.1.1 255.255.255.0
+    !         
+    interface FastEthernet0/0
+     ip address 172.16.196.111 255.255.255.0
+    !
+    interface Virtual-Template1
+     ip unnumbered Loopback0
+     peer default ip address pool test
+     ppp authentication ms-chap
+    !
+    ip local pool test 10.1.1.2 10.1.1.100
+  #+END_EXAMPLE
+- PC:
+  [[file:image/experiment/08FF94D2@2C321F0B.5322E45B_2018-11-08_19-53-36.jpg]]  
+  [[file:image/experiment/040F99D3@988E3661.6222E45B_2018-11-08_19-53-58.jpg]]
+
+Test:
+[[file:image/experiment/unnamed_2018-11-08_19-54-34.png]]
+** EZVPN
+[[file:image/experiment/screenshot_2018-11-14_20-17-37.png]]
+Configure:
+- EZ.IN:
+  #+BEGIN_EXAMPLE
+    interface Ethernet0/0
+     ip address 10.1.1.100 255.255.255.0
+    !
+    ip route 0.0.0.0 0.0.0.0 10.1.1.1
+  #+END_EXAMPLE
+- EZ.C:
+  #+BEGIN_EXAMPLE
+    !
+    crypto ipsec client ezvpn cisco
+     connect manual
+     group ipsecgroup key cisco
+     mode client
+     peer 202.100.2.1
+     xauth userid mode interactive
+    !
+    interface Loopback0
+     ip address 123.1.1.101 255.255.255.255
+    !
+    interface Ethernet0/0
+     ip address 10.1.1.1 255.255.255.0
+     crypto ipsec client ezvpn cisco inside
+    !
+    interface Ethernet0/1
+     ip address 202.100.1.1 255.255.255.0
+     crypto ipsec client ezvpn cisco
+    !
+    ip route 0.0.0.0 0.0.0.0 202.100.1.100
+  #+END_EXAMPLE
+- INTERNET:
+  #+BEGIN_EXAMPLE
+    interface Ethernet0/0
+     ip address 202.100.2.100 255.255.255.0
+    !
+    interface Ethernet0/1
+     ip address 202.100.1.100 255.255.255.0
+  #+END_EXAMPLE
+- GW:
+  #+BEGIN_EXAMPLE
+    aaa new-model
+    !
+    aaa authentication login noacs line none
+    aaa authentication login remote local
+    aaa authorization network remote local
+    !
+    username remote password 0 cisco
+    !
+    crypto isakmp policy 10
+     encr 3des
+     hash md5 
+     authentication pre-share
+     group 2
+    !
+    crypto isakmp client configuration group ipsecgroup
+     key cisco
+     pool ippool
+     acl 101(tunnel split)
+    crypto isakmp profile cisco
+       match identity group ipsecgroup
+       client authentication list remote
+       isakmp authorization list remote
+       client configuration address respond
+    !
+    crypto ipsec transform-set cisco esp-des esp-md5-hmac 
+     mode tunnel
+    !
+    crypto dynamic-map cisco 10
+     set transform-set cisco 
+     set isakmp-profile cisco
+     reverse-route
+    !
+    crypto map cisco 10 ipsec-isakmp dynamic cisco 
+    !
+    interface Ethernet0/0
+     ip address 202.100.2.1 255.255.255.0
+     crypto map cisco
+    !
+    interface Ethernet0/1
+     ip address 192.168.1.1 255.255.255.0
+    !
+    ip local pool ippool 123.1.1.100 123.1.1.200
+    !
+    ip route 0.0.0.0 0.0.0.0 202.100.2.100
+    !
+    access-list 101 permit ip 192.168.1.0 0.0.0.255 any
+    !
+  #+END_EXAMPLE
+- GW.IN:
+  #+BEGIN_EXAMPLE
+    !
+    interface Ethernet0/1
+     ip address 192.168.1.100 255.255.255.0
+    !
+    ip route 0.0.0.0 0.0.0.0 192.168.1.1
+  #+END_EXAMPLE
+Test:
+- connect vpn
+  [[file:image/experiment/screenshot_2018-11-14_21-37-07.png]]
+- check connect status
+  [[file:image/experiment/screenshot_2018-11-14_20-44-47.png]]
+- check pat
+  [[file:image/experiment/screenshot_2018-11-14_20-45-08.png]]
+- ping(tunnel split)
+  [[file:image/experiment/screenshot_2018-11-14_20-45-47.png]]
+- ping
+  [[file:image/experiment/screenshot_2018-11-14_21-36-35.png]]
+** DMVPN
+#+caption: Topology
+[[file:image/experiment/screenshot_2018-11-15_14-25-04.png]]
+
+Configure:
+- center:
+  #+BEGIN_EXAMPLE
+    !
+    crypto isakmp policy 10
+     authentication pre-share
+    crypto isakmp key cisco address 0.0.0.0        
+    !
+    crypto ipsec transform-set cisco esp-des esp-md5-hmac 
+     mode transport
+    !
+    crypto ipsec profile ipsecprof
+     set transform-set cisco 
+    !
+    interface Loopback0
+     ip address 192.168.100.1 255.255.255.0
+    !
+    interface Tunnel0
+     ip address 172.16.1.100 255.255.255.0
+     no ip redirects
+     ip mtu 1400
+     no ip next-hop-self eigrp 100
+     no ip split-horizon eigrp 100
+     ip nhrp authentication cisco
+     ip nhrp map multicast dynamic
+     ip nhrp network-id 10
+     tunnel source Ethernet0/0
+     tunnel mode gre multipoint
+     tunnel key 12345
+     tunnel protection ipsec profile ipsecprof
+    !
+    interface Ethernet0/0
+     ip address 202.100.1.100 255.255.255.0
+    !
+    router eigrp 100
+     network 172.16.1.0 0.0.0.255
+     network 192.168.100.0
+    !
+  #+END_EXAMPLE
+- branch1
+  #+BEGIN_EXAMPLE
+    !
+    crypto isakmp policy 10
+     authentication pre-share
+    crypto isakmp key cisco address 0.0.0.0        
+    !
+    crypto ipsec transform-set cisco esp-des esp-md5-hmac 
+     mode transport
+    !
+    crypto ipsec profile ipsecprof
+     set transform-set cisco 
+    !
+    interface Loopback0
+     ip address 192.168.1.1 255.255.255.0
+    !
+    interface Tunnel0
+     ip address 172.16.1.1 255.255.255.0
+     no ip redirects
+     ip mtu 1400
+     ip nhrp authentication cisco
+     ip nhrp map 172.16.1.100 202.100.1.100
+     ip nhrp map multicast 202.100.1.100
+     ip nhrp network-id 10
+     ip nhrp nhs 172.16.1.100
+     tunnel source Ethernet0/1
+     tunnel mode gre multipoint
+     tunnel key 12345
+     tunnel protection ipsec profile ipsecprof
+    !
+    interface Ethernet0/1
+     ip address 202.100.1.1 255.255.255.0
+    !
+    router eigrp 100
+     network 172.16.1.0 0.0.0.255
+     network 192.168.1.0
+    !
+  #+END_EXAMPLE
+- branch2
+  #+BEGIN_EXAMPLE
+    !
+    crypto isakmp policy 10
+     authentication pre-share
+    crypto isakmp key cisco address 0.0.0.0        
+    !
+    crypto ipsec transform-set cisco esp-des esp-md5-hmac 
+     mode transport
+    !
+    crypto ipsec profile ipsecprof
+     set transform-set cisco 
+    !
+    interface Loopback0
+     ip address 192.168.2.1 255.255.255.0
+    !
+    interface Tunnel0
+     ip address 172.16.1.2 255.255.255.0
+     no ip redirects
+     ip mtu 1400
+     ip nhrp authentication cisco
+     ip nhrp map 172.16.1.100 202.100.1.100
+     ip nhrp map multicast 202.100.1.100
+     ip nhrp network-id 10
+     ip nhrp nhs 172.16.1.100
+     tunnel source Ethernet0/2
+     tunnel mode gre multipoint
+     tunnel key 12345
+     tunnel protection ipsec profile ipsecprof
+    !
+    interface Ethernet0/2
+     ip address 202.100.1.2 255.255.255.0
+    !
+    router eigrp 100
+     network 172.16.1.0 0.0.0.255
+     network 192.168.2.0
+    !
+  #+END_EXAMPLE
+
+Test:
+[[file:image/experiment/screenshot_2018-11-15_14-21-17.png]]
+** EZVPN-SOFTWARE
+#+caption: Topology
+[[file:image/experiment/screenshot_2018-11-15_14-49-12.png]]
+
+Configure:
+- internet:
+  #+BEGIN_EXAMPLE
+    interface Ethernet0/0
+     ip address 202.100.2.100 255.255.255.0
+    interface Ethernet0/1
+     ip address 172.16.196.100 255.255.255.
+  #+END_EXAMPLE
+- GW:
+  #+BEGIN_EXAMPLE
+    !
+    aaa new-model
+    !
+    aaa authentication login noacs line none
+    aaa authentication login remote local
+    aaa authorization network remote local 
+    !
+    username remote password 0 cisco
+    !
+    crypto isakmp policy 10
+     encr 3des
+     hash md5 
+     authentication pre-share
+     group 2
+    !
+    crypto isakmp client configuration group ipsecgroup
+     key cisco
+     pool ippool
+    crypto isakmp profile cisco
+       match identity group ipsecgroup
+       client authentication list remote
+       isakmp authorization list remote
+       client configuration address respond
+    !
+    crypto ipsec transform-set cisco esp-des esp-md5-hmac 
+     mode tunnel
+    !
+    crypto dynamic-map cisco 10
+     set transform-set cisco 
+     set isakmp-profile cisco
+     reverse-route
+    !
+    crypto map cisco 10 ipsec-isakmp dynamic cisco 
+    !
+    interface Ethernet0/0
+     ip address 202.100.2.1 255.255.255.0
+     crypto map cisco
+    !
+    interface Ethernet0/1
+     ip address 192.168.1.1 255.255.255.0
+    !
+    ip local pool ippool 123.1.1.100 123.1.1.200
+    !
+    ip route 0.0.0.0 0.0.0.0 202.100.2.100
+    !
+    access-list 101 permit ip 192.168.1.0 0.0.0.255 any
+    !
+    line con 0
+     login authentication noacs
+    line aux 0
+     login authentication noacs
+    !
+
+  #+END_EXAMPLE
+- R5:
+  #+BEGIN_EXAMPLE
+    !
+    interface Ethernet0/1
+     ip address 192.168.1.100 255.255.255.0
+    !
+    ip route 0.0.0.0 0.0.0.0 192.168.1.1
+  #+END_EXAMPLE
+- Client:
+  #+BEGIN_EXAMPLE
+    IPSec gateway 202.100.2.1
+    IPSec ID ipsecgroup
+    IPSec secret cisco
+    Xauth username remote
+    Xauth password cisco
+  #+END_EXAMPLE
+Test:
+[[file:image/experiment/screenshot_2018-11-15_14-54-38.png]]
+** uRPF
+#+caption: Topology
+[[file:image/experiment/screenshot_2018-11-21_19-49-37.png]]
+
+Configure:
+- Out:
+  #+BEGIN_EXAMPLE
+    interface Loopback0
+     ip address 1.1.1.1 255.255.255.255
+    interface Ethernet0/0
+     ip address 202.100.1.1 255.255.255.0
+  #+END_EXAMPLE
+- FW:
+  #+BEGIN_EXAMPLE
+    ip verify drop-rate compute window 60
+    ip verify drop-rate compute interval 45
+    ip verify drop-rate notify hold-down 40
+    !
+    interface Ethernet0/0
+     ip address 202.100.1.10 255.255.255.0
+     ip verify unicast source reachable-via rx allow-default allow-self-ping 100
+    !
+    interface Ethernet0/1
+     ip address 10.1.1.10 255.255.255.0
+     ip verify unicast source reachable-via any 101
+     ip verify unicast notification threshold 100
+     snmp trap ip verify drop-rate
+    !
+    access-list 100 permit ip host 1.1.1.1 any
+    access-list 100 deny   ip any any log-input
+    access-list 101 deny   ip any any log-input
+  #+END_EXAMPLE
+- IN:
+  #+BEGIN_EXAMPLE
+    interface Ethernet0/0
+     ip address 10.1.1.1 255.255.255.0
+  #+END_EXAMPLE
+
+Test:
+[[file:image/experiment/screenshot_2018-11-21_19-52-57.png]]
+
+** CoPP
+#+caption: Topology
+[[file:image/experiment/screenshot_2018-11-21_19-57-44.png]]
+
+Configure: network control
+- Out:
+  #+BEGIN_EXAMPLE
+    interface Ethernet0/0
+     ip address 202.100.1.1 255.255.255.0
+  #+END_EXAMPLE
+- FW:
+  #+BEGIN_EXAMPLE
+    !
+    interface Ethernet0/0
+     ip address 202.100.1.10 255.255.255.0
+    !
+    interface Ethernet0/1
+     ip address 10.1.1.10 255.255.255.0
+    !
+    ip access-list extended control.telnet.ssh
+     deny   tcp 202.100.1.0 0.0.0.255 any eq telnet
+     deny   tcp 202.100.1.0 0.0.0.255 any eq 22
+     permit tcp any any eq telnet
+     permit tcp any any eq 22
+    !
+    control-plane
+     service-policy input CUMT.CoPP
+    !
+    line vty 0 4
+     password cisco
+     login
+     transport input telnet
+  #+END_EXAMPLE
+- IN:
+  #+BEGIN_EXAMPLE
+    interface Ethernet0/0
+     ip address 10.1.1.1 255.255.255.0
+  #+END_EXAMPLE
+
+Test(network control):
+[[file:image/experiment/screenshot_2018-11-21_20-07-13.png]]
+[[file:image/experiment/screenshot_2018-11-21_20-07-27.png]]
+
+Configure: flow control
+FW:
+#+BEGIN_EXAMPLE
+  class-map match-all control.ICMP
+   match access-group name control.ICMP
+  !
+  ip access-list extended control.ICMP
+   permit icmp any any
+  !
+  olicy-map CUMT.CoPP
+   class control.ICMP
+    police rate 1 pps burst 1 packets
+#+END_EXAMPLE
+
+Test(flow control):
+[[file:image/experiment/screenshot_2018-11-21_20-10-33.png]]
+** Basic-Zone-Policy
+#+caption: Topology
+[[file:image/experiment/screenshot_2018-11-21_20-27-32.png]]
+
+Configure:
+- Out:
+  #+BEGIN_EXAMPLE
+    !
+    interface Ethernet0/0
+     no shutdown
+     ip address 202.100.1.1 255.255.255.0
+    !
+    ip route 0.0.0.0 0.0.0.0 202.100.1.10
+  #+END_EXAMPLE
+- ZBF:
+  #+BEGIN_EXAMPLE
+    !
+    ip cef
+    !
+    class-map type inspect match-all Out-to-In.telnet.class
+     match access-group name Out-to-In.telnet.traffic
+    class-map type inspect match-any In-to-Out.protocol
+     match protocol udp
+     match protocol tcp
+     match protocol ftp
+     match protocol dns
+    class-map type inspect match-all In-to-Out.ICMP
+     match protocol icmp
+    !
+    policy-map type inspect In-to-Out.policy
+     class type inspect In-to-Out.protocol
+      inspect 
+     class type inspect In-to-Out.ICMP
+      inspect 
+      police rate 8000 burst 1000
+     class class-default
+      drop log
+    policy-map type inspect Out-to-In.policy
+     class type inspect Out-to-In.telnet.class
+      inspect 
+     class class-default
+      drop log
+    !
+    zone security Inside
+    zone security Outside
+    zone-pair security Inside-to-Outside source Inside destination Outside
+     service-policy type inspect In-to-Out.policy
+    zone-pair security Outside-to-Inside source Outside destination Inside
+     service-policy type inspect Out-to-In.policy
+    !
+    interface Ethernet0/0
+     no shutdown
+     ip address 202.100.1.10 255.255.255.0
+     zone-member security Outside
+    !
+    interface Ethernet0/1
+     no shutdown
+     ip address 10.1.1.10 255.255.255.0
+     zone-member security Inside
+    !
+    interface Ethernet0/2
+     no shutdown
+     ip address 172.16.1.10 255.255.255.0
+    !
+    ip access-list extended Out-to-In.telnet.traffic
+     permit tcp host 202.100.1.1 host 10.1.1.1 eq telnet
+
+
+  #+END_EXAMPLE
+- In_R1:
+  #+BEGIN_EXAMPLE
+    interface Ethernet0/1
+     no shutdown
+     ip address 10.1.1.1 255.255.255.0
+    !
+    ip route 0.0.0.0 0.0.0.0 10.1.1.10
+    !
+    line vty 0 4
+     password cisco
+     login
+     transport input telnet
+    !
+  #+END_EXAMPLE
+- In_R2
+  #+BEGIN_EXAMPLE
+    !
+    interface Ethernet0/2
+     no shutdown
+     ip address 172.16.1.1 255.255.255.0
+    !
+    ip route 0.0.0.0 0.0.0.0 172.16.1.10
+    !
+  #+END_EXAMPLE
+
+Test:
+- test1:
+[[file:image/experiment/screenshot_2018-11-21_20-28-39.png]]
+[[file:image/experiment/screenshot_2018-11-21_20-28-11.png]]
+- test2:
+[[file:image/experiment/screenshot_2018-11-21_20-29-48.png]]
+- test3:
+[[file:image/experiment/screenshot_2018-11-21_20-30-38.png]]
+** Basic-Zone-Policy2
+#+caption: Topology
+[[file:image/experiment/screenshot_2018-11-21_21-18-29.png]]
+
+Configure:
+- Out:
+  #+BEGIN_EXAMPLE
+    interface Ethernet0/0
+     ip address 202.100.1.1 255.255.255.0
+    ip route 0.0.0.0 0.0.0.0 202.100.1.10
+  #+END_EXAMPLE
+- ZBF:
+  #+BEGIN_EXAMPLE
+    !
+    class-map type inspect match-all Intrazone.class
+     match access-group name Intrazone.traffic
+    !
+    policy-map type inspect Intrazone.policy
+     class type inspect Intrazone.class
+      inspect 
+     class class-default
+      drop log
+    !
+    zone security Inside
+    zone-pair security Intrazone source Inside destination Inside
+     service-policy type inspect Intrazone.policy
+    !
+    interface Ethernet0/0
+     ip address 202.100.1.10 255.255.255.0
+    !
+    interface Ethernet0/1
+     ip address 10.1.1.10 255.255.255.0
+     zone-member security Inside
+    !
+    interface Ethernet0/2
+     ip address 172.16.1.10 255.255.255.0
+     zone-member security Inside
+    !
+    ip access-list extended Intrazone.traffic
+     permit tcp host 172.16.1.1 host 10.1.1.1 eq telnet
+     permit tcp host 10.1.1.1 host 172.16.1.1 eq 22
+    !
+  #+END_EXAMPLE
+- In_R1:
+  #+BEGIN_EXAMPLE
+    interface Ethernet0/1
+     ip address 10.1.1.1 255.255.255.0
+    ip route 0.0.0.0 0.0.0.0 10.1.1.10
+  #+END_EXAMPLE
+- In_R2:
+  #+BEGIN_EXAMPLE
+    interface Ethernet0/2
+     ip address 172.16.1.1 255.255.255.0
+    ip route 0.0.0.0 0.0.0.0 172.16.1.10
+  #+END_EXAMPLE
+
+Test:
+- telnet:
+  [[file:image/experiment/screenshot_2018-11-21_21-23-09.png]]
+  [[file:image/experiment/screenshot_2018-11-21_21-23-33.png]]
+- ssh:
+  [[file:image/experiment/screenshot_2018-11-21_21-45-43.png]]
+  [[file:image/experiment/screenshot_2018-11-21_21-44-37.png]]
+
+** Basic-Zone-Policy3
+#+caption: Topology
+[[file:image/experiment/screenshot_2018-11-21_21-18-29.png]]
+
+Configure:
+- Out:
+  #+BEGIN_EXAMPLE
+    interface Ethernet0/0
+     ip address 202.100.1.1 255.255.255.0
+    ip route 0.0.0.0 0.0.0.0 202.100.1.10
+  #+END_EXAMPLE
+- ZBF:
+  #+BEGIN_EXAMPLE
+    !
+    class-map type inspect match-all Self-to-Outside.class
+     match access-group name Self-to-Outside
+    class-map type inspect match-all Self-to-Inside.class
+     match access-group name Self-to-Inside
+    class-map type inspect match-all Inside-to-Self.class
+     match access-group name Inside-to-Self
+    !
+    policy-map type inspect Self-to-Inside.policy
+     class type inspect Self-to-Inside.class
+      inspect 
+     class class-default
+      drop log
+    policy-map type inspect Outside-to-Self.policy
+     class class-default
+      drop log
+    policy-map type inspect Self-to-Outside.policy
+     class type inspect Self-to-Outside.class
+      inspect 
+     class class-default
+      drop log
+    policy-map type inspect Inside-to-Self.policy
+     class type inspect Inside-to-Self.class
+      inspect 
+     class class-default
+      drop log
+    !
+    zone security Outside
+    zone security Inside
+    zone-pair security Self-Outside source self destination Outside
+     service-policy type inspect Self-to-Outside.policy
+    zone-pair security Self-Inside source self destination Inside
+     service-policy type inspect Self-to-Inside.policy
+    zone-pair security Inside-Self source Inside destination self
+     service-policy type inspect Inside-to-Self.policy
+    zone-pair security Outside-Self source Outside destination self
+     service-policy type inspect Outside-to-Self.policy
+    ! 
+    interface Ethernet0/0
+     ip address 202.100.1.10 255.255.255.0
+     zone-member security Outside
+    !
+    interface Ethernet0/1
+     ip address 10.1.1.10 255.255.255.0
+     zone-member security Inside
+    !
+    interface Ethernet0/2
+     ip address 172.16.1.10 255.255.255.0
+    !
+    ip access-list extended Inside-to-Self
+     permit tcp host 10.1.1.1 host 10.1.1.10 eq 22
+    ip access-list extended Self-to-Inside
+     permit tcp host 10.1.1.10 host 10.1.1.1 eq telnet
+    ip access-list extended Self-to-Outside
+     permit icmp host 202.100.1.10 host 202.100.1.1 echo
+    !
+  #+END_EXAMPLE
+- In_R2:
+  #+BEGIN_EXAMPLE
+    interface Ethernet0/2
+     ip address 172.16.1.1 255.255.255.0
+    ip route 0.0.0.0 0.0.0.0 172.16.1.10
+  #+END_EXAMPLE
+- In_R1:
+  #+BEGIN_EXAMPLE
+    interface Ethernet0/1
+      ip address 10.1.1.1 255.255.255.0
+    ip route 0.0.0.0 0.0.0.0 10.1.1.10
+  #+END_EXAMPLE
+
+Test:
+ping:
+[[file:image/experiment/screenshot_2018-11-21_23-07-35.png]]
+** CBAC
+#+caption: Topology
+[[file:image/experiment/screenshot_2018-11-22_10-23-08.png]]
+
+- Demand one:
+  Configure:
+  - Inside:
+    #+BEGIN_EXAMPLE
+      interface Ethernet0/0
+       ip address 10.1.1.100 255.255.255.0
+      ip route 0.0.0.0 0.0.0.0 10.1.1.10
+    #+END_EXAMPLE
+  - IOS FW:
+    #+BEGIN_EXAMPLE
+      !
+      ip inspect name FW.Outbound icmp
+      ip inspect name FW.Outbound tcp
+      ip inspect name FW.Outbound udp
+      !
+      interface Ethernet0/0
+       ip address 10.1.1.10 255.255.255.0
+       ip access-group Outbound.traffic in
+      !
+      interface Ethernet0/1
+       ip address 202.100.1.10 255.255.255.0
+       ip access-group Inbound.traffic in
+       ip inspect FW.Outbound out
+      !
+      ip access-list extended Inbound.traffic
+       deny   ip any any
+      ip access-list extended Outbound.traffic
+       permit tcp 10.1.1.0 0.0.0.255 any
+       permit icmp 10.1.1.0 0.0.0.255 any
+       permit udp 10.1.1.0 0.0.0.255 any
+      !
+    #+END_EXAMPLE
+  - Outside:
+    #+BEGIN_EXAMPLE
+      interface Ethernet0/1
+       ip address 202.100.1.100 255.255.255.0
+      ip route 0.0.0.0 0.0.0.0 202.100.1.10
+    #+END_EXAMPLE
+
+  Test:
+  [[file:image/experiment/screenshot_2018-11-22_10-26-18.png]]
+  [[file:image/experiment/screenshot_2018-11-22_10-26-45.png]]
+- Demand two:
+  Configure:
+  IOS FW
+  #+BEGIN_EXAMPLE
+    ip access-list extended Inbound.traffic
+     permit tcp 202.100.1.0 0.0.0.255 host 10.1.1.100 eq www
+     deny ip any any
+    !
+    ip inspect name FW.Inbound http
+    interface Ethernet0/1
+     ip inspect FW.Inbound in
+  #+END_EXAMPLE
+
+  Test:
+  [[file:image/experiment/screenshot_2018-11-22_10-35-22.png]]
+  [[file:image/experiment/screenshot_2018-11-22_10-35-42.png]]

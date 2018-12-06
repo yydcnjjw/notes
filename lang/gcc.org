@@ -1,0 +1,17 @@
+* optimization
+** =__builtin_expect=
+=long __builtin_expect (long exp, long c)=
+The Built-in Function is used to provide the compiler with branch prediction information.
+#+BEGIN_SRC C
+  if (__builtin_expect(x, 0))
+    foo();
+#+END_SRC 
+indicate that we do not expect to call =foo=.
+ 
+Common usage:
+#+BEGIN_SRC C
+  #define likely(x) __builtin_expect(!!(x), 1) // x most likely true
+  #define unlikely(x) __builtin_expect(!!(x), 0) // x most likely false
+#+END_SRC
+
+

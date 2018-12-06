@@ -12,15 +12,41 @@
 [[https://en.wikipedia.org/wiki/Factory_method_pattern][Factory method]]
 ** Lazy initialization
 ** Multiton
+[[https://en.wikipedia.org/wiki/Multiton_pattern][Multiton pattern]]
 ** Object Pool
+[[https://en.wikipedia.org/wiki/Object_pool_pattern][Object pool pattern]]
+
 ** Prototype
+[[https://en.wikipedia.org/wiki/Prototype_pattern#Java_Example][Prototype pattern]]
+
 ** Resource acquisition is initialization(RAII)
+[[https://en.wikipedia.org/wiki/Resource_Acquisition_Is_Initialization][RAII]]
 ** Singleton
+[[https://en.wikipedia.org/wiki/Singleton_pattern][Singleton]]
+
 * Structural patterns
 ** Adapter, Wrapper or Translator
 [[https://en.wikipedia.org/wiki/Adapter_pattern][Adapter]]
 ** Decorator
 [[https://en.wikipedia.org/wiki/Decorator_pattern][Decorator]]
+** Bridge
+[[https://en.wikipedia.org/wiki/Bridge_pattern][Bridge]]
+** Composite
+[[https://en.wikipedia.org/wiki/Composite_pattern][Composite]]
+** Facade
+[[https://en.wikipedia.org/wiki/Facade_pattern][Facade]]
+** Flyweight
+[[https://en.wikipedia.org/wiki/Flyweight_pattern][Flyweight]]
+** Front controller
+[[https://en.wikipedia.org/wiki/Front_controller][Front controller]]
+** Marker interface
+[[https://en.wikipedia.org/wiki/Marker_interface_pattern][Marker interface]]
+** Module
+[[https://en.wikipedia.org/wiki/Module_pattern][Module]]
+** Proxy
+[[https://en.wikipedia.org/wiki/Proxy_pattern][Proxy]]
+
+
 * Behavioral patterns
 ** Strategy
 [[https://en.wikipedia.org/wiki/Strategy_pattern][Strategy]]

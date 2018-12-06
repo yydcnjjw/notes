@@ -465,3 +465,5 @@ cite:he17_mask_r_cnn
 cite:zhao18_objec_detec_with_deep_learn
 
 
+* Natural Language Processing
+[[file:~/resources/mathematics/books/nlp/Speech_and_Language_Processing.pdf][Speech and Language Processing]]
