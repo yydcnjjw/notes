@@ -1064,14 +1064,19 @@ Configure:
   #+END_EXAMPLE
 Test:
 - connect vpn
+
   [[file:image/experiment/screenshot_2018-11-14_21-37-07.png]]
 - check connect status
+
   [[file:image/experiment/screenshot_2018-11-14_20-44-47.png]]
 - check pat
+
   [[file:image/experiment/screenshot_2018-11-14_20-45-08.png]]
 - ping(tunnel split)
+
   [[file:image/experiment/screenshot_2018-11-14_20-45-47.png]]
 - ping
+
   [[file:image/experiment/screenshot_2018-11-14_21-36-35.png]]
 ** DMVPN
 #+caption: Topology
