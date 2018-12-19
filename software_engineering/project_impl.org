@@ -1,0 +1,85 @@
+* libev
+* leveldb
+** DB::Open
+1. check option and sanitize options
+   - rename =LOG= file to =LOG.OLD= and create a new "LOG" file
+2. create =LOCK= file for preventing concurrent access to the same db by multiple processes.
+3. =NewDB()=:
+   1. create =MANIFEST-000001= file
+   2. make =CURRENT= file that points to the new manifest file
+** log
+*** log format
+#+caption: log header
+| checksum(4B) | length(2B) | type(1B) | data |
+type: according to 
+- =kZeroType= (0): for preallocated files
+- =kFullType= (1)
+For fragments:
+- =kFirstType= (2)
+- =kMiddleType= (3)
+- =kLastType= (4)
+
+*** WriteBatch
+=WriteBatch= header has an 8-byte sequence number followed by a 4-byte count.
+| log header | sequence(8B) | count(4B) | value type(1B) | key length | key | value length | value |
+
+
+- =DBImpl::BuildBatchGroup=: build =WriteBatch= by merging multiple =writers=
+  =max_size = if first_batch_size > 128KB ? 1MB : 128KB + first_batch_size=
+- =Db::Put()=
+  1. write log
+  2. cache to =MemTable=
+- =DB::Get()=:
+  1. check mem table
+  2. check level file
+
+** version set
+=Version= is a circular Doubly linked list
+version include below information
+- =comparator name=
+- =log number=
+- =prev log number=
+- =next file number=
+- =last sequence=
+- =compact pointer=
+- =deleted file=
+- =new file=
+
+** compactions
+** TODO MemTable
+=SkipList=
+
+* nginx
+** modules
+#+BEGIN_SRC C
+  // src/core/ngx_module.h
+  struct ngx_module_s {
+      ngx_uint_t            ctx_index;
+      ngx_uint_t            index;
+      char                 *name;
+      ngx_uint_t            spare0;
+      ngx_uint_t            spare1;
+      ngx_uint_t            version;
+      const char           *signature;
+      void                 *ctx;
+      ngx_command_t        *commands;
+      ngx_uint_t            type;
+      ngx_int_t           (*init_master)(ngx_log_t *log);
+      ngx_int_t           (*init_module)(ngx_cycle_t *cycle);
+      ngx_int_t           (*init_process)(ngx_cycle_t *cycle);
+      ngx_int_t           (*init_thread)(ngx_cycle_t *cycle);
+      void                (*exit_thread)(ngx_cycle_t *cycle);
+      void                (*exit_process)(ngx_cycle_t *cycle);
+      void                (*exit_master)(ngx_cycle_t *cycle);
+      uintptr_t             spare_hook0;
+      uintptr_t             spare_hook1;
+      uintptr_t             spare_hook2;
+      uintptr_t             spare_hook3;
+      uintptr_t             spare_hook4;
+      uintptr_t             spare_hook5;
+      uintptr_t             spare_hook6;
+      uintptr_t             spare_hook7;
+  };
+  // src/core/ngx_core.h
+  typedef struct ngx_module_s          ngx_module_t;
+#+END_SRC
