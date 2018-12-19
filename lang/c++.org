@@ -315,8 +315,12 @@
 |                    |              |                 |                 |                    |                    | (但是 comparing | (但是 hashing  |
 |                    |              |                 |                 |                    |                    | 不能抛出异常)   | 和 comparing   |
 |                    |              |                 |                 |                    |                    |                 | 不能抛出异常)  |
-* misc
-** thirdparty
-- json parse
-  - [[http://rapidjson.org/zh-cn/][RapidJSON]]
-
+* skill
+** clip to range
+#+BEGIN_SRC C++
+  template <class T, class V>
+  static void ClipToRange(T* ptr, V minvalue, V maxvalue) {
+    if (static_cast<V>(*ptr) > maxvalue) *ptr = maxvalue;
+    if (static_cast<V>(*ptr) < minvalue) *ptr = minvalue;
+  }
+#+END_SRC

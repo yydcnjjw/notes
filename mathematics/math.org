@@ -131,7 +131,7 @@ Bernoulli 分布的指数族为:
             &=\frac{1}{1+e^{-\theta^{T}x}}
 \end{align}
 *** Softmax 回归
-Multinomial 分布的分布族为:设 $\phi_{i}=p(y=i;\phi),\ y\in\{1,\dots,k\}$
+Multinomial 分布的分布族为: 设 $\phi_{i}=p(y=i;\phi),\ y\in\{1,\dots,k\}$
 
 #+BEGIN_SRC latex :results raw :exports none
   \begin{align}
@@ -1637,24 +1637,47 @@ softmax 函数最常用作分类器的输出,来表示 $n$ 个不同类上的概
    \begin{equation}
      softmax(z)_{i}=\frac{e^{z_{i}}}{\sum_j e^{z_{j}}}
    \end{equation}
-3. 使用最大化对数似然训练 softmax 来输出目标值 $y$, 即最大化 $\log{P(y=i;z)}=\log{softmax(z)_{i}}$ 。
+3. 使用最大化对数似然训练 softmax 来输出目标值 $y$, 即最大化 $\log{P(y=i;z)}=\sum_{i}\log{y_{i}softmax(z)_{i}}$ 。
    <<Eqn.(2.1.4.8)>>
    #+BEGIN_SRC latex :results raw :exports none
      \begin{equation}
-       \log{softmax(z)_{i}}=z_{i}-\log{\sum_{j}e^{z_{j}}}
+       \sum_{i}\log{y_{i}softmax(z)_{i}}=\sum_{i}(log{y_{i}}+z_{i}-\log{\sum_{j}e^{z_{j}}})
      \end{equation}
    #+END_SRC 
 
    #+RESULTS:
    \begin{equation}
-     \log{softmax(z)_{i}}=z_{i}-\log{\sum_{j}e^{z_{j}}}
+     \sum_{i}\log{y_{i}softmax(z)_{i}}=\sum_{i}(log{y_{i}}+z_{i}-\log{\sum_{j}e^{z_{j}}})
    \end{equation}
     - 由于输入 $z_{i}$ 对代价函数有直接贡献, 因此这项不会饱和(即使贡献很小学习依旧进行)。
     - 负对数似然代价函数总是强烈地惩罚最活跃的不正确预测。
 
-***** softmax 的导数
-- 当 $i=j$ 时:$\frac{\partial{softmax(z)_i}}{\partial{z_i}}=z_i(1-z_i)$
-- 当 $i\neqj$ 时:$\frac{\partial{softmax(z)_i}}{\partial{z_j}}=-z_iz_j$
+- *softmax 的导数*
+  - 当 $i=j$ 时:$\frac{\partial{softmax(z)_i}}{\partial{z_i}}=z_i(1-z_i)$
+  - 当 $i\neqj$ 时:$\frac{\partial{softmax(z)_i}}{\partial{z_j}}=-z_iz_j$
+
+<<Eqn.(2.1.4.9)>>
+#+BEGIN_SRC latex :results raw :exports none
+  \begin{align}
+    \frac{\partial{L}}{\partial{z_{i}}}&=\frac{\partial{L}}{\partial{softmax(z_{i})}}\frac{\partial{softmax(z_{i})}}{\partial{z_{i}}}\\
+                                       &=-\sum_{j}y_{j}\frac{\partial{\log{softmax(z_{j})}}}{\partial{z_{i}}}\\
+                                       &=-\sum_{j}y_{j}\frac{1}{softmax(z_{j})}\frac{\partial{softmax(z_{j})}}{\partial{z_{i}}}\\
+                                       &=-y_{i}(1-softmax(z_{i}))-\sum_{i\ne j}y_{i}\frac{1}{softmax(z_{j})}(-softmax(z_{i})softmax(z_{j}))\\
+                                       &=-y_{i}(1-softmax(z_{j}))+\sum_{j\ne i}y_{j}softmax(z_{j})\\
+                                       &=softmax(z_{i})-y_{i}
+  \end{align}
+#+END_SRC 
+
+#+RESULTS:
+\begin{align}
+  \frac{\partial{L}}{\partial{z_{i}}}&=\frac{\partial{L}}{\partial{softmax(z_{i})}}\frac{\partial{softmax(z_{i})}}{\partial{z_{i}}}\\
+                                     &=-\sum_{j}y_{j}\frac{\partial{\log{softmax(z_{j})}}}{\partial{z_{i}}}\\
+                                     &=-\sum_{j}y_{j}\frac{1}{softmax(z_{j})}\frac{\partial{softmax(z_{j})}}{\partial{z_{i}}}\\
+                                     &=-y_{i}(1-softmax(z_{i}))-\sum_{i\ne j}y_{i}\frac{1}{softmax(z_{j})}(-softmax(z_{i})softmax(z_{j}))\\
+                                     &=-y_{i}(1-softmax(z_{j}))+\sum_{j\ne i}y_{j}softmax(z_{j})\\
+                                     &=softmax(z_{i})-y_{i}
+\end{align}
+
 *** 隐藏单元
 **** 整流线性单元(ReLU)及其扩展
 #+caption: 整流线性激活函数 $g(x)=\max(0,z)$

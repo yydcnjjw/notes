@@ -1061,6 +1061,8 @@ X       +------------------------+
    38. Allocate are for [[DMA]]: =dma_contiguous_reserve()=: allocate area for the =Direct memory access=
    39. =x86_init.paging.pagetable_init()=: initialize sparse memory and zone sizes.
    40. =prefil_possible_map()=: calculates and writes to the =cpu_possible_mask= actual number of the CPUs
+   41. =x86_init.timers.wallclock_init()=: initialize the wallclock device.
+   42. =register_refined_jiffies(CLOCK_TICK_RATE)=: register =refined_jiffies= clocksource.
 9. =boot_init_stack_canary()=: set the canary value to protect interrupt stack overflow
 10. =mm_init_cpumask()=: set the [[cpumask]] pointer to the memory descriptor =cpumask= (clear 0).
 11. =setup_command_line()=: takes pointer to the kernel command line allocates a couple of buffers to store command line.
@@ -1109,15 +1111,23 @@ X       +------------------------+
     2. =rcu_init_geometry()=: compute the node tree geometry depends on the amount of CPUs
     3. =rcu_init_one()=:
 30. =trace_init()=: initialize [[https://en.wikipedia.org/wiki/Tracing_%28software%29][tracing]] subsystem
-31. =acpi_early_init()=:
-32. =thread_stack_cache_init()=: allocates cache for the =thread_stack_cache=
-33. =cred_init()=: allocate cache for the credentials(like =uid=, =gid=, etc)
-34. =fork_init()=:
+31. =early_irq_init()=: 
+32. =init_IRQ()=: 
+33. =tick_init=:
+    1. =tick_broadcast_init()=: Initialization of =tick broadcast= framework related data structures.
+    2. =tick_nohz_init()=: Initialization of =full= tickless mode relate data structures.
+34. =init_timers()=:
+    1. =init_timer_cpus()=: initialization of the =timer_base= structure for each processor.       
+    2. =open_softirq(TIMER_SOFTIRQ, run_timer_softirq)=:
+35. =acpi_early_init()=:
+36. =thread_stack_cache_init()=: allocates cache for the =thread_stack_cache=
+37. =cred_init()=: allocate cache for the credentials(like =uid=, =gid=, etc)
+38. =fork_init()=:
     1. =arch_task_cache_init()=: initialization of the architecture-specific caches.
        allocate cache for the =task_xstate= which represents =FPU= state and sets up offsets and sizes of all extended states in =xsave= area.
     2. =set_max_threads(MAX_THREADS)=: calculate default maximum number of threads
     3. initialize =signal= handler: set resource limit about signal
-35. =proc_caches_init()=: allocate caches for the memory descriptors(or =mm_struct= structure)
+39. =proc_caches_init()=: allocate caches for the memory descriptors(or =mm_struct= structure)
     1. allocate different [[http://en.wikipedia.org/wiki/Slab_allocation][SLAB]] caches with the call of the =kmem_cache_create=
        - =sighand_cachep=: manage information about installed signal handlers
        - =signal_cachep=: manage information about process signal descriptor
@@ -1127,22 +1137,88 @@ X       +------------------------+
        - =vm_area_cachep=: allocate =SLAB= cache for the important =vm_area_struct= which used by the kernel to manage virtual memory space
     2. =mmap_init()=: initialize virtual memory area =SLAB=
     3. =nsproxy_cache_init()=: initialize =SLAB= for namespaces
-36. =buffer_init()=:
+40. =buffer_init()=:
     - allocate cache for the =buffer_head= (used for managing buffers)
     - calculate the maximum size of the buffers in memory(equal to the =10%= of the =ZONE_NORMAL(all RAM from the 4GB on the x86_64)=)
-37. =vfs_caches_init()=:
-38. =pagecache_init()=: initialize the ratio for the dirty pages.
-39. =signals_init()=: allocate a cache for the =sigqueue= structures which represents queue of the real time signals.
-40. =proc_root_init()=: create the root for the [[https://en.wikipedia.org/wiki/Procfs][procfs]]
-41. =cgroup_init()=: make initialization of the rest of the cgroup subsystem
-42. =taskstats_init_early()=: export per-task statistic to the user-space
-43. =delayacct_init()=: initializes per-task delay accounting
-44. =check_bugs()=: fix some architecture dependent bugs
-45. =rest_init()=:
+41. =vfs_caches_init()=:
+42. =pagecache_init()=: initialize the ratio for the dirty pages.
+43. =signals_init()=: allocate a cache for the =sigqueue= structures which represents queue of the real time signals.
+44. =proc_root_init()=: create the root for the [[https://en.wikipedia.org/wiki/Procfs][procfs]]
+45. =cgroup_init()=: make initialization of the rest of the cgroup subsystem
+46. =taskstats_init_early()=: export per-task statistic to the user-space
+47. =delayacct_init()=: initializes per-task delay accounting
+48. =check_bugs()=: fix some architecture dependent bugs
+49. =rest_init()=:
     1. =rcu_scheduler_starting()=: make RCU scheduler active
     2. =smpboot_thread_init()=: register the =smpboot_thread_notifier= CPU notifier
-    3.
+    3. 
 
+** x86_init_ops
+#+BEGIN_SRC C
+  struct x86_init_ops x86_init __initdata = {
+
+          .resources = {
+                  .probe_roms		= probe_roms,
+                  .reserve_resources	= reserve_standard_io_resources,
+                  .memory_setup		= e820__memory_setup_default,
+          },
+
+          .mpparse = {
+                  .mpc_record		= x86_init_uint_noop,
+                  .setup_ioapic_ids	= x86_init_noop,
+                  .mpc_apic_id		= default_mpc_apic_id,
+                  .smp_read_mpc_oem	= default_smp_read_mpc_oem,
+                  .mpc_oem_bus_info	= default_mpc_oem_bus_info,
+                  .find_smp_config	= default_find_smp_config,
+                  .get_smp_config		= default_get_smp_config,
+          },
+
+          .irqs = {
+                  .pre_vector_init	= init_ISA_irqs,
+                  .intr_init		= native_init_IRQ,
+                  .trap_init		= x86_init_noop,
+                  .intr_mode_init		= apic_intr_mode_init
+          },
+
+          .oem = {
+                  .arch_setup		= x86_init_noop,
+                  .banner			= default_banner,
+          },
+
+          .paging = {
+                  .pagetable_init		= native_pagetable_init,
+          },
+
+          .timers = {
+                  .setup_percpu_clockev	= setup_boot_APIC_clock,
+                  .timer_init		= hpet_time_init,
+                  .wallclock_init		= x86_init_noop,
+          },
+
+          .iommu = {
+                  .iommu_init		= iommu_init_noop,
+          },
+
+          .pci = {
+                  .init			= x86_default_pci_init,
+                  .init_irq		= x86_default_pci_init_irq,
+                  .fixup_irqs		= x86_default_pci_fixup_irqs,
+          },
+
+          .hyper = {
+                  .init_platform		= x86_init_noop,
+                  .guest_late_init	= x86_init_noop,
+                  .x2apic_available	= bool_x86_init_noop,
+                  .init_mem_mapping	= x86_init_noop,
+                  .init_after_bootmem	= x86_init_noop,
+          },
+
+          .acpi = {
+                  .get_root_pointer	= x86_default_get_root_pointer,
+                  .reduced_hw_early_init	= acpi_generic_reduced_hw_init,
+          },
+  };
+#+END_SRC
 * Memory management
 ** Paging
 linux 采用五级分页模型
@@ -1537,6 +1613,8 @@ There it uses the address of the instruction that caused the exception(i.e. =reg
   }
   NOKPROBE_SYMBOL(do_page_fault);
 #+END_SRC
+** external interrupts
+
 * Syscall
 A system call is just userspace request of kernel function. Userspace use =SYSCALL= instruction to invoke an OS system-call handler at privilege level 0.
 
@@ -1621,6 +1699,153 @@ principle:
 *** vDSO
 
 * Synchronization primitives
+** spinlock
+a *spinlock* is a lock which causes a thread trying to acquire it to simply wait in a loop("spin") while repeatedly checking if the lock is available. Since the thread remains active but is not performing a useful task, *the use of such a lock is kind of busy waiting*.
+
+Because they avoid overhead from operating system process rescheduling or context switching, spinlocks are efficient if threads are likely to be blocked for only short periods.
+
+#+BEGIN_SRC C
+  // include/asm-generic/qspinlock_types.h
+  typedef struct qspinlock {
+          union {
+                  atomic_t val;
+  #ifdef __LITTLE_ENDIAN
+                  struct {
+                          u8	locked;
+                          u8	pending;
+                  };
+                  struct {
+                          u16	locked_pending;
+                          u16	tail;
+                  };
+  #else
+                  struct {
+                          u16	tail;
+                          u16	locked_pending;
+                  };
+                  struct {
+                          u8	reserved[2];
+                          u8	pending;
+                          u8	locked;
+                  };
+  #endif
+          };
+  } arch_spinlock_t;
+
+  // include/linux/spinlock_type.h
+  typedef struct raw_spinlock {
+          arch_spinlock_t raw_lock;
+  #ifdef CONFIG_DEBUG_SPINLOCK
+          unsigned int magic, owner_cpu;
+          void *owner;
+  #endif
+  #ifdef CONFIG_DEBUG_LOCK_ALLOC
+          struct lockdep_map dep_map;
+  #endif
+  } raw_spinlock_t;
+
+  typedef struct spinlock {
+          union {
+                  struct raw_spinlock rlock;
+
+  #ifdef CONFIG_DEBUG_LOCK_ALLOC
+  # define LOCK_PADSIZE (offsetof(struct raw_spinlock, dep_map))
+                  struct {
+                          u8 __padding[LOCK_PADSIZE];
+                          struct lockdep_map dep_map;
+                  };
+  #endif
+          };
+  } spinlock_t;
+#+END_SRC
+
+*** normal spinlock
+#+caption: pseudocode
+#+BEGIN_SRC C
+  int lock(lock) {
+      while (test_and_set(lock) == 1);
+      return 0;
+  }
+  int unlock(lock) {
+      lock = 0;
+      return lock;
+  }
+#+END_SRC
+
+The implementations is not very good for performance, because it has at least two problems.
+1. The implementation may *be unfair* and the thread from one processor may *have long waiting time*, even if it called the =lock= before other threads which are waiting for free lock too.
+2. All thread which want to acquire a lock must to execute many atomic operations like =test_and_set= on a variable which is in shared memory. This leads to the *cache invalidation* as the cache of the processor will store =lock=1=, but the value of the lock in memory may be 1 after a thread will release this lock.
+
+*** ticket spinlock
+[[https://en.wikipedia.org/wiki/Ticket_lock][Ticket spinlock]]
+This approach solves the first problem of normal spinlock and may guarantee order of threads which want to acquire a lock.
+
+The =lock value= splits into two field.
+| next | owner |
+
+#+caption: pseudocode
+#+BEGIN_SRC C
+  lock_init() {
+      next = owner = 0;
+  }
+  lock() {
+      my_ticket = next++;
+      while(my_ticket != owner);
+  }
+  unlock() {
+      ++owner;
+  }
+#+END_SRC
+
+*** queue spinlock(MCS lock)
+[[http://www.cs.rochester.edu/~scott/papers/1991_TOCS_synch.pdf][mcs lock]]
+This approach may help to solve both of problems which normal spinlock.
+The =queued apinlocks= allows to each processor to use its own memory location to spin.
+
+#+caption: pseudocode
+#+BEGIN_SRC C
+  void lock(...) {
+      lock.next = NULL;
+      ancestor = put_lock_to_queue_and_return_ancestor(queue, lock);
+      // if we have ancestor, the lock already acquired and we
+      // need to wait until it will be released
+      if (ancestor) {
+          lock.locked = 1;
+          ancestor.next = lock;
+          while (lock.is_locked == true);
+      }
+      // in other way we are owner of the lock and may exit
+  }
+  void unlock(...) {
+      // do we need to notify somebody or we are alonw in the
+      // queue?
+      if (lock.next != NULL) {
+          // the while loop from the lock() function will be
+          // finished
+          lock.next.is_locked = false;
+          // delete ourself from the queue and exit
+          return;
+      }
+      // So, we have no next threads in the queue to notify about
+      // lock releasing event. Let's just put `0` to the lock, will
+      // delete ourself from the queue and exit.
+  }
+#+END_SRC
+
+Linux kernel implement:
+
+
+- =cmpxchg(void* ptr, int old, int new)=:
+  #+BEGIN_SRC C
+    if (*ptr == old) {
+        ,*ptr = new;
+    } else {
+        return *ptr
+    }
+  #+END_SRC
+
+*** related operations
+=include/linux/spinlock.h=
 ** TODO RCU
 <<RCU>>
 
@@ -1753,6 +1978,177 @@ Netlink sockets is created by =netlink_kernel_create()= in the kernel networking
   - =input=: when the input member is NULL, the kernel socket won't be able to receive data from userspace(sending data from the kernel to userspace is possible, though)
   - =mutex=: when not defining a mutex, you use the default one(=cb_def_mutex=)
 * Timers and time management
+** jiffy
+=jiffy=: is an informal term for any unspecified short period of time. In the Linux kernel this definition is very similar to the =jiffy=. There is global variable with the =jiffies= which holds the number of ticks(timer interrupt of times) that have occurred since the system booted.
+#+BEGIN_SRC C
+  // include/linux/jiffies.h
+  extern u64 __cacheline_aligned_in_smp jiffies_64;
+  extern unsigned long volatile __cacheline_aligned_in_smp __jiffy_arch_data jiffies;
+
+  // arch/x86/kernel/time/timer.c
+  __visible u64 jiffies_64 __cacheline_aligned_in_smp = INITIAL_JIFFIES;
+  // arch/x86/kernel/time.c
+  #ifdef CONFIG_X86_64
+  __visible volatile unsigned long jiffies __cacheline_aligned_in_smp = INITIAL_JIFFIES;
+  #endif
+
+  // arch/x86/kernel/vmlinux.lds.S
+  #ifdef CONFIG_X86_32
+  OUTPUT_ARCH(i386)
+  ENTRY(phys_startup_32)
+  jiffies = jiffies_64;
+  #else
+  OUTPUT_ARCH(i386:x86-64)
+  ENTRY(phys_startup_64)
+  jiffies_64 = jiffies;
+  #endif
+
+#+END_SRC 
+** clocksource
+=struct clocksource=: hardware abstraction for a free running counter. Provides mostly state-free accessors to the underlying hardware. This is the structure used for system time.
+
+#+BEGIN_SRC C
+  // include/linux/clocksource.h
+  struct clocksource {
+          u64 (*read)(struct clocksource *cs);
+          u64 mask;
+          u32 mult;
+          u32 shift;
+          u64 max_idle_ns;
+          u32 maxadj;
+  #ifdef CONFIG_ARCH_CLOCKSOURCE_DATA
+          struct arch_clocksource_data archdata;
+  #endif
+          u64 max_cycles;
+          const char *name;
+          struct list_head list;
+          int rating;
+          int (*enable)(struct clocksource *cs);
+          void (*disable)(struct clocksource *cs);
+          unsigned long flags;
+          void (*suspend)(struct clocksource *cs);
+          void (*resume)(struct clocksource *cs);
+          void (*mark_unstable)(struct clocksource *cs);
+          void (*tick_stable)(struct clocksource *cs);
+
+          /* private: */
+  #ifdef CONFIG_CLOCKSOURCE_WATCHDOG
+          /* Watchdog related data, used by the framework */
+          struct list_head wd_list;
+          u64 cs_last;
+          u64 wd_last;
+  #endif
+          struct module *owner;
+  };
+#+END_SRC
+
+- name: ptr to clocksource name
+- list: list head for registration
+- rating: rating value for selection (higher is better)
+  To avoid rating inflation the following list should give you a guide as to how to assign your clocksource a rating
+  - 1-99: Unfit for real use Only available for bootup and testing purposes.
+  - 100-199: Base level usability. Functional for real use, but not desired.
+  - 200-299: Good. A correct and usable clocksource.
+  - 300-399: Desired. A reasonably fast and accurate clocksource.
+  - 400-499: Perfect The ideal clocksource. A must-use where available.
+- read: returns a cycle value, passes clocksource as argument
+- enable: optional function to enable the clocksource
+- disable: optional function to disable the clocksource
+- mask: bitmask for two's complement subtraction of non 64 bit counters
+  - 32bit: counters wrap around to after 42 nanoseconds
+- mult: cycle to nanosecond multiplier
+- shift: cycle to nanosecond divisor (power of two)
+- max_idle_ns: idle time permitted by the clocksource (nsecs)
+- maxadj: adjustment value to mult (~11%)
+- max_cycles: safe cycle value which won't overflow on multiplication
+- flags: describing special properties
+- archdata:	arch-specific data
+- suspend: suspend function for the clocksource, if necessary
+- resume: resume function for the clocksource, if necessary
+- mark_unstable: Optional function to inform the clocksource driver that the watchdog marked the clocksource unstable.
+- owner: module reference, must be set by clocksource in modules
+
+*** clocksource register
+#+BEGIN_SRC C
+  // include/linux/clocksource.h
+  extern int
+  __clocksource_register_scale(struct clocksource *cs, u32 scale, u32 freq);
+
+  static inline int clocksource_register_hz(struct clocksource *cs, u32 hz)
+  {
+          return __clocksource_register_scale(cs, 1, hz);
+  }
+
+  static inline int clocksource_register_khz(struct clocksource *cs, u32 khz)
+  {
+          return __clocksource_register_scale(cs, 1000, khz);
+  }
+#+END_SRC
+- =__clocksoure_register_scale()=: The function updates mult/shift and max_idle_ns field in the =struct clocksource=. Then It adds clocksource to the clocksource list and clocksource watchdog list. At last select the best =clocksource= from registered clocksources.
+  - =cs=: clocksource to be installed.
+  - =scale=: scale factor of a clock source. In other words, if we will multiply value of this parameter on frequency, we will get =hz= of a clocksource.
+  - =freq=: clock source frequency divided by scale.
+
+*** x86 clocksource
+**** clocksource_jiffies
+The standard =jiffies= based clock source is the lowest common denominator clock source which should function on all system that the same resolution as *timer interrupt frequency*.
+- name: jiffies
+- rating: 1
+- read: jiffies_read
+- mask(32): 0x00000000ffffffff
+- mult: 1000000 << 8
+- shift: 8
+- max_cycles: 0xffffffff
+- max_idle_ns: 6370867519511994
+**** refined_jiffies
+=refined_jiffies= is based on the =i8253/i8254= [[https://en.wikipedia.org/wiki/Programmable_interval_timer][programmable interval timer]] tick rate which is almost =1193182(CLOCK_TICK_RATE)= hertz.
+- name: refined-jiffies
+- rating: 2
+- mult: 
+- shift: 8
+*** clocksource_sysfs
+=/sys/devices/system/clocksource=
+** Reducing Scheduling-Clock Ticks
+=Documentation/timers/NO_HZ.txt=
+There are three main way of managing scheduling-clock interrupts
+1. Never omit scheduling-clock ticks(=CONFIG_HZ_PERIODIC=y=)
+2. Omit scheduling-clock tick on idle CPUs(=CONFIG_NO_HZ_IDLE=y=)
+3. Omit scheduling-clock tick on CPUs that are either idle or that have only one runable task(=CONFIG_NO_HZ_FULL=y=)
+*** dyntick
+** clock events device
+** tick broadcast
+Each processor in the system has its own local timer which is programmed updating =jiffies= and etc. These timers represented by the =tick_device= structure in the Linux kernel.
+#+BEGIN_SRC C
+  enum tick_device_mode {
+          TICKDEV_MODE_PERIODIC,
+          TICKDEV_MODE_ONESHOT,
+  };
+
+  struct tick_device {
+          struct clock_event_device *evtdev;
+          enum tick_device_mode mode;
+  };
+#+END_SRC
+
+Each =clock events= device in the system registers itself by the call of the =clockevents_register_device= function or =clockevents_config_and_register= function during initialization process of the Linux kernel. During the registration of a new =clock event= device, kernel calls the =tick_check_new_device= function that checks the given =clock events= device should be used by the Linux kernel. After all checks, the =tick_check_new_device= function executes a call of the =tick_install_broadcast_device(newdev)=
+function that checks that the given =clock event= device can be broadcast device and install it as =current tick broadcast device=.
+
+Tick broadcast wake cpu by using =tick_broadcast_mask=. when CPU enters sleep and its local timer stopped, it call =tick_broadcast_enable= that sets =tick_broadcast_mask= and =tick_broadcast_on= cpumask and call =tick_broadcast_start_periodic()= or =tick_broadcast_setup_oneshot()= according to current =tick broadcast device=.
+
+Related variable:
+- =tick_broadcast_mask=: the bitmap which represents list of processors that are in a sleeping mode
+- =tick_broadcast_on=: the bitmap that stores numbers of processors which are in a periodic broadcast state
+- =tmpmask=: this bitmap for temporary usage
+- =tick_broadcast_oneshot_mask=: stores numbers of processors that must be notified
+- =tick_broadcast_pending_mask=: stores numbers of processors that pending broadcast
+- =tick_broadcast_force_mask= numbers of processors with enforced broadcast
+
+Related function:
+- *TODO* =tick_broadcast_start_periodic=: set event_handler ...
+- =tick_broadcast_setup_oneshot=: 
+
+[[https://lwn.net/Articles/574962/][ref:LWN tick broadcast]]
+** Timers
 
 * Misc
 ** linux 构建过程
