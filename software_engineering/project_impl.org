@@ -1,16 +1,67 @@
 * libev
 * leveldb
-** DB::Open
-1. check option and sanitize options
-   - rename =LOG= file to =LOG.OLD= and create a new "LOG" file
-2. create =LOCK= file for preventing concurrent access to the same db by multiple processes.
-3. =NewDB()=:
-   1. create =MANIFEST-000001= file
-   2. make =CURRENT= file that points to the new manifest file
-** log
-*** log format
+** leveldb file type
+- =kLogFile(0)=: =".log"=
+- =kDBLockFile(1)=: ="LOCK"=
+- =kTableFile(2)=: =".sst" || ".ldb"=
+- =kDescriptorFile(3)=: ="MANIFEST-[0-9]+"=
+- =kCurrentFile(4)=: ="CURRENT"=
+- =kTempFile(5)=: =".dbtmp"=
+- =kInfoLogFile(6)=: ="LOG" || "LOG.old"=
+
+** Table format
+#+BEGIN_EXAMPLE
+  <beginning_of_file>
+  [data block 1]
+  [data block 2]
+  ...
+  [data block N]
+  [meta block 1]
+  ...
+  [meta block K]
+  [metaindex block]
+  [index block]
+  [Footer]        (fixed size; starts at file_size - sizeof(Footer))
+  <end_of_file>
+#+END_EXAMPLE
+
++-------------------+-----------------------+-----------------------+---------------+--------------------------------------------------+--------------+--------------+
+|                        block header                               |     body      |                 block footer                     |                             |
++-------------------+-----------------------+-----------------------+---------------+--------------------------+-----------------------+--------------+--------------+
+| shared : varint32 | non_shared : varint32 | value_size : varint32 |  key |  value | restart pointer : uint32 | restart size : uint32 | type : uint8 | crc : uint32 |
++-------------------+-----------------------+-----------------------+---------------+--------------------------+-----------------------+--------------+--------------+
+block format:
+- block header:
+  - =shared=: The offset of the previous key and the current key equal part
+  - =non_shared=: key length - shared
+  - =value_size=: data size
+- block footer:
+  - =restart_pointer=: multiple restart pointer(data block offset), when key-value counter more than =block_restart_interval(16)=, push pointer to =restarts_= that is a =vector<uint32_t>=.
+  - =restart_size=: vector length
+- each flush:
+  - =type=: compression type
+  - =crc=:
+
+block type:
+- "data" block: The sequence of key/value pairs in the file are stored in sorted order and partitioned into a sequence of data blocks. And optionally compressed.
+  - =key=: According to =shared= and =non_shared= for storing. Only storing part of =non_shared=.
+  - =value= data value
+- "filter" block
+- "meta" block: It contains one entry for every other meta block.
+  - =key= is the name of the meta block.
+  - =value= is a BlockHandle pointing to that meta block.
+- "index" block: This block contains one entry per data block.
+  - =key= is a string >= last key in that data block and before the first key in the successive data block.
+  - =value= is the BlockHandle for the data block.
+- footer
+  | metaindex_offset : varint64 | metaindex_size : varint64 | index_offset : varint64 | index_size : varint64 | pad : max 40B | table magic(=0xdb4775248b80fb57=) |
+
+** Log
+Log is an recorded of header that leveldb writes data to =kLogFile= or =kDescriptorFile=
+Log format: 
 #+caption: log header
 | checksum(4B) | length(2B) | type(1B) | data |
+
 type: according to 
 - =kZeroType= (0): for preallocated files
 - =kFullType= (1)
@@ -23,7 +74,6 @@ For fragments:
 =WriteBatch= header has an 8-byte sequence number followed by a 4-byte count.
 | log header | sequence(8B) | count(4B) | value type(1B) | key length | key | value length | value |
 
-
 - =DBImpl::BuildBatchGroup=: build =WriteBatch= by merging multiple =writers=
   =max_size = if first_batch_size > 128KB ? 1MB : 128KB + first_batch_size=
 - =Db::Put()=
@@ -33,23 +83,71 @@ For fragments:
   1. check mem table
   2. check level file
 
-** version set
-=Version= is a circular Doubly linked list
-version include below information
-- =comparator name=
-- =log number=
-- =prev log number=
-- =next file number=
-- =last sequence=
-- =compact pointer=
-- =deleted file=
-- =new file=
+** Version Control
+*** =VersionSet=
+=VersionSet= is a circular Doubly linked list
+VersionSet include below information
+- =kComparator(1)=: comparator name
+- =kLognumber(2)=: log number
+- =kNextfilenumber(3)=: next file number(file with number is unique)
+- =kLastSequence(4)=: last sequence
+- =kCompactpointer(5)=: compact pointer
+  Per-level key at which the next compaction at that level should start. Either an empty string, or a valid InternalKey.
+- =kDeletedFile(6)=: deleted file
+- =kNewFile(7)=: new file
+- =kPrevLogNumber(9)=: previous log number
 
-** compactions
-** TODO MemTable
-=SkipList=
+**** =VersionSet::Recover=
+Leveldb read =CURRENT= file for recovering VersionSet.
+1. Read =CURRENT= file, which contains a pointer to the current manifest file.
+2. Collect all =kLogFile= which file number more than current =kLognumber= or equal current =kPrevLogNumber=. Convert log chunk to a new level-0 =sstable=.
+   1. Read all the records and add to a mentable
+   2. call =WriteLevel0Table= if MemTable usage more than =write_buffer_size=
+   3. add file to new file of =CURRENT VersionSet=
+
+First VersionSet of db: =MANIFEST-000001= (no custom option)
+- =kComparator=: ="leveldb.BytewiseComparator"=
+- =kLognumber=: 0
+- =kNextFileNumber=: 2
+- =kLastSequence=: 0
+
+Second VersionSet of db: =MANIFEST-000002= (no custom option)
+- =kComparator=: ="leveldb.BytewiseComparator"=
+- =kLognumber=: 3
+- =kNextFileNumber=: 4
+- =kLastSequence=: 0
+- =kPrevLogNumber=: 0
+
+*** =Version=
+Version control different type of file.
+**** =FileMetaData=
+#+BEGIN_SRC C++
+  struct FileMetaData {
+    int refs;
+    int allowed_seeks;          // Seeks allowed until compaction
+    uint64_t number;
+    uint64_t file_size;         // File size in bytes
+    InternalKey smallest;       // Smallest internal key served by table
+    InternalKey largest;        // Largest internal key served by table
+
+    FileMetaData() : refs(0), allowed_seeks(1 << 30), file_size(0) { }
+  };
+#+END_SRC
+
+** MemTable
+MemTable add format:
+| key_size + 8 : varint32 | key bytes | valueType(1B) | sequenceNumber(7B) | value_size : varint32 | value byte |
+** Recover
+1. check option and sanitize options
+   - rename =LOG= file to =LOG.OLD= and create a new "LOG" file
+2. create =LOCK= file for preventing concurrent access to the same db by multiple processes.
+3. =NewDB()=:
+   1. create =MANIFEST-000001= file
+   2. make =CURRENT= file that points to the new manifest file
 
 * nginx
+[[http://aosabook.org/images/nginx/architecture.png][nginx architecture]]
+http://aosabook.org/en/nginx.html
 ** modules
 #+BEGIN_SRC C
   // src/core/ngx_module.h

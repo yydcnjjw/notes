@@ -1280,6 +1280,162 @@ ioremap used to map device memory into kernel address space.
 Direct memory access
 http://en.wikipedia.org/wiki/Direct_memory_access
 ** SLAB
+The basic idea behind the slab allocator is to *have cache of commonly used object kept in an initialized state available* for use by the kernel. The slab allocator aims to cache the freed object so that the basic structure is preserved before uses.
+
+The slab allocator has three principle aims:
+1. The allocation of small blocks of memory to help eliminate internal fragmentation that would be otherwise caused by the buddy system. (=size-N and size-N(DMA)=)
+2. The caching of commonly used objects so that the system does not waste time allocating, initializing and destroying objects.
+   
+   The slab allocator is to maintain caches of commonly used objects.
+   For many structures used in the kernel, the time needed to initialize an object is compareable to, or exceeds, the cost of allocating space for it.
+3. The better utilization of hardware cache by aligning objects to the L1 or L2 caches. (=slab coloring=, It is a scheme which attempts to have objects in different slabs use different lines in the cache).
+
+*** =kmem_cache=
+#+BEGIN_SRC C
+  struct kmem_cache {
+          struct array_cache __percpu *cpu_cache;
+
+  /* 1) Cache tunables. Protected by slab_mutex */
+          unsigned int batchcount;
+          unsigned int limit;
+          unsigned int shared;
+
+          unsigned int size;
+          struct reciprocal_value reciprocal_buffer_size;
+  /* 2) touched by every alloc & free from the backend */
+
+          slab_flags_t flags;		/* constant flags */
+          unsigned int num;		/* # of objs per slab */
+
+  /* 3) cache_grow/shrink */
+          /* order of pgs per slab (2^n) */
+          unsigned int gfporder;
+
+          /* force GFP flags, e.g. GFP_DMA */
+          gfp_t allocflags;
+
+          size_t colour;			/* cache colouring range */
+          unsigned int colour_off;	/* colour offset */
+          struct kmem_cache *freelist_cache;
+          unsigned int freelist_size;
+
+          /* constructor func */
+          void (*ctor)(void *obj);
+
+  /* 4) cache creation/removal */
+          const char *name;
+          struct list_head list;
+          int refcount;
+          int object_size;
+          int align;
+
+  /* 5) statistics */
+  #ifdef CONFIG_DEBUG_SLAB
+          unsigned long num_active;
+          unsigned long num_allocations;
+          unsigned long high_mark;
+          unsigned long grown;
+          unsigned long reaped;
+          unsigned long errors;
+          unsigned long max_freeable;
+          unsigned long node_allocs;
+          unsigned long node_frees;
+          unsigned long node_overflow;
+          atomic_t allochit;
+          atomic_t allocmiss;
+          atomic_t freehit;
+          atomic_t freemiss;
+  #ifdef CONFIG_DEBUG_SLAB_LEAK
+          atomic_t store_user_clean;
+  #endif
+
+          /*
+           ,* If debugging is enabled, then the allocator can add additional
+           ,* fields and/or padding to every object. 'size' contains the total
+           ,* object size including these internal fields, while 'obj_offset'
+           ,* and 'object_size' contain the offset to the user object and its
+           ,* size.
+           ,*/
+          int obj_offset;
+  #endif /* CONFIG_DEBUG_SLAB */
+
+  #ifdef CONFIG_MEMCG
+          struct memcg_cache_params memcg_params;
+  #endif
+  #ifdef CONFIG_KASAN
+          struct kasan_cache kasan_info;
+  #endif
+
+  #ifdef CONFIG_SLAB_FREELIST_RANDOM
+          unsigned int *random_seq;
+  #endif
+
+          unsigned int useroffset;	/* Usercopy region offset */
+          unsigned int usersize;		/* Usercopy region size */
+
+          struct kmem_cache_node *node[MAX_NUMNODES];
+  };
+
+  /*
+   ,* The slab lists for all objects.
+   ,*/
+  struct kmem_cache_node {
+          spinlock_t list_lock;
+
+  #ifdef CONFIG_SLAB
+          struct list_head slabs_partial;	/* partial list first, better asm code */
+          struct list_head slabs_full;
+          struct list_head slabs_free;
+          unsigned long total_slabs;	/* length of all slab lists */
+          unsigned long free_slabs;	/* length of free slab list only */
+          unsigned long free_objects;
+          unsigned int free_limit;
+          unsigned int colour_next;	/* Per-node cache coloring */
+          struct array_cache *shared;	/* shared per node */
+          struct alien_cache **alien;	/* on other nodes */
+          unsigned long next_reap;	/* updated without locking */
+          int free_touched;		/* updated without locking */
+  #endif
+
+  #ifdef CONFIG_SLUB
+          unsigned long nr_partial;
+          struct list_head partial;
+  #ifdef CONFIG_SLUB_DEBUG
+          atomic_long_t nr_slabs;
+          atomic_long_t total_objects;
+          struct list_head full;
+  #endif
+  #endif
+
+  };
+#+END_SRC
+
+
+
+Basic Structure:
+The slab allocator consists of a variable number of caches that are linked together on a doubly linked circular list called a =cache chain=.
+
+#+begin_src dot :file image/slab_structure.png :cmdline -Tpng :exports none :results silent
+  digraph slab_structure {
+    rankdir=TB
+    size=8
+    {
+      rank=same;
+      edge [minlen=6]
+      cache_prev -> cache -> cache_next;
+    }
+    cache -> slabs_full -> slabs_0 -> pages_0 -> {object_0, object_1};
+    cache -> slabs_partial -> slabs_1 -> pages_1 -> {object_2, object_3};
+    cache -> slabs_free -> slabs_2 -> pages_2 -> {object_4, object_5};
+  }
+#+end_src
+
+[[file:image/slab_structure.png]]
+
+
+- =kmem_cache=: 
+** SLUB
+
 * Interrupts
 - [[https://en.wikipedia.org/wiki/Advanced_Programmable_Interrupt_Controller][APIC]]
 
@@ -1699,7 +1855,7 @@ principle:
 *** vDSO
 
 * Synchronization primitives
-** spinlock
+** Spinlock
 a *spinlock* is a lock which causes a thread trying to acquire it to simply wait in a loop("spin") while repeatedly checking if the lock is available. Since the thread remains active but is not performing a useful task, *the use of such a lock is kind of busy waiting*.
 
 Because they avoid overhead from operating system process rescheduling or context switching, spinlocks are efficient if threads are likely to be blocked for only short periods.
@@ -1834,18 +1990,143 @@ The =queued apinlocks= allows to each processor to use its own memory location t
 
 Linux kernel implement:
 
-
 - =cmpxchg(void* ptr, int old, int new)=:
   #+BEGIN_SRC C
-    if (*ptr == old) {
-        ,*ptr = new;
-    } else {
-        return *ptr
-    }
+    if (*ptr == old) *ptr = new;
+    else return *ptr
   #+END_SRC
 
 *** related operations
 =include/linux/spinlock.h=
+** Semaphores
+- =semaphores= is a solution for locks which may be acquired for a long time.
+- semaphore's lock value is not limited to 0 and 1. There are two types of =semaphores=:
+  - binary semaphore
+  - normal semaphore: it is called as =counting semaphore= and it allows to acquires a lock to more than 1 process. *This allows us to keep records of available resources, when spinlock allows to hold a lock only on one task*.
+- =semaphores= allows to sleep.
+- force rescheduling of processes which are in waiters list.
+
+Semaphore Structure:
+#+BEGIN_SRC C
+  struct semaphore {
+          raw_spinlock_t		lock;
+          unsigned int		count;
+          struct list_head	wait_list;
+  };
+#+END_SRC
+- lock: spinlock for a semaphore data protection
+- count: amount available resources
+- wait_list: list of processes which are waiting to acquire a lock
+
+Initialize a =semaphore=
+#+BEGIN_SRC C
+  #define __SEMAPHORE_INITIALIZER(name, n)				\
+  {									\
+          .lock		= __RAW_SPIN_LOCK_UNLOCKED((name).lock),	\ // 0
+          .count		= n,						\
+          .wait_list	= LIST_HEAD_INIT((name).wait_list),		\
+  }
+#+END_SRC
+- statically: acquired binary semaphore
+  #+BEGIN_SRC C
+    #define DEFINE_SEMAPHORE(name)	\
+            struct semaphore name = __SEMAPHORE_INITIALIZER(name, 1)
+  #+END_SRC
+- dynamically: acquired normal semaphore
+  #+BEGIN_SRC C
+    static inline void sema_init(struct semaphore *sem, int val) {
+            static struct lock_class_key __key;
+            *sem = (struct semaphore) __SEMAPHORE_INITIALIZER(*sem, val);
+            lockdep_init_map(&sem->lock.dep_map, "semaphore->lock", &__key, 0);
+    }
+  #+END_SRC 
+
+Lock Operations:
+#+BEGIN_SRC C
+  extern void down(struct semaphore *sem);
+  extern int __must_check down_interruptible(struct semaphore *sem);
+  extern int __must_check down_killable(struct semaphore *sem);
+  extern int __must_check down_trylock(struct semaphore *sem);
+  extern int __must_check down_timeout(struct semaphore *sem, long jiffies);
+  extern void up(struct semaphore *sem);
+#+END_SRC
+- =down=: acquire the semaphore, calling this function will put the task to sleep until the semaphore is released.
+- =down_interruptible=: acquire the semaphore unless interrupted. If the sleep is interrupted by a signal, this function will return =-EINTR=.
+- =down_killable=: acquire the semaphore unless killed. If the sleep is interrupted by a fatal signal, this function will return =-EINTR=.
+- =down_trylock=: try to acquire the semaphore, without waiting.
+- =down_timeout=: acquire the semaphore within a specified time. If the semaphore is not released within the specified number of jiffies, this function returns =-ETIME=.
+- =up=: release the semaphore.
+** Mutex
+- only one task can hold the mutex at a time
+- only the owner can unlock the mutex
+- multiple unlocks are not permitted
+- recursive locking is not permitted
+- a mutex object must be initialized via the API
+- a mutex object must not be initialized via =memset= or copying
+- task may not exit with mutex held
+- memory areas where held locks reside must not be freed
+- held mutexes must not be reinitialized
+- mutexes may not be used in hardware or software interrupt contexts such as tasklets and timers
+
+#+BEGIN_SRC C
+  struct mutex {
+          atomic_long_t		owner;
+          spinlock_t		wait_lock;
+  #ifdef CONFIG_MUTEX_SPIN_ON_OWNER
+          struct optimistic_spin_queue osq; /* Spinner MCS lock */
+  #endif
+          struct list_head	wait_list;
+  #ifdef CONFIG_DEBUG_MUTEXES
+          void			*magic;
+  #endif
+  #ifdef CONFIG_DEBUG_LOCK_ALLOC
+          struct lockdep_map	dep_map;
+  #endif
+  };
+#+END_SRC
+
+when a process try to acquire a =mutex=, there three possible:
+- =fastpath=: Nobody acquired a =mutex=. In this case, change =owner= to =current(task_struct)=
+- =slowpath=: Someone acquired a =mutex=
+  - =optimistic spinning=: if there are no other processes ready to run that have higher priority. In this case, using =MCS lock=
+  - =slowpath=: using =semaphore= lock
+** Reader/Writer semaphore
+[[https://en.wikipedia.org/wiki/Readers%E2%80%93writer_lock][R/W lock]]
+When a process which wants to write something into data, all other writer and reader processes will be blocked until the process which acquired a lock, will not release it. When a process reads data, other processes which want to read the same data too, will not be locked and will be able to do this.
+#+BEGIN_SRC C
+  #ifdef CONFIG_RWSEM_GENERIC_SPINLOCK
+  #include <linux/rwsem-spinlock.h> /* use a generic implementation */
+  #else
+  /* All arch specific implementations share the same struct */
+  struct rw_semaphore {
+          atomic_long_t count;
+          struct list_head wait_list;
+          raw_spinlock_t wait_lock;
+  #ifdef CONFIG_RWSEM_SPIN_ON_OWNER
+          struct optimistic_spin_queue osq; /* spinner MCS lock */
+          /*
+           ,* Write owner. Used as a speculative check to see
+           ,* if the owner is running on the cpu.
+           ,*/
+          struct task_struct *owner;
+  #endif
+  #ifdef CONFIG_DEBUG_LOCK_ALLOC
+          struct lockdep_map	dep_map;
+  #endif
+  };
+#+END_SRC 
+The count field of a =rw_semaphore= structure may have following values:
+- =0x0000000000000000=: reader/writer semaphore is in unlocked state and no one is waiting for a lock.
+- =0x000000000000000X=: X readers are active or attempting to acquire a lock and no writer waiting.
+- =0xffffffff0000000X=: may represent different cases. The first is - X readers are active or attempting to acquire a lock with waiters for the lock. The second is - one writer attempting a lock, no waiters for the lock. And the last - one writer is active and no waiters for the lock.
+- =0xffffffff00000001=: may represented two different cases. The first is - one reader is active or attempting to acquire a lock and exist waiters for the lock. The second case is one writer is active or attempting to acquire a lock and no waiters for the lock.
+- =0xffffffff00000000=: represents situation when there are readers or writers are queued, but no one is active or is in the process of acquire of a lock.
+- =0xfffffffe00000001=: a writer is active or attempting to acquire a lock and waiters are in queue.
+
+Api:
+=include/linux/rwsem.h=
+** SeqLock
+
 ** TODO RCU
 <<RCU>>
 
@@ -1929,7 +2210,6 @@ per-CPU is declared to =PER_CPU_BASE_SECTION + Subsection= according to the diff
 ** Cpumasks
 <<cpumask>>
 * Drive
-
 * Networking
 The factors that determines the traversal of a packet in the network stack
 - lookup in the routing subsystem
@@ -2705,14 +2985,14 @@ link-vmlinux 展开的值为 cmd_link-vmlinux
     cmd_crmodverdir = $(Q)mkdir -p $(MODVERDIR) \
                     $(if $(KBUILD_MODULES),; rm -f $(MODVERDIR)/*)
   #+END_SRC
-** bochs linux kernel
+** linux kernel rootfs
 1. 创建硬盘镜像 img，bs(柱面) = 16(磁头数) x 63(扇区数) x 512B
    #+BEGIN_SRC shell
      dd if=/dev/zero of=hd.img bs=516096c count=100
    #+END_SRC
 2. 初始化磁盘并分区
    #+BEGIN_SRC shell
-     fdisk -u -C100 -S63 -H16 hd.img
+     fdisk hd.img
    #+END_SRC
 3. 挂载硬盘镜像
    - udisksctl 方式： =udisksctl loop-setup -f hd.img=
@@ -2730,6 +3010,8 @@ link-vmlinux 展开的值为 cmd_link-vmlinux
    #+BEGIN_SRC shell
      sudo mount /dev/loop0p1 rootfs
    #+END_SRC
+
+*** grub
 6. 创建 boot 和 grub 目录： =mkdir -p rootfs/boot/grub=
 7. bzImage 到 rootfs/boot
 8. grub-install
@@ -2747,3 +3029,20 @@ link-vmlinux 展开的值为 cmd_link-vmlinux
             }
    #+END_EXAMPLE
 10. 配置 bochs
+
+*** busybox + qemu
+1. build busybox
+   Note: busybox config =Setting -> Build static binary(no shared libs)=
+   #+BEGIN_SRC makefile
+     make
+     make install
+   #+END_SRC
+2. copy install file to =rootfs=
+3. execute qemu
+   #+BEGIN_SRC makefile
+     qemu-system-x86_64 \
+     -kernel ../linux-kernel/linux-stable/arch/x86/boot/bzImage \
+     -append "root=/dev/sda1 init=/linuxrc" \
+     -drive file=kernel-dev.img,format=raw \
+     -gdb -tcp::1234 -S # debug
+   #+END_SRC

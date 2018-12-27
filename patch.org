@@ -14,7 +14,10 @@
     #+BEGIN_SRC shell
       pip install --user genpac
     #+END_SRC
-** GPU
-
-* idea
+- wifi conf
+  - add =dhcpcd= hook with =wpa_supplicant=
+    #+BEGIN_SRC makefile
+      ln -s /usr/share/dhcpcd/hooks/10-wpa_supplicant /usr/lib/dhcpcd/dhcpcd-hooks
+    #+END_SRC
+  - configure =wpa_supplicant.conf=
 

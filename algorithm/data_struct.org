@@ -1,0 +1,555 @@
+* RB tree
+[[https://zh.wikipedia.org/zh-hans/%E7%BA%A2%E9%BB%91%E6%A0%91][rb tree]]
+=A red-black tree= is a kind of self-balancing binary search tree in computer science.
+
+#+caption: Time complexity in big O notation
+| Algorithm | Average  | Worst case |
+| Space     | O(n)     | O(n)       |
+| Search    | O(log n) | O(log n)   |
+| Insert    | O(log n) | O(log n)   |
+| Delete    | O(log n) | O(log n)   |
+
+In addition to the requirements imposed on a binary search tree the following must be satisfied by a red-black tree.
+- Each node is either red or black.
+- The root is black. This rule is sometimes omitted. Since the root can always be changed from read to black, but not necessarily vice versa, this rule has little effect on analysis.
+- All leaves (NIL) are black.
+- If a node is red, the both its children are black.
+- Every path from a given node to any of its descendant NIL nodes contains the same number of black nodes.
+
+*These constraints enforce a critical property of read-black trees: the path from the root to the farthest leaf is no more than twice as long as the path from the root to the nearest leaf.*
+The shortest possible path has all black nodes, and the longest possible path alterantes between red and black nodes.
+
+#+BEGIN_SRC C++
+  #define BLACK 1
+  #define RED 0
+  #include <iostream>
+  using namespace std;
+  class Bst {
+    public:
+      Bst() {
+          NIL = new Node();
+          NIL->color = BLACK;
+          root_ = NULL;
+      }
+      ~Bst() {
+          if (root_) {
+              DeleteTree(root_);
+          }
+          delete NIL;
+      }
+
+      void inorder() {
+          if (root_ == NULL)
+              return;
+          inorder(root_);
+          cout << endl;
+      }
+
+      void insert(int x) {
+          if (root_ == NULL) {
+              root_ = new Node();
+              root_->color = BLACK;
+              root_->leftTree = root_->rightTree = NIL;
+              root_->value = x;
+          } else {
+              insert(root_, x);
+          }
+      }
+
+      bool delete_value(int data) { return delete_child(root_, data); }
+
+    private:
+      struct Node {
+          int value;
+          bool color;
+          Node *leftTree, *rightTree, *parent;
+          Node()
+              : value(0), color(RED), leftTree(nullptr), rightTree(nullptr),
+                parent(nullptr) {}
+          Node *grandparent() {
+              if (parent == nullptr) {
+                  return nullptr;
+              }
+              return parent->parent;
+          }
+
+          Node *uncle() {
+              if (grandparent() == nullptr) {
+                  return nullptr;
+              }
+              if (parent == grandparent()->rightTree)
+                  return grandparent()->leftTree;
+              else
+                  return grandparent()->rightTree;
+          }
+          Node *sibling() {
+              if (parent->leftTree == this)
+                  return parent->rightTree;
+              else
+                  return parent->leftTree;
+          }
+      };
+
+      void rotate_right(Node *p) {
+          Node *gp = p->grandparent();
+          Node *fa = p->parent;
+          Node *y = p->rightTree;
+
+          fa->leftTree = y;
+          if (y != NIL)
+              y->parent = fa;
+          p->rightTree = fa;
+          fa->parent = p;
+
+          if (root_ == fa)
+              root_ = p;
+          p->parent = gp;
+          if (gp != NULL) {
+              if (gp->leftTree == fa)
+                  gp->leftTree = p;
+              else
+                  gp->rightTree = p;
+          }
+      }
+
+      void rotate_left(Node *p) {
+          Node *gp = p->grandparent();
+          Node *fa = p->parent;
+          Node *y = p->leftTree;
+
+          fa->rightTree = y;
+          if (y != NIL)
+              y->parent = fa;
+          p->leftTree = fa;
+          fa->parent = p;
+
+          if (root_ == fa)
+              root_ = p;
+          p->parent = gp;
+
+          if (gp != NULL) {
+              if (gp->leftTree == fa)
+                  gp->leftTree = p;
+              else
+                  gp->rightTree = p;
+          }
+      }
+      void inorder(Node *p) {
+          if (p == NIL)
+              return;
+          if (p->leftTree)
+              inorder(p->leftTree);
+          cout << p->value << " ";
+          if (p->rightTree)
+              inorder(p->rightTree);
+      }
+
+      std::string outputColor(bool color) { return color ? "BLACK" : "RED"; }
+
+      Node *getSmallestChild(Node *p) {
+          if (p->leftTree == NIL)
+              return p;
+          return getSmallestChild(p->leftTree);
+      }
+
+      bool delete_child(Node *p, int data) {
+          if (p->value > data) {
+              if (p->leftTree == NIL) {
+                  return false;
+              }
+              return delete_child(p->leftTree, data);
+          } else if (p->value < data) {
+              if (p->rightTree == NIL) {
+                  return false;
+              }
+              return delete_child(p->rightTree, data);
+          } else if (p->value == data) {
+              if (p->rightTree == NIL) {
+                  delete_one_child(p);
+                  return true;
+              }
+              Node *smallest = getSmallestChild(p->rightTree);
+              swap(p->value, smallest->value);
+              delete_one_child(smallest);
+              return true;
+          } else {
+              return false;
+          }
+      }
+
+      void delete_one_child(Node *p) {
+          Node *child = p->leftTree == NIL ? p->rightTree : p->leftTree;
+          if (p->parent == NULL && p->leftTree == NIL && p->rightTree == NIL) {
+              // only root
+              // delete root
+              p = NULL;
+              root_ = p;
+              return;
+          }
+          if (p->parent == NULL) {
+              // only root and right node
+              // delete root
+              delete p;
+              child->parent = NULL;
+              root_ = child;
+              root_->color = BLACK;
+              return;
+          }
+          if (p->parent->leftTree == p) {
+              p->parent->leftTree = child;
+          } else {
+              p->parent->rightTree = child;
+          }
+          child->parent = p->parent;
+          if (p->color == BLACK) {
+              if (child->color == RED) {
+                  child->color = BLACK;
+              } else
+                  delete_case(child);
+          }
+          delete p;
+      }
+
+      void delete_case(Node *p) {
+          if (p->parent == NULL) {
+              p->color = BLACK;
+              return;
+          }
+          if (p->sibling()->color == RED) {
+              // sibling is red
+              p->parent->color = RED;
+              p->sibling()->color = BLACK;
+              if (p == p->parent->leftTree)
+                  rotate_left(p->sibling());
+              else
+                  rotate_right(p->sibling());
+          }
+          if (p->parent->color == BLACK && p->sibling()->color == BLACK &&
+              p->sibling()->leftTree->color == BLACK &&
+              p->sibling()->rightTree->color == BLACK) {
+              // N's parent, sibling, sibling's child is black
+              p->sibling()->color = RED;
+              delete_case(p->parent);
+          } else if (p->parent->color == RED && p->sibling()->color == BLACK &&
+                     p->sibling()->leftTree->color == BLACK &&
+                     p->sibling()->rightTree->color == BLACK) {
+              // sibling and sibling's child is black, but parent is red
+              p->sibling()->color = RED;
+              p->parent->color = BLACK;
+          } else {
+              if (p->sibling()->color == BLACK) {
+                  if (p == p->parent->leftTree &&
+                      p->sibling()->leftTree->color == RED &&
+                      p->sibling()->rightTree->color == BLACK) {
+                      // sibling is black, sibling's left child is red
+                      // sibling' right child is black
+                      p->sibling()->color = RED;
+                      p->sibling()->leftTree->color = BLACK;
+                      rotate_right(p->sibling()->leftTree);
+                  } else if (p == p->parent->rightTree &&
+                             p->sibling()->leftTree->color == BLACK &&
+                             p->sibling()->rightTree->color == RED) {
+                      // sibling is black, sibling's left child is black
+                      // sibling' right child is red
+                      p->sibling()->color = RED;
+                      p->sibling()->rightTree->color = BLACK;
+                      rotate_left(p->sibling()->rightTree);
+                  }
+              }
+              p->sibling()->color = p->parent->color;
+              p->parent->color = BLACK;
+              if (p == p->parent->leftTree) {
+                  p->sibling()->rightTree->color = BLACK;
+                  rotate_left(p->sibling());
+              } else {
+                  p->sibling()->leftTree->color = BLACK;
+                  rotate_right(p->sibling());
+              }
+          }
+      }
+
+      void insert(Node *p, int data) {
+          if (p->value >= data) {
+              if (p->leftTree != NIL)
+                  insert(p->leftTree, data);
+              else {
+                  Node *tmp = new Node();
+                  tmp->value = data;
+                  tmp->leftTree = tmp->rightTree = NIL;
+                  tmp->parent = p;
+                  p->leftTree = tmp;
+                  insert_case(tmp);
+              }
+          } else {
+              if (p->rightTree != NIL)
+                  insert(p->rightTree, data);
+              else {
+                  Node *tmp = new Node();
+                  tmp->value = data;
+                  tmp->leftTree = tmp->rightTree = NIL;
+                  tmp->parent = p;
+                  p->rightTree = tmp;
+                  insert_case(tmp);
+              }
+          }
+      }
+      void insert_case(Node *p) {
+          if (p->parent == NULL) {
+              // N is root
+              root_ = p;
+              p->color = BLACK;
+              return;
+          }
+          if (p->parent->color == RED) {
+              if (p->uncle()->color == RED) {
+                  // N's parent and uncle is red
+                  p->parent->color = p->uncle()->color = BLACK;
+                  p->grandparent()->color = RED;
+                  insert_case(p->grandparent());
+              } else {
+                  // N's parent is red, uncle is black
+                  if (p->parent->rightTree == p &&
+                      p->grandparent()->leftTree == p->parent) {
+                      rotate_left(p);
+                      rotate_right(p);
+                      p->color = BLACK;
+                      p->leftTree->color = p->rightTree->color = RED;
+                  } else if (p->parent->leftTree == p &&
+                             p->grandparent()->rightTree == p->parent) {
+                      rotate_right(p);
+                      rotate_left(p);
+                      p->color = BLACK;
+                      p->leftTree->color = p->rightTree->color = RED;
+                  } else if (p->parent->leftTree == p &&
+                             p->grandparent()->leftTree == p->parent) {
+                      p->parent->color = BLACK;
+                      p->grandparent()->color = RED;
+                      rotate_right(p->parent);
+                  } else if (p->parent->rightTree == p &&
+                             p->grandparent()->rightTree == p->parent) {
+                      p->parent->color = BLACK;
+                      p->grandparent()->color = RED;
+                      rotate_left(p->parent);
+                  }
+              }
+              // else p->parent->color == BLACK
+              // N's parent is black
+              // Nothing to do
+          }
+      }
+      void DeleteTree(Node *p) {
+          if (!p || p == NIL) {
+              return;
+          }
+          DeleteTree(p->leftTree);
+          DeleteTree(p->rightTree);
+          delete p;
+      }
+
+      Node *root_, *NIL;
+  };
+
+  int main(int argc, char *argv[]) {
+      Bst bst;
+      int len = 10;
+      for (int i = 0; i < len; i++) {
+          bst.insert(i);
+      }
+      cout << "Bst:" << endl;
+      bst.inorder();
+      return 0;
+  }
+#+END_SRC
+
+#+RESULTS:
+| Bst: |   |   |   |   |   |   |   |   |   |
+|    0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
+
+* Skip List
+[[https://en.wikipedia.org/wiki/Skip_list][wiki skip list]]
+#+caption: Time complexity in big O notation
+| Algorithm | Average  | Worst case |
+| Space     | O(n)     | O(n log n) |
+| Search    | O(log n) | O(n)       |
+| Insert    | O(log n) | O(n)       |
+| Delete    | O(log n) | O(n)       |
+
+1. Skip list consist of multiple level layer.
+2. Each level layer of skip list is an ordinary ordered linked list.
+3. Bottom layer of skip list includes all elements.
+4. Each higher layer acts as an "express lane" for the list below(subset).
+
+#+BEGIN_SRC C
+  #include <stdlib.h>
+  #include <stdio.h>
+
+  #define MAX_LEVEL 10
+
+  typedef struct Node {
+      int key;
+      int value;
+      struct Node* next[1];
+  } Node;
+
+  typedef struct SkipList {
+      int level;
+      Node *head;
+  } SkipList;
+
+
+  Node *newNode(int key, int value) {
+      Node *node = (Node *) malloc(sizeof(Node) + (MAX_LEVEL - 1) * sizeof(Node *));
+      node->key = key;
+      node->value = value;
+      return node;
+  }
+
+  SkipList *createSkipList() {
+      SkipList *sl = (SkipList*) malloc(sizeof(SkipList));
+      sl->level = 0;
+      sl->head = newNode(0, 0);
+      for (int i = 0; i < MAX_LEVEL; i++) {
+          sl->head->next[i] = NULL;
+      }
+      return sl;
+  }
+
+  int randomLevel() {
+      int k = 1;
+      while (rand() % 2) {
+          k++;
+      }
+      k = (k < MAX_LEVEL) ? k : MAX_LEVEL;
+      return k;
+  }
+
+  int search(SkipList *sl, int key, int *value) {
+      Node *p, *q = NULL;
+      p = sl->head;
+      int k = sl->level;
+      for (int i = k - 1; i >= 0; --i) {
+          while ((q = p->next[i]) && (q->key <= key)) {
+            if (q->key == key) {
+                ,*value = q->value;
+                return 0;
+            }
+            p = q;
+        }
+      }
+      return 1;
+  }
+
+  int insert(SkipList *sl, int key, int value) {
+      Node *update[MAX_LEVEL];
+      Node *p, *q = NULL;
+
+      p = sl->head;
+      int k = sl->level;
+      for (int i = k - 1; i >= 0; i--) {
+          // find location that is waiting insertion at each floor
+          while ((q = p->next[i]) && (q->key < key)) {
+              p = q;
+          }
+          update[i] = p;
+      }
+      if (q && p->key == key) {
+          return 1;
+      }
+
+      // update skip list level by randomizer
+      k = randomLevel();
+      if (k > sl->level) {
+        for (int i = sl->level; i < k; i++) {
+            update[i] = sl->head;
+        }
+        sl->level = k;
+      }
+      q = newNode(key, value);
+
+      for (int i = 0; i < k; i++) {
+          q->next[i] = update[i]->next[i];
+          update[i]->next[i] = q;
+      }
+      return 0;
+  }
+
+  int delete (SkipList *sl, int key) {
+      Node *update[MAX_LEVEL];
+      Node *p, *q = NULL;
+      p = sl->head;
+      int k = sl->level;
+      for (int i = k - 1; i >= 0; --i) {
+        while ((q = p->next[i]) && (q->key < key)) {
+            p = q;
+        }
+        update[i] = p;
+      }
+      if (q && q->key == key) {
+        for (int i = 0; i < sl->level; i++) {
+          if (update[i]->next[i] == q) {
+              update[i]->next[i] = q->next[i];
+          }
+        }
+        free(q);
+        for (int i = sl->level - 1; i >= 0; --i) {
+          if (sl->head->next == NULL) {
+              sl->level--;
+          }
+        }
+        return 0;
+      }
+      else
+          return 1;
+  }
+
+  void printSpikList(SkipList *sl) {
+      Node *p, *q;
+      p = q = NULL;
+      int k = sl->level;
+      for (int i = k - 1; i >= 0; --i) {
+          p = sl->head;
+          printf("%d", p->value);
+          while ((q = p->next[i])) {
+              int offset = q->key - p->key;
+              for (int i = 0; i < offset * 2 - 1; i++) {
+                  printf(" -> ");
+                  /* if (i < offset - 1) */
+                  /*     printf(" "); */
+              }
+              printf("%d", q->value);
+              p = q;
+          }
+          printf("\n");
+      }
+  }
+
+  int main(int argc, char *argv[]) {
+      SkipList *sl = createSkipList();
+      for (int i = 1; i < 10; i++) {
+          insert(sl, i, i * 2);
+      }
+      printSpikList(sl);
+      int value = 0;
+      
+      printf("delete key=4\n");
+      int ret = delete(sl, 4);
+      if (ret) {
+          printf("delete success\n");
+      }
+      printSpikList(sl);
+      return 0;
+  }
+#+END_SRC
+
+#+RESULTS:
+|      0 | ->    | -> | -> | 4 |    |    |    |    |    |    |    |    |    |    |    |    |    |    |
+|      0 | ->    | -> | -> | 4 |    |    |    |    |    |    |    |    |    |    |    |    |    |    |
+|      0 | ->    | -> | -> | 4 | -> | -> | -> |  8 | -> | -> | -> | 12 |    |    |    |    |    |    |
+|      0 | ->    | 2  | -> | 4 | -> | -> | -> |  8 | -> | 10 | -> | 12 |    |    |    |    |    |    |
+|      0 | ->    | 2  | -> | 4 | -> | 6  | -> |  8 | -> | 10 | -> | 12 | -> | 14 | -> | 16 | -> | 18 |
+| delete | key=4 |    |    |   |    |    |    |    |    |    |    |    |    |    |    |    |    |    |
+|      0 | ->    | -> | -> | 4 |    |    |    |    |    |    |    |    |    |    |    |    |    |    |
+|      0 | ->    | -> | -> | 4 |    |    |    |    |    |    |    |    |    |    |    |    |    |    |
+|      0 | ->    | -> | -> | 4 | -> | -> | -> | -> | -> | -> | -> | 12 |    |    |    |    |    |    |
+|      0 | ->    | 2  | -> | 4 | -> | -> | -> | -> | -> | 10 | -> | 12 |    |    |    |    |    |    |
+|      0 | ->    | 2  | -> | 4 | -> | 6  | -> | -> | -> | 10 | -> | 12 | -> | 14 | -> | 16 | -> | 18 |

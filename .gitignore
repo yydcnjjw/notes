@@ -1,6 +1,14 @@
 ltximg
 network/backup/*
 *.odt
+*.html
+*.pdf
+*.bbl
+*.tex
 GPATH
 GRTAGS
 GTAGS
+
+patch.org
+todo.org
+troubleshoot.org
