@@ -2378,6 +2378,27 @@ LRN 是一种提高深度学习准确度的技术方法。LRN一般是在激活�
 
 **** 反卷积
 [[file:image/Deep learning/_1530183763_1721220464_2018-09-05_18-22-08.png]]
+*** CNN Model
+**** LeNet-5
+[[https://img-blog.csdn.net/20170501222000667?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvcWlhbnFpbmcxMzU3OQ==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast][LeNet-5 architecture]]
+[[file:image/Deep%20learning/screenshot_2018-12-27_19-45-23.png]]
+- MNIST 图像是 28×28 像素,但是它们被零填充到 32×32 像素,并且在被输入到网络之前被归一化。网络的其余部分不使用任何填充,这就是为什么随着图像在网络中的进展, 大小不断缩小。
+- 平均池化层比平常稍微复杂一些: 每个神经元计算输入的平均值, 然后将结果乘以一个可学习的系数(每个特征映射一个), 并添加一个可学习的偏差项(每个特征映射一个), 然后最后应用激活函数。
+- C3 图中的大多数神经元仅在三个或四个 S2 图(而不是全部六个 S2 图)中连接到神经元。有关详细信息, 请参阅原始论文中的表 1。
+- 输出层有点特殊: 每个神经元不是计算输入和权向量的点积,而是输出其输入向量和其权向量之间的欧几里德距离的平方。 每个输出测量图像属于特定数字类别的多少。交叉熵损失函数现在是首选, 因为它更多地惩罚不好的预测, 产生更大的梯度, 从而更快地收敛。
+
+**** AlexNet
+AlexNet CNN 架构赢得了 2012 年的 ImageNet ILSVRC 挑战赛: 它达到了 17% 的 top-5 的错误率, 而第二名错误率只有 26%! 它由 Alex Krizhevsky(因此而得名), Ilya Sutskever 和 Geoffrey Hinton 开发。 它与 LeNet-5 非常相似, 只是更大更深, 它是第一个将卷积层直接堆叠在一起, 而不是在每个卷积层顶部堆叠一个池化层。
+
+[[file:image/Deep%20learning/screenshot_2018-12-27_20-44-44.png]]
+- 减少过拟合: 首先他们在训练期间将丢失率(dropout 率为 50%)应用于层 F8 和 F9 的输出。其次, 他们通过随机对训练图像进行各种偏移, 水平翻转和改变照明条件来进行数据增强。
+- AlexNet 还在层 C1 和 C3 的 ReLU 步骤之后立即使用竞争标准化步骤, 称为局部响应标准化。(local response normalization)。
+
+**** GoogleNet
+GoogLeNet 架构是由 Christian Szegedy 等人开发的。来自 Google Research, 通过低于 7% 的 top-5 错误率, 赢得了 ILSVRC 2014 的挑战赛。这个伟大的表现很大程度上因为它比以前的 CNN 网络更深。这是通过称为初始模块(inception modules)的子网络实现的, 这使得 GoogLeNet 比以前的架构更有效地使用参数: 实际上, GoogLeNet 的参数比 AlexNet 少了 10 倍(约 600 万而不是 6000 万)。
+[[file:image/Deep%20learning/screenshot_2019-01-01_19-27-15.png]]
+[[file:image/Deep%20learning/screenshot_2019-01-01_19-27-29.png]]
+
 ** 循环神经网络(RNN)
 *** 展开计算图
 隐藏单元值得常用形式:

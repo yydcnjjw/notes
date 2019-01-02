@@ -13,6 +13,7 @@
 #+FILETAGS: :paper_read:
 
 * CNN                                                                  :CNN:
+[[https://img-blog.csdn.net/20170506083359490?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvcWlhbnFpbmcxMzU3OQ==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast][cnn structure history evolution]]
 ** DONE 2012 - ImageNet Classification with Deep Convolutional Neural Networks
  :PROPERTIES:
   :Custom_ID: NIPS2012_4824
@@ -47,7 +48,6 @@ cite:NIPS2012_4824
 - Implemented dropout layers in order to combat the problem of over fitting to the training data.
 - Trained the model using batch stochastic gradient descent, with specific values for momentum are weight decay.
 - Trained on two GTX 580 GPus for five to six days.
-
 ** DONE 2013 - Visualizing and Understanding Convolutional Networks
  :PROPERTIES:
   :Custom_ID: zeiler13_visual_under_convol_networ
@@ -113,13 +113,13 @@ cite:simonyan14_very_deep_convol_networ_large
     [[file:image/CNN/screenshot_2018-09-03_10-32-37.png]]
 
 *** Method:
-- The use of only 3x3 sized filters is quite different from AlexNet's 11x11 filters in the first layer and ZF Net's 7x7 filters. The authors's reasoning is that *the combination of two 3x3 conv layers has an effective receptive field of 5x5*. This in turn simulates a larger filter while keeping the benefits of smaller filters sizes. One of the benefits is a decrease in the number of parameters. Also, with two conv layers, we're able to use two ReLU layers instead of one.
+- The use of only 3x3 sized filters is quite different from AlexNet's 11x11 filters in the first layer and ZF Net's 7x7 filters. The author's reasoning is that *the combination of two 3x3 conv layers has an effective receptive field of 5x5*. This in turn simulates a larger filter while keeping the benefits of smaller filters sizes. One of the benefits is a decrease in the number of parameters. Also, with two conv layers, we're able to use two ReLU layers instead of one.
 - 3 conv layers back to back have an effective receptive field of 7x7.
 - As the spatial size of the input volumes at each layer decrease(result of the conv and pool layers), the depth of the volumes increases due of the increased number of filters as you go down the network.
 - Interesting to notice that the number of filters doubles after each maxpool layer. This reinforces the idea of shrinking spatial dimensions, but growing depth.
 - Worked well on both image classification and localization tasks. The authors used a form of localization as regression (cite:sermanet13_overf)
 - Built model with the Caffe toolbox.
-- *TODO* Used scale jittering as one data augmentation technique during training.
+- Used scale jittering as one data augmentation technique during training.
 - Used ReLU layers after each conv layer and trained with batch gradient descent.
 - Trained on 4 Nvidia Titan Black GPUs for *two to three weeks*.
 ** DONE 2014 - Going Deeper With Convolutions
@@ -229,7 +229,6 @@ the input and output of the dimensions
 - increase: consider two options
   - *Identity*: The shortcut still performs identity mapping, with extra zero entries padded for increasing dimensions, This option introduces no extra parameter.
   - *projection*: The projection shortcut in [[Eqn.(2)]] is used to match dimensions(done by 1x1 convolutions).
-
 ** TODO 2016 - Xception: Deep Learning With Depthwise Separable Convolutions
  :PROPERTIES:
   :Custom_ID: chollet16_xcept
@@ -463,7 +462,6 @@ cite:he17_mask_r_cnn
  :END:
 
 cite:zhao18_objec_detec_with_deep_learn
-
 
 * Natural Language Processing
 [[file:~/resources/mathematics/books/nlp/Speech_and_Language_Processing.pdf][Speech and Language Processing]]

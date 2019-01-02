@@ -2126,8 +2126,44 @@ The count field of a =rw_semaphore= structure may have following values:
 Api:
 =include/linux/rwsem.h=
 ** SeqLock
+#+caption: pseudocode
+#+BEGIN_SRC C
+  int counter = 0;
+  void write() {
+      counter++;
+      lock();
+      // write operation
+      unlock();
+      counter++;
+  }
 
-** TODO RCU
+  void read() {
+      int count = counter;
+      // read operation
+      if (count != counter) {
+          // repeat read operation
+      }
+  }
+#+END_SRC
+
+#+caption: Sequential lock struct
+#+BEGIN_SRC C
+  // include/linux/seqlock.h
+  typedef struct seqcount {
+          unsigned sequence;
+  #ifdef CONFIG_DEBUG_LOCK_ALLOC
+          struct lockdep_map dep_map;
+  #endif
+  } seqcount_t;
+
+  typedef struct {
+          struct seqcount seqcount;
+          spinlock_t lock;
+  } seqlock_t;
+
+#+END_SRC
+
+** RCU
 <<RCU>>
 
 * SMP
