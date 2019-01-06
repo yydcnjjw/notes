@@ -21,3 +21,7 @@
     #+END_SRC
   - configure =wpa_supplicant.conf=
 
+* developer env
+** flutter
+- configure cn repository
+<s

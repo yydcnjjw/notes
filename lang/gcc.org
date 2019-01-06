@@ -56,3 +56,13 @@ Case:
 #+RESULTS:
 | lock=1      |
 | old_value=1 |
+
+
+
+** afdas
+#+BEGIN_SRC C
+  int main(int argc, char *argv[])
+  {
+      return 0;
+  }
+#+END_SRC

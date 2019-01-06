@@ -14,6 +14,23 @@
 
 * CNN                                                                  :CNN:
 [[https://img-blog.csdn.net/20170506083359490?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvcWlhbnFpbmcxMzU3OQ==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast][cnn structure history evolution]]
+[[file:image/CNN/screenshot_2019-01-05_20-11-33.png]]
+
+** DONE 1998 - Gradient-Based Learning Applied to Document Recognition
+ :PROPERTIES:
+  :Custom_ID: lecun-98
+  :AUTHOR: LeCun, Bottou, Bengio \& Haffner
+  :JOURNAL: Proceedings of the IEEE
+  :YEAR: 1998
+  :VOLUME: 86
+  :PAGES: 2278-2324
+  :DOI: 
+  :URL: 
+ :END:
+
+ - State "DONE"       from "TODO"       [2019-01-06 日 19:38]
+cite:lecun-98
+
 ** DONE 2012 - ImageNet Classification with Deep Convolutional Neural Networks
  :PROPERTIES:
   :Custom_ID: NIPS2012_4824
@@ -27,7 +44,7 @@
  :END:
  - State "DONE"       from "TODO"       [2018-09-02 日 15:26]
 cite:NIPS2012_4824
-
+*AlexNet*
 - Summary:
   In the paper, the group discussed the architecture of the network(which was called AlexNet). They used relatively simple layout, compared to modern architectures. The network was made up of 5 conv layers, max-pooling layers, dropout layers, and 3 fully connected layers. The network they designed was used for classification with 1000 possible categories.
 - Problem: For classification with 1000 possible categories.
@@ -48,6 +65,28 @@ cite:NIPS2012_4824
 - Implemented dropout layers in order to combat the problem of over fitting to the training data.
 - Trained the model using batch stochastic gradient descent, with specific values for momentum are weight decay.
 - Trained on two GTX 580 GPus for five to six days.
+** TODO 2013 - Network in Network
+ :PROPERTIES:
+  :Custom_ID: lin13_networ_networ
+  :AUTHOR: Lin, Chen \& Yan
+  :JOURNAL: CoRR
+  :YEAR: 2013
+  :VOLUME: 
+  :PAGES: 
+  :DOI: 
+  :URL: http://arxiv.org/abs/1312.4400v3
+ :END:
+
+cite:lin13_networ_networ
+
+- Summary: The paper 
+- Problem:
+- Experiment
+  - Date:
+  - Model:
+
+*** Method:
+
 ** DONE 2013 - Visualizing and Understanding Convolutional Networks
  :PROPERTIES:
   :Custom_ID: zeiler13_visual_under_convol_networ
@@ -465,3 +504,6 @@ cite:zhao18_objec_detec_with_deep_learn
 
 * Natural Language Processing
 [[file:~/resources/mathematics/books/nlp/Speech_and_Language_Processing.pdf][Speech and Language Processing]]
+
+
+
