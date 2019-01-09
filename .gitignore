@@ -5,6 +5,7 @@ network/backup/*
 *.pdf
 *.bbl
 *.tex
+*.txt
 GPATH
 GRTAGS
 GTAGS

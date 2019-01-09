@@ -15,11 +15,15 @@
       pip install --user genpac
     #+END_SRC
 - wifi conf
-  - add =dhcpcd= hook with =wpa_supplicant=
-    #+BEGIN_SRC makefile
-      ln -s /usr/share/dhcpcd/hooks/10-wpa_supplicant /usr/lib/dhcpcd/dhcpcd-hooks
-    #+END_SRC
-  - configure =wpa_supplicant.conf=
+  =netctl=
+  =wife-menu=
+- sound conf
+  #+BEGIN_EXAMPLE
+  /etc/modprobe.d/modprobe.conf
+  options snd_hda_intel power_save=0
+  $HOME/.asoundrc
+  defaults.pcm.rate_converter "samplerate_best"
+  #+END_EXAMPLE
 
 * developer env
 ** flutter
