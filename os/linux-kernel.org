@@ -1410,8 +1410,6 @@ The slab allocator has three principle aims:
   };
 #+END_SRC
 
-
-
 Basic Structure:
 The slab allocator consists of a variable number of caches that are linked together on a doubly linked circular list called a =cache chain=.
 
@@ -2165,6 +2163,24 @@ Api:
 
 ** RCU
 <<RCU>>
+
+** Completions
+[[https://elixir.bootlin.com/linux/latest/source/Documentation/scheduler/completion.txt][Completions]]
+
+** Locking Traps
+- Ambiguous Rules
+  - Locking should really be laid out a the beginning, it can be a hard thing to retrofit in afterward
+
+    Time taken at the outset usually is paid back generously at debugging time.
+  - To make your locking work properly, you have to write some functions with the assumption that their caller has already acquired the relevant lock(s).
+    
+    If one function acquires a lock and then calls another function that also attempts to acquire the lock, you code deadlocks.
+- Lock Ordering Rules: when multiple locks must be acquired, they should always be acquired in the same order. (=Circular wait=)
+
+  A couple of rules of thumb:
+  - If you must obtain a lock that is local to your code(a device lock, say) along with a lock belonging to a more central part of the kernel, take your lock first.
+  - If you have a combination of semaphores and spinlocks, you must, of course, obtain the semaphore(s) first; calling down(which can sleep) while holding a spinlock is a serious error.
+- Fine-Versus Coarse-Grained Locking
 
 * SMP
 ** cpu_dev

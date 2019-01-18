@@ -86,6 +86,9 @@ cite:lin13_networ_networ
   - Model:
 
 *** Method:
+**** MLP Convolutional Layers
+
+**** Global Average Pooling
 
 ** DONE 2013 - Visualizing and Understanding Convolutional Networks
  :PROPERTIES:
