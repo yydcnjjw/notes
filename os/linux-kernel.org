@@ -2182,6 +2182,15 @@ Api:
   - If you have a combination of semaphores and spinlocks, you must, of course, obtain the semaphore(s) first; calling down(which can sleep) while holding a spinlock is a serious error.
 - Fine-Versus Coarse-Grained Locking
 
+** Sleep
+*** How a process sleeps
+1. set the state of the process to mark it as being asleep
+   #+BEGIN_SRC C
+     // TASK_INTERRUPTIBLE and TASK_UNINTERRUPTIBLE
+     #define set_current_state(state_value)
+   #+END_SRC
+2. giving up the processor
+
 * SMP
 ** cpu_dev
 <<cpu_dev>>
@@ -2262,6 +2271,8 @@ per-CPU is declared to =PER_CPU_BASE_SECTION + Subsection= according to the diff
 ** Cpumasks
 <<cpumask>>
 * Drive
+
+
 * Networking
 The factors that determines the traversal of a packet in the network stack
 - lookup in the routing subsystem

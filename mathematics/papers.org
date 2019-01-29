@@ -1,20 +1,11 @@
-#+LATEX_HEADER: \usepackage{tikz}
-#+LATEX_HEADER: \usepackage{multirow}
-#+PROPERTY: header-args:latex+ :packages '(("" "tikz"))
-#+PROPERTY: header-args:latex+ :imagemagick yes :fit yes
+#+LATEX_HEADER: \usepackage{xeCJK}
+#+LATEX_HEADER: \setCJKmainfont{Noto Sans CJK SC}
+#+LATEX_HEADER: \setCJKsansfont{Noto Serif CJK SC}
+#+LATEX_HEADER: \setCJKmonofont{Noto Sans Mono CJK SC}
 
-#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="http://www.pirilampo.org/styles/readtheorg/css/htmlize.css"/>
-#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="http://www.pirilampo.org/styles/readtheorg/css/readtheorg.css"/>
-#+HTML_HEAD: <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
-#+HTML_HEAD: <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
-#+HTML_HEAD: <script type="text/javascript" src="http://www.pirilampo.org/styles/lib/js/jquery.stickytableheaders.js"></script>
-#+HTML_HEAD: <script type="text/javascript" src="http://www.pirilampo.org/styles/readtheorg/js/readtheorg.js"></script>
-
-#+FILETAGS: :paper_read:
-
-* CNN                                                                  :CNN:
+* CNN
 [[https://img-blog.csdn.net/20170506083359490?watermark/2/text/aHR0cDovL2Jsb2cuY3Nkbi5uZXQvcWlhbnFpbmcxMzU3OQ==/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70/gravity/SouthEast][cnn structure history evolution]]
-[[file:image/CNN/screenshot_2019-01-05_20-11-33.png]]
+[[file:image/CNN/screenshot-2019-01-05-20-11-33.png]]
 
 ** DONE 1998 - Gradient-Based Learning Applied to Document Recognition
  :PROPERTIES:
@@ -28,7 +19,6 @@
   :URL: 
  :END:
 
- - State "DONE"       from "TODO"       [2019-01-06 日 19:38]
 cite:lecun-98
 
 ** DONE 2012 - ImageNet Classification with Deep Convolutional Neural Networks
@@ -42,7 +32,7 @@ cite:lecun-98
   :DOI: 
   :URL: http://papers.nips.cc/paper/4824-imagenet-classification-with-deep-convolutional-neural-networks.pdf
  :END:
- - State "DONE"       from "TODO"       [2018-09-02 日 15:26]
+
 cite:NIPS2012_4824
 *AlexNet*
 - Summary:
@@ -51,7 +41,7 @@ cite:NIPS2012_4824
 - Experiment
   - Date: Trained the network on ImageNet data, which contained over 15 million annotated images from a total of over 22000 categories.
   - Model:
-    [[file:image/CNN/screenshot_2018-09-02_15-14-34.png]]
+    [[file:image/CNN/screenshot-2018-09-02-15-14-34.png]]
   - Results:
     | Model         |   Top-1 |   Top-5 |
     |---------------+---------+---------|
@@ -101,7 +91,7 @@ cite:lin13_networ_networ
   :DOI: 
   :URL: http://arxiv.org/abs/1311.2901
  :END:
- - State "DONE"       from "TODO"       [2018-09-03 一 10:05]
+
 cite:zeiler13_visual_under_convol_networ
 
 - Summary: The paper are details of a slightly modified AlexNet model and *a very interesting way of visualizing feature maps*.
@@ -109,7 +99,7 @@ cite:zeiler13_visual_under_convol_networ
 - Experiment
   - Date: ImageNet
   - Model:
-    [[file:image/CNN/screenshot_2018-09-02_15-45-19.png]]
+    [[file:image/CNN/screenshot-2018-09-02-15-45-19.png]]
 
 *** Method:
 - Very similar architecture to AlexNet, except for a few minor modifications.
@@ -144,15 +134,15 @@ cite:sermanet13_overf
   :DOI: 
   :URL: http://arxiv.org/abs/1409.1556v6
  :END:
- - State "DONE"       from "TODO"       [2018-09-03 一 11:13]
+
 cite:simonyan14_very_deep_convol_networ_large
 - Summary: 
   Simplicity and depth. *The paper reinforced the notion that convolution neural networks have to have a deep network of layers in order for this hierarchical representation of visual data to work*.
 - Problem: ILSVRC 2014
 - Experiment
   - Date: ImageNet
-  - Model: [[http://www.robots.ox.ac.uk/~vgg/research/very_deep/]]
-    [[file:image/CNN/screenshot_2018-09-03_10-32-37.png]]
+  - Model: [[http://www.robots.ox.ac.uk/~vgg/research/very_deep/][very_deep]]
+    [[file:image/CNN/screenshot-2018-09-03-10-32-37.png]]
 
 *** Method:
 - The use of only 3x3 sized filters is quite different from AlexNet's 11x11 filters in the first layer and ZF Net's 7x7 filters. The author's reasoning is that *the combination of two 3x3 conv layers has an effective receptive field of 5x5*. This in turn simulates a larger filter while keeping the benefits of smaller filters sizes. One of the benefits is a decrease in the number of parameters. Also, with two conv layers, we're able to use two ReLU layers instead of one.
@@ -175,7 +165,7 @@ cite:simonyan14_very_deep_convol_networ_large
   :DOI: 
   :URL: http://arxiv.org/abs/1409.4842v1
  :END:
- - State "DONE"       from "TODO"       [2018-09-04 二 19:40]
+
 cite:szegedy14_going_deeper_with_convol
 
 - Summary:
@@ -199,7 +189,7 @@ cite:szegedy14_going_deeper_with_convol
 <<Inception module>>
 
 #+caption: Inception module
-[[file:image/CNN/screenshot_2018-09-04_19-28-36.png]]
+[[file:image/CNN/screenshot-2018-09-04-19-28-36.png]]
 
 Basically, at each layer of a traditional ConvNet, you have to make choice of whether to have a pooling operation or a conv operation(there is also the choice of filter size). What an Inception module allows you to do is perform all of these operations in parallel. *But It would lead to way too many outputs*. We would end up with extremely large depth channel for the output volume.
 The way that the authors address this is by *adding 1x1 conv operations before the 3x3 and 5x5 layers*. The 1x1 convolutions(or network in network layer)provide a method of dimensionality reduction.
@@ -215,7 +205,7 @@ The way that the authors address this is by *adding 1x1 conv operations before t
   :DOI: 
   :URL: http://arxiv.org/abs/1512.03385v1
  :END:
- - State "DONE"       from "TODO"       [2018-08-23 四 18:01]
+
 cite:he15_deep_resid_learn_image_recog
 
 - Summary:
@@ -264,13 +254,13 @@ y=F(x,\{W_{i}\})+W_{s}x
 
 **** Residual Network
 #+caption: Residual network
-[[file:image/CNN/screenshot_2018-08-23_16-24-54.png]]
+[[file:image/CNN/screenshot-2018-08-23-16-24-54.png]]
 
 the input and output of the dimensions
-- same: use identity shortcuts ([[Eqn.(1)]])
+- same: use identity shortcuts ([[Eqn.(1)][Eqn.(1)]])
 - increase: consider two options
   - *Identity*: The shortcut still performs identity mapping, with extra zero entries padded for increasing dimensions, This option introduces no extra parameter.
-  - *projection*: The projection shortcut in [[Eqn.(2)]] is used to match dimensions(done by 1x1 convolutions).
+  - *projection*: The projection shortcut in [[Eqn.(2)][Eqn.(2)]] is used to match dimensions(done by 1x1 convolutions).
 ** TODO 2016 - Xception: Deep Learning With Depthwise Separable Convolutions
  :PROPERTIES:
   :Custom_ID: chollet16_xcept
@@ -285,7 +275,7 @@ the input and output of the dimensions
 
 cite:chollet16_xcept
 
-* Human Pose Estimation                               :human_pose_estimation:
+* Human Pose Estimation
 ** DONE 2016 - Realtime Multi-Person 2d Pose Estimation Using Part Affinity Fields
  :PROPERTIES:
   :Custom_ID: cao16_realt_multi_person_pose_estim
@@ -297,7 +287,7 @@ cite:chollet16_xcept
   :DOI: 
   :URL: http://arxiv.org/abs/1611.08050v2
  :END:
-- State "DONE"       from "TODO"       [2018-08-24 五 17:18]
+
 cite:cao16_realt_multi_person_pose_estim
 
 - Summary:
@@ -309,18 +299,19 @@ cite:cao16_realt_multi_person_pose_estim
 
 *** Method:
 - Confidence Maps for Part Detection
+
   The paper generate the groundtruth confidence maps from the annotated 2D keypoints. In fact, Using Gaussian filtering for the annotated 2D keypoints.
 
-  #+BEGIN_QUOTE
   In this paper, the key points are obtained by shifting the confidence map by one pixel from four directions and taking the maximum values of the original map and the offset map.
-  #+END_QUOTE 
 - Part Affinity Fields for Part Associate
+
   A 2D vector encodes the direction that points from one part of the limb to the other.
 - Multi-Person Parsing using PAFs
+
   The paper measures the alignment of the predicted PAFs with the candidate limb that would be formed by connecting the detected body parts and take the maximum values of the alignment.
 - Network arch
   #+caption: Architecture of the two-branch multi-stage CNN
-  [[file:image/human-pose-estimation/screenshot_2018-08-24_16-51-49.png]]
+  [[file:image/human-pose-estimation/screenshot-2018-08-24-16-51-49.png]]
 
   - F, that is a set of feature maps, is generated by a convolution network(initialized by the first 10 layers of VGG-19 and fine-tuned)
   - Each stage in the first branch predicts confidence maps $S^{t}$.
@@ -348,7 +339,7 @@ cite:chen17_cascad_pyram_networ_multi_person_pose_estim
   - Model:
 
 *** Method:
-* Object Detection                                         :object_detection:
+* Object Detection
 ** DONE 2013 - Rich Feature Hierarchies for Accurate Object Detection and Semantic Segmentation
  :PROPERTIES:
   :Custom_ID: girshick13_rich_featur_hierar_accur_objec
@@ -360,7 +351,7 @@ cite:chen17_cascad_pyram_networ_multi_person_pose_estim
   :DOI: 
   :URL: http://arxiv.org/abs/1311.2524v5
  :END:
- - State "DONE"       from "TODO"       [2018-09-12 三 16:58]
+
 cite:girshick13_rich_featur_hierar_accur_objec
 
 - Summary
@@ -374,12 +365,14 @@ cite:girshick13_rich_featur_hierar_accur_objec
 *** Method:
 The paper object detection system consists of three steps:
 1. Scan the input image for possible objects using an algorithm called Selective Search, generating(about 2000 *region proposals*)
-2. Feature extraction: extract a 4096-dimensional feature vector form each region proposal using the Caffe implementation of the CNN.(require [[Object proposal transformations]])
+2. Feature extraction: 
+
+   extract a 4096-dimensional feature vector form each region proposal using the Caffe implementation of the CNN.(require [[Object proposal transformations][Object proposal transformations]])
 3. Take the output of each CNN and feed it into a) an SVM to classify the region and b) a linear regressor to tighten the bounding box of the object, if such an object exists
 
 #+caption: R-CNN three steps
 #+DOWNLOADED: https://cdn-images-1.medium.com/max/800/1*RUjYe8yqo7nKAG2lNd2mbw.png @ 2018-09-12 16:48:31
-[[file:image/Object Detection/screenshot_2018-09-12_16-48-31.png]]
+[[file:image/Object Detection/screenshot-2018-09-12-16-48-31.png]]
 
 **** Object proposal transformations
 <<Object proposal transformations>>
@@ -396,7 +389,7 @@ The paper object detection system consists of three steps:
   :DOI: 
   :URL: http://arxiv.org/abs/1504.08083v2
  :END:
- - State "DONE"       from "TODO"       [2018-09-13 四 15:12]
+
 cite:girshick15_fast_r_cnn
 
 
@@ -412,7 +405,7 @@ cite:girshick15_fast_r_cnn
 *** Method:
 #+caption: Fast R-CNN
 #+DOWNLOADED: https://cdn-images-1.medium.com/max/800/1*iWyUwIPO-5kA2ECAfaaPSg.png @ 2018-09-13 15:11:32
-[[file:image/Object Detection/screenshot_2018-09-13_15-11-32.png]]
+[[file:image/Object Detection/screenshot-2018-09-13-15-11-32.png]]
 
 ** DONE 2015 - Faster R-Cnn: Towards Real-Time Object Detection With Region Proposal Networks
  :PROPERTIES:
@@ -425,7 +418,7 @@ cite:girshick15_fast_r_cnn
   :DOI: 
   :URL: http://arxiv.org/abs/1506.01497v3
  :END:
- - State "DONE"       from "TODO"       [2018-09-18 二 20:04]
+
 cite:ren15_faster_r_cnn
 - Summary: Faster R-CNN = [[RPN]] + Fast R-CNN
 - Problem: Object Detection
@@ -442,7 +435,7 @@ cite:ren15_faster_r_cnn
 
 #+caption: Detecting the anchor boxes for a single 3x3 window
 #+DOWNLOADED: cite:ren15_faster_r_cnn @ 2018-09-17 14:35:46
-[[file:image/Object Detection/screenshot_2018-09-17_14-35-46.png]]
+[[file:image/Object Detection/screenshot-2018-09-17-14-35-46.png]]
 
 Once we have our region proposals, we feed them straight into what is essentially a Fast R-CNN. We add a pooling layer, some fully-connected layers, and finally a softmax classification layer and bounding box regressor. In a sense, *Faster R-CNN = RPN + Fast R-CNN*.
 
@@ -466,8 +459,6 @@ cite:lin16_featur_pyram_networ_objec_detec
   Deep learning object detectors have avoided pyramid representations, in part because they are compute and memory intensive.    
     
 *** Method:
-
-
 ** TODO 2017 - Mask R-Cnn
  :PROPERTIES:
   :Custom_ID: he17_mask_r_cnn
@@ -489,8 +480,6 @@ cite:he17_mask_r_cnn
   - Model:
 
 *** Method:
-
-
 ** TODO 2018 - Object Detection With Deep Learning: a Review
  :PROPERTIES:
   :Custom_ID: zhao18_objec_detec_with_deep_learn
@@ -508,5 +497,23 @@ cite:zhao18_objec_detec_with_deep_learn
 * Natural Language Processing
 [[file:~/resources/mathematics/books/nlp/Speech_and_Language_Processing.pdf][Speech and Language Processing]]
 
+#+NAME: startup
+#+BEGIN_SRC emacs-lisp
+  (venv-workon "python3")
+  (setq-local my/org-babel-src-list '())
+
+  (dolist (list ml_org/babel-src-list)
+    (org-babel-goto-named-src-block list)
+    (org-babel-execute-src-block))
+  (outline-hide-sublevels 1)
+#+END_SRC
+
+# Local Variables:
+# org-confirm-babel-evaluate: nil
+# eval: (progn (org-babel-goto-named-src-block "startup") (org-babel-execute-src-block) (outline-hide-sublevels 1))
+# End:
+
+bibliography:/home/yydcnjjw/resources/mathematics/bibliography/references.bib
+bibliographystyle:unsrt
 
 

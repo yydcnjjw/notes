@@ -24,6 +24,12 @@
   $HOME/.asoundrc
   defaults.pcm.rate_converter "samplerate_best"
   #+END_EXAMPLE
+- imagemagick
+  #+BEGIN_EXAMPLE
+    /etc/ImageMagick-7/policy.xml
+    comment
+    <policy domain="coder" rights="none" pattern="{PS,PS2,PS3,EPS,PDF,XPS}" />
+  #+END_EXAMPLE
 
 * developer env
 ** flutter

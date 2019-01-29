@@ -1,0 +1,162 @@
+#+LATEX_HEADER: \usepackage{xeCJK}
+#+LATEX_HEADER: \setCJKmainfont{Noto Sans CJK SC}
+#+LATEX_HEADER: \setCJKsansfont{Noto Serif CJK SC}
+#+LATEX_HEADER: \setCJKmonofont{Noto Sans Mono CJK SC}
+
+* TODO Feature Engineering
+[[https://learning.oreilly.com/library/view/feature-engineering-for/9781491953235/][Feature Engineering for Machine Learning]]
+
+** Numeric Features
+- Binarization
+- Numeric Transforms: Transform numeric ​​into similar orders of magnitude
+  - Quantization or Binning
+    - fixed-width binning(fixed-width)
+      *Note*: If there are large gaps in the counts, then there will be many empty bins with no data.
+    - quantile binning(adaptive)
+  - Log Transform
+    <<Eqn.(1.1.1)>>
+    #+BEGIN_SRC latex :results raw :exports none
+      \begin{equation}
+        y=\log_{a}(x)
+      \end{equation}
+    #+END_SRC 
+
+    #+RESULTS:
+    \begin{equation}
+      y=\log_{a}(x)
+    \end{equation}
+
+   #+BEGIN_SRC ipython :session :exports both :results raw drawer
+     x = np.arange(1, 1000)
+     y = np.log10(x)
+
+     plt.plot(y)
+    #+END_SRC
+
+    #+RESULTS:
+    :RESULTS:
+    # Out[4]:
+    : [<matplotlib.lines.Line2D at 0x7f7bd78d90b8>]
+    [[file:./obipy-resources/l88zJ3.png]]
+    :END:
+
+
+- Feature Scaling or Normalization
+  - Min-Max scaling
+    <<Eqn.(1.1.3)>>
+    #+BEGIN_SRC latex :results raw :exports none
+      \begin{equation}
+        \tilde{x}=\frac{x-\min(x)}{\max(x)-\min(x)}
+      \end{equation}
+    #+END_SRC 
+
+    #+RESULTS:
+    \begin{equation}
+      \tilde{x}=\frac{x-\min(x)}{\max(x)-\min(x)}
+    \end{equation}
+
+    #+BEGIN_SRC ipython :session :exports both :results raw drawer
+      def min_max_scaling(x):
+          return (x - np.min(x)) / np.max(x) - np.min(x)
+
+      x = np.log10(np.arange(1, 1000))
+      y = min_max_scaling(x)
+
+      plt.plot(y)
+    #+END_SRC
+
+    #+RESULTS:
+    :RESULTS:
+    # Out[5]:
+    : [<matplotlib.lines.Line2D at 0x7f7bd78bbdd8>]
+    [[file:./obipy-resources/LpSVlS.png]]
+    :END:
+
+  - Standardization(Variance Scaling)
+    <<Eqn.(1.1.4)>>
+    #+BEGIN_SRC latex :results raw :exports none
+      \begin{equation}
+        \tilde{x}=\frac{x-mean(x)}{\sqrt{var(x)}}
+      \end{equation}
+    #+END_SRC 
+
+    #+RESULTS:
+    \begin{equation}
+      \tilde{x}=\frac{x-mean(x)}{\sqrt{var(x)}}
+    \end{equation}
+
+    #+BEGIN_SRC ipython :session :exports both :results raw drawer
+      def standardization(x):
+          return (x - np.mean(x)) / np.sqrt(np.var(x))
+
+      x = np.log10(np.arange(1, 1000))
+      y = standardization(x)
+
+      plt.plot(y)
+    #+END_SRC
+
+    #+RESULTS:
+    :RESULTS:
+    # Out[4]:
+    : [<matplotlib.lines.Line2D at 0x7f8889837668>]
+    [[file:./obipy-resources/0nUslM.png]]
+    :END:
+
+
+  - $l^{2}$ Normalization
+
+* Model Evaluation
+
+# * 呵呵呵
+# 呵呵哈哈哈哈司法所分
+
+* Code
+#+NAME: import_package
+#+BEGIN_SRC ipython :session :exports both :results raw drawer
+  %matplotlib inline
+  import numpy as np
+  import matplotlib.pyplot as plt
+#+END_SRC
+
+#+RESULTS: import_package
+:RESULTS:
+# Out[1]:
+:END:
+
+#+NAME: matplotlib_configure
+#+BEGIN_SRC ipython :session :exports both :results raw drawer
+  plt.rcParams['figure.facecolor'] = 'white'
+#+END_SRC
+
+#+RESULTS: matplotlib_configure
+:RESULTS:
+# Out[2]:
+:END:
+
+#+NAME: tool_function
+#+BEGIN_SRC ipython :session :exports both :results raw drawer
+
+#+END_SRC
+
+#+RESULTS: tool_function
+
+#+NAME: startup
+#+BEGIN_SRC emacs-lisp
+  (venv-workon "python3")
+  (setq-local my/org-babel-src-list
+        '("import_package"
+          "matplotlib_configure"
+          "tool_function"))
+
+  (dolist (list ml_org/babel-src-list)
+    (org-babel-goto-named-src-block list)
+    (org-babel-execute-src-block))
+  (outline-hide-sublevels 1)
+#+END_SRC
+
+#+RESULTS: startup
+
+# Local Variables:
+# org-confirm-babel-evaluate: nil
+# eval: (progn (org-babel-goto-named-src-block "startup") (org-babel-execute-src-block) (outline-hide-sublevels 1))
+# End:
