@@ -2272,7 +2272,6 @@ per-CPU is declared to =PER_CPU_BASE_SECTION + Subsection= according to the diff
 <<cpumask>>
 * Drive
 
-
 * Networking
 The factors that determines the traversal of a packet in the network stack
 - lookup in the routing subsystem
@@ -2323,6 +2322,7 @@ Netlink sockets is created by =netlink_kernel_create()= in the kernel networking
 * Timers and time management
 ** jiffy
 =jiffy=: is an informal term for any unspecified short period of time. In the Linux kernel this definition is very similar to the =jiffy=. There is global variable with the =jiffies= which holds the number of ticks(timer interrupt of times) that have occurred since the system booted.
+
 #+BEGIN_SRC C
   // include/linux/jiffies.h
   extern u64 __cacheline_aligned_in_smp jiffies_64;

@@ -502,11 +502,13 @@ cite:zhao18_objec_detec_with_deep_learn
   (venv-workon "python3")
   (setq-local my/org-babel-src-list '())
 
-  (dolist (list ml_org/babel-src-list)
+  (dolist (list my/org-babel-src-list)
     (org-babel-goto-named-src-block list)
     (org-babel-execute-src-block))
   (outline-hide-sublevels 1)
 #+END_SRC
+
+#+RESULTS: startup
 
 # Local Variables:
 # org-confirm-babel-evaluate: nil

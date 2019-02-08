@@ -3,112 +3,294 @@
 #+LATEX_HEADER: \setCJKsansfont{Noto Serif CJK SC}
 #+LATEX_HEADER: \setCJKmonofont{Noto Sans Mono CJK SC}
 
-* TODO Feature Engineering
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="https://fniessen.github.io/org-html-themes/styles/readtheorg/css/htmlize.css"/>
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="https://fniessen.github.io/org-html-themes/styles/readtheorg/css/readtheorg.css"/>
+
+#+HTML_HEAD: <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+#+HTML_HEAD: <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+#+HTML_HEAD: <script type="text/javascript" src="https://fniessen.github.io/org-html-themes/styles/lib/js/jquery.stickytableheaders.min.js"></script>
+#+HTML_HEAD: <script type="text/javascript" src="https://fniessen.github.io/org-html-themes/styles/readtheorg/js/readtheorg.js"></script>
+
+* DONE Feature Engineering
+- State "DONE"       from "TODO"       [2019-02-03 日 20:22]
 [[https://learning.oreilly.com/library/view/feature-engineering-for/9781491953235/][Feature Engineering for Machine Learning]]
 
 ** Numeric Features
-- Binarization
-- Numeric Transforms: Transform numeric ​​into similar orders of magnitude
-  - Quantization or Binning
-    - fixed-width binning(fixed-width)
-      *Note*: If there are large gaps in the counts, then there will be many empty bins with no data.
-    - quantile binning(adaptive)
-  - Log Transform
-    <<Eqn.(1.1.1)>>
-    #+BEGIN_SRC latex :results raw :exports none
-      \begin{equation}
-        y=\log_{a}(x)
-      \end{equation}
-    #+END_SRC 
+*** Binarization
+*** Numeric Transforms
+*Problem:*
 
-    #+RESULTS:
+Raw counts that span several orders of magnitude are problematic for many models.
+- In a linear model, the same linear coefficient would have to work for all possible values of the counts.
+- Large counts could also wreak havoc in unsupervised learning methods such as /k-means/ clustering, which uses /Euclidean/ distance as a similarity function to measure the similarity between data points.
+- A large count in one element of the data vector would outweight the similarity in all other elements, which could throw off the entire similarity measurement.
+
+*Solution:*
+
+Transform numeric ​​into similar orders of magnitude, It group the counts into bins, and get rid of the actual count values. Quantization maps a continuous number to a discrete one. *We can think of the discretized numbers as an ordered sequence of bins that represent measure of intensity.*
+
+- Quantization or Binning
+  - fixed-width binning(fixed-width)
+    *Note*: If there are large gaps in the counts, then there will be many empty bins with no data.
+  - quantile binning(adaptive)
+- Log Transform
+  <<Eqn.(1.1.1)>>
+  #+BEGIN_SRC latex :results raw :exports none
     \begin{equation}
       y=\log_{a}(x)
     \end{equation}
+  #+END_SRC 
 
-   #+BEGIN_SRC ipython :session :exports both :results raw drawer
-     x = np.arange(1, 1000)
-     y = np.log10(x)
+  #+RESULTS:
+  \begin{equation}
+    y=\log_{a}(x)
+  \end{equation}
 
-     plt.plot(y)
-    #+END_SRC
+ #+BEGIN_SRC ipython :session :exports both :results raw drawer
+   x = np.arange(0.1, 10, 0.1)
+   y = np.exp(x)
+   plt.subplot(1, 2, 1)
+   plt.plot(x, y)
 
-    #+RESULTS:
-    :RESULTS:
-    # Out[4]:
-    : [<matplotlib.lines.Line2D at 0x7f7bd78d90b8>]
-    [[file:./obipy-resources/l88zJ3.png]]
-    :END:
+   y = np.log(y)
+   plt.subplot(1, 2, 2)
+   plt.plot(x, y)
+   pass
+  #+END_SRC
 
+  #+RESULTS:
+  :RESULTS:
+  # Out[78]:
+  [[file:./obipy-resources/P11sCI.png]]
+  :END:
 
-- Feature Scaling or Normalization
-  - Min-Max scaling
-    <<Eqn.(1.1.3)>>
-    #+BEGIN_SRC latex :results raw :exports none
-      \begin{equation}
-        \tilde{x}=\frac{x-\min(x)}{\max(x)-\min(x)}
-      \end{equation}
-    #+END_SRC 
+*** Feature Scaling or Normalization
+Feature scaling changes the scale of the feature.
 
-    #+RESULTS:
+- Min-Max scaling :: squeezes all feature values to be within the range of $[0,1]$
+  <<Eqn.(1.1.3)>>
+  #+BEGIN_SRC latex :results raw :exports none
     \begin{equation}
       \tilde{x}=\frac{x-\min(x)}{\max(x)-\min(x)}
     \end{equation}
+  #+END_SRC 
 
-    #+BEGIN_SRC ipython :session :exports both :results raw drawer
-      def min_max_scaling(x):
-          return (x - np.min(x)) / np.max(x) - np.min(x)
+  #+RESULTS:
+  \begin{equation}
+    \tilde{x}=\frac{x-\min(x)}{\max(x)-\min(x)}
+  \end{equation}
 
-      x = np.log10(np.arange(1, 1000))
-      y = min_max_scaling(x)
+  #+BEGIN_SRC ipython :session :exports both :results raw drawer
+    def min_max_scaling(x):
+        return (x - np.min(x)) / np.max(x) - np.min(x)
 
-      plt.plot(y)
-    #+END_SRC
+    x = np.log10(np.arange(1, 1000))
+    y = min_max_scaling(x)
 
-    #+RESULTS:
-    :RESULTS:
-    # Out[5]:
-    : [<matplotlib.lines.Line2D at 0x7f7bd78bbdd8>]
-    [[file:./obipy-resources/LpSVlS.png]]
-    :END:
+    plt.plot(y)
+    pass
+  #+END_SRC
 
-  - Standardization(Variance Scaling)
-    <<Eqn.(1.1.4)>>
-    #+BEGIN_SRC latex :results raw :exports none
-      \begin{equation}
-        \tilde{x}=\frac{x-mean(x)}{\sqrt{var(x)}}
-      \end{equation}
-    #+END_SRC 
-
-    #+RESULTS:
+  #+RESULTS:
+  :RESULTS:
+  # Out[77]:
+  [[file:./obipy-resources/QHXnjE.png]]
+  :END:
+- Standardization(Variance Scaling) :: scale feature to that has a mean of 0 and a variance of 1
+  <<Eqn.(1.1.4)>>
+  #+BEGIN_SRC latex :results raw :exports none
     \begin{equation}
       \tilde{x}=\frac{x-mean(x)}{\sqrt{var(x)}}
     \end{equation}
+  #+END_SRC 
 
-    #+BEGIN_SRC ipython :session :exports both :results raw drawer
-      def standardization(x):
-          return (x - np.mean(x)) / np.sqrt(np.var(x))
+  #+RESULTS:
+  \begin{equation}
+    \tilde{x}=\frac{x-mean(x)}{\sqrt{var(x)}}
+  \end{equation}
 
-      x = np.log10(np.arange(1, 1000))
-      y = standardization(x)
+  #+BEGIN_SRC ipython :session :exports both :results raw drawer
+    def standardization(x):
+        return (x - np.mean(x)) / np.std(x)
 
-      plt.plot(y)
-    #+END_SRC
+    x = np.random.normal(loc=10.0, scale=100.0, size=(10000, 2))
+    y = standardization(x)
+    plt.subplot(1, 2, 1)
+    plt.title('mean=%.3f, std=%.3f' % (np.mean(x), np.std(x)))
+    plt.hist2d(x[:, 0], x[:, 1], bins=100)
+    plt.subplot(1, 2, 2)
+    plt.title('mean=%.3f, std=%.3f' % (np.mean(y), np.std(y)))
+    plt.hist2d(y[:, 0], y[:, 1], bins=100)
+    pass
+  #+END_SRC
 
-    #+RESULTS:
-    :RESULTS:
-    # Out[4]:
-    : [<matplotlib.lines.Line2D at 0x7f8889837668>]
-    [[file:./obipy-resources/0nUslM.png]]
-    :END:
+  #+RESULTS:
+  :RESULTS:
+  # Out[15]:
+  [[file:./obipy-resources/Uz7lfl.png]]
+  :END:
+
+  #+BEGIN_QUOTE
+    Don't "center" sparse data!
+  #+END_QUOTE
+- $l^{2}$ Normalization :: normalize(divides) the original feature value by what's known as the $l^{2}$ norm(/Euclidean/ norm).
+  #+BEGIN_SRC latex :results raw :exports none
+    \begin{align}
+      &\tilde{x}=\frac{x}{ \left\Vert x \right\Vert _{2} }\\
+      &\left\Vert x \right\Vert _{2}=\sqrt{x_{1}^{2}+x_{2}^{2}+\cdots+x_{m}^{2}}
+    \end{align}
+  #+END_SRC 
+
+  #+RESULTS:
+  \begin{align}
+    &\tilde{x}=\frac{x}{ \left\Vert x \right\Vert _{2} }\\
+    &\left\Vert x \right\Vert _{2}=\sqrt{x_{1}^{2}+x_{2}^{2}+\cdots+x_{m}^{2}}
+  \end{align}
+
+#+BEGIN_SRC ipython :session :exports both :results raw drawer
+  def l2_normalization(x):
+      return x / np.sqrt(np.sum(pow(x, 2)))
+
+  x = np.random.normal(loc=10.0, scale=100.0, size=(100, 2))
+  y = l2_normalization(x)
+
+  plt.subplot(1, 2, 1)
+  plt.hist2d(x[:, 0], x[:, 1], bins=100)
+  plt.subplot(1, 2, 2)
+  plt.hist2d(y[:, 0], y[:, 1], bins=100)
+  plt.tight_layout()
+  pass
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+# Out[81]:
+[[file:./obipy-resources/vgDZZ1.png]]
+:END:
+
+*** Feature Selection
+Feature selection techniques prune away nonuseful features in order to reduce the complexity of the resulting model.
+
+Feature selection techniques fail into three classes:
+- Filtering :: prepossess features to remove ones that are unlikely to be useful for the model
+- Wrapper methods :: These techniques are expensive, but they allow you to try out subsets of features, which means you won't accidentally prune away features that are uninformative by themselves but useful when taken in combination.
+- Embedded methods :: These methods perform feature selection as part of the model training process.
+
+** Text Data
+Bag-of-Words
+Bag-of-n-Grams
+Tf-Idf
+** Categorical Variables
+*** Encoding
+*Approach*
+- One-Hot Encoding
+  #+BEGIN_SRC ipython :session :exports both :results raw drawer
+    from sklearn.preprocessing import OneHotEncoder
+    import pandas as pd
+
+    df = pd.DataFrame([['a'], ['b'], ['c']])
+    one_hot = pd.get_dummies(df)
+    one_hot
+  #+END_SRC
+
+  #+RESULTS:
+  :RESULTS:
+  # Out[21]:
+  #+BEGIN_EXAMPLE
+    0_a  0_b  0_c
+    0    1    0    0
+    1    0    1    0
+    2    0    0    1
+  #+END_EXAMPLE
+  :END:
+- Dummy Coding
+  #+BEGIN_SRC ipython :session :exports both :results raw drawer
+    dummy_df = pd.get_dummies(df, drop_first=True)
+    dummy_df
+  #+END_SRC
+
+  #+RESULTS:
+  :RESULTS:
+  # Out[22]:
+  #+BEGIN_EXAMPLE
+        0_b  0_c
+    0    0    0
+    1    1    0
+    2    0    1
+  #+END_EXAMPLE
+  :END:
+- Effect Coding
+
+*Space requirement*: $O(n)$ using the sparse vector format, where $n$ is the number of data points.
+
+*Computation requirement*: $O(nk)$ under a linear model, where $k$ is the number of categories.
+
+*Pros*
+- Easiest to implement
+- Potentially most accurate
+- Feasible for online learning
+
+*Cons*
+- Computationally inefficient
+- Does not adapt to growing categories
+- Not feasible for anything other than linear models
+- Requires large-scale distributed optimization with truly large datasets
+
+*** Feature hashing
+#+BEGIN_SRC ipython :session :exports both :results raw drawer
+  # m represent fixed word size
+  def hash_features(word_list, m):
+      output = [0] * m
+      for word in word_list:
+          index = hash(word) % m
+          output[index] += 1
+      return output
 
 
-  - $l^{2}$ Normalization
+  word_list = ['a', 'b', 'c', 'd', 'e', 'a', 'b']
+  hash_features(word_list, 5)
+#+END_SRC
+
+#+RESULTS:
+:RESULTS:
+# Out[14]:
+: [2, 0, 1, 3, 1]
+:END:
+
+*Space requirement*: $O(n)$ using the sparse matrix format, where $n$ is the number of data points.
+
+*Computation requirement*: $O(nm)$ under a linear or kernel model, where $m$ is the number of hash bins.
+
+*Pros*
+- Easy to implement
+- Makes model training cheaper
+- Easily adaptable to new categories
+- Easily handles rare categories
+- Feasible for online learing
+
+*Cons*
+- Only suitable for linear or kernelized models
+- Hashed features not interpretable
+- Mixed reports of accuracy
+
+*** Bin-counting
+*Space requirement*: $O(n+k)$ for small, dense representation of each data point, plus the count statistics that must be kept for each category.
+
+*Computation requirement*: $O(n)$ for linear models; also usable for nonlinear models such as trees
+
+*Pros*
+- Smallest computational burden at training time
+- Enables tree-based models
+- Relatively easy to adapt to new categories
+- Handles rare categories with back-off or count-min sketch
+- Interpretable
+
+*Cons*
+- Requires historical data
+- Delayed updates required, not completely suitable for online learning
+- Higher potential for leakage
 
 * Model Evaluation
-
-# * 呵呵呵
-# 呵呵哈哈哈哈司法所分
 
 * Code
 #+NAME: import_package
@@ -148,7 +330,7 @@
           "matplotlib_configure"
           "tool_function"))
 
-  (dolist (list ml_org/babel-src-list)
+  (dolist (list my/org-babel-src-list)
     (org-babel-goto-named-src-block list)
     (org-babel-execute-src-block))
   (outline-hide-sublevels 1)
