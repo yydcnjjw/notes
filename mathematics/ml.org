@@ -302,7 +302,7 @@ Tf-Idf
 
 #+RESULTS: import_package
 :RESULTS:
-# Out[1]:
+# Out[12]:
 :END:
 
 #+NAME: matplotlib_configure
@@ -312,7 +312,7 @@ Tf-Idf
 
 #+RESULTS: matplotlib_configure
 :RESULTS:
-# Out[2]:
+# Out[13]:
 :END:
 
 #+NAME: tool_function
