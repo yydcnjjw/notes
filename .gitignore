@@ -1,12 +1,14 @@
-ltximg
-network/backup/*
-obipy-resources
+ltximg/
+network/backup/
+obipy-resources/
+
 *.odt
 *.html
 *.pdf
 *.bbl
 *.tex
 *.txt
+
 GPATH
 GRTAGS
 GTAGS
