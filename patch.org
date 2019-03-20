@@ -9,11 +9,6 @@
     #+END_SRC
   - configure =/etc/systemd/system/docker.service.d/docker-storage.conf=
     modify docker file dir
-- pac conf:
-  - install
-    #+BEGIN_SRC shell
-    pip install --user genpac
-    #+END_SRC
 - wifi conf
   =netctl=
   =wife-menu=
@@ -30,9 +25,23 @@
     comment
     <policy domain="coder" rights="none" pattern="{PS,PS2,PS3,EPS,PDF,XPS}" />
   #+END_EXAMPLE
-
+- ca
+  https://deepzz.com/post/based-on-openssl-privateCA-issuer-cert.html
+- proxy
+  - =dnsmasq=
 * developer env
 ** flutter
 - configure cn repository
-
+** maven repository
+- maven: =$HOME/.m2/settings.xml=
+- gradle
+  #+BEGIN_SRC kotlin
+    allprojects {
+        repositories {
+            maven(url="https://maven.aliyun.com/repository/public/")
+            mavenLocal()
+            jcenter()
+        }
+    }
+  #+END_SRC
 * Test

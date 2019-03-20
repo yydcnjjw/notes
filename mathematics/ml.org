@@ -168,14 +168,6 @@ Feature scaling changes the scale of the feature.
 [[file:./obipy-resources/vgDZZ1.png]]
 :END:
 
-*** Feature Selection
-Feature selection techniques prune away nonuseful features in order to reduce the complexity of the resulting model.
-
-Feature selection techniques fail into three classes:
-- Filtering :: prepossess features to remove ones that are unlikely to be useful for the model
-- Wrapper methods :: These techniques are expensive, but they allow you to try out subsets of features, which means you won't accidentally prune away features that are uninformative by themselves but useful when taken in combination.
-- Embedded methods :: These methods perform feature selection as part of the model training process.
-
 ** Text Data
 Bag-of-Words
 Bag-of-n-Grams
@@ -290,8 +282,21 @@ Tf-Idf
 - Delayed updates required, not completely suitable for online learning
 - Higher potential for leakage
 
-* Model Evaluation
+** Feature Selection
+Feature selection techniques prune away nonuseful features in order to reduce the complexity of the resulting model.
 
+Feature selection techniques fail into three classes:
+- Filtering :: prepossess features to remove ones that are unlikely to be useful for the model
+- Wrapper methods :: These techniques are expensive, but they allow you to try out subsets of features, which means you won't accidentally prune away features that are uninformative by themselves but useful when taken in combination.
+- Embedded methods :: These methods perform feature selection as part of the model training process.
+
+** Feature Crosses
+
+* Model Evaluation
+** Evaluation Function
+*** Hold-out
+*** k
+*** bootstrapping
 * Code
 #+NAME: import_package
 #+BEGIN_SRC ipython :session :exports both :results raw drawer
@@ -302,7 +307,7 @@ Tf-Idf
 
 #+RESULTS: import_package
 :RESULTS:
-# Out[12]:
+# Out[1]:
 :END:
 
 #+NAME: matplotlib_configure
@@ -312,7 +317,7 @@ Tf-Idf
 
 #+RESULTS: matplotlib_configure
 :RESULTS:
-# Out[13]:
+# Out[2]:
 :END:
 
 #+NAME: tool_function
