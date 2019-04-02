@@ -1,3 +1,11 @@
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="https://fniessen.github.io/org-html-themes/styles/readtheorg/css/htmlize.css"/>
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="https://fniessen.github.io/org-html-themes/styles/readtheorg/css/readtheorg.css"/>
+
+#+HTML_HEAD: <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+#+HTML_HEAD: <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+#+HTML_HEAD: <script type="text/javascript" src="https://fniessen.github.io/org-html-themes/styles/lib/js/jquery.stickytableheaders.min.js"></script>
+#+HTML_HEAD: <script type="text/javascript" src="https://fniessen.github.io/org-html-themes/styles/readtheorg/js/readtheorg.js"></script>
+
 * みんなの日本語
 ** いち
 | 私     | わたし   | 0 | 我                       |
@@ -1186,6 +1194,8 @@
 |------+---------------------------------------+----------------------------------------+------|
 | [[助词-を][を]]   | 宾语、对象、起点、通过点              | 体言                                   | 格助 |
 |------+---------------------------------------+----------------------------------------+------|
+| [[助词-よ][よ]]   | 感叹、叮嘱、提醒                      | 终止形、命令形                         | 终助 |
+|------+---------------------------------------+----------------------------------------+------|
 
 ** は
 <<助词-は>>
@@ -1207,6 +1217,7 @@
    - 感叹: 说话人在得到自己所不知道的信息之后表示认可、理解时的表达方式。
 
      日曜日(にちようび) 京都(きょうと)へ 行(い)きました。: 星期天去京都了。
+
      ...京都(きょうと)ですか。いいですね。: 京都呀, 挺好的嘛。
 2. 不定、怀疑
 3. 选择性并列: 对两个及两个以上的并列疑问句进行选择回答的选择疑问句。
@@ -1244,10 +1255,12 @@
 - 答语中「の」可替代物品, 但不能替代人。
 
   あれは 誰(だれ)の かばんですか。: 那是谁的提包。
+
   ...佐藤(さとう)さんのです。: 是佐藤的。
 - 当「の」修饰的是某(国家、公司)的产品时, 疑问句中使用「どこ」。
 
   これは どこの コンピュータですか。: 这是哪里(生产)的计算机?
+
   ...日本(にほん)の コンピュータです。: 这是日本(生产)的计算机。
 ** に
 <<助词-に>>
@@ -1319,6 +1332,14 @@
 - 宾语: 他动词的宾语用「を」表示。
   
   ジュースを 飲(の)みます。: 喝果汁。
+** よ
+<<助词-よ>>
+
+意义: 感叹、叮嘱、提醒。用于将对方不知道的事情或说话人自己的判断、意见等告诉对方。
+
+この 電車(でんしゃ)は 甲子園(こうしえん) 行(い)きますか。: 这趟电车去甲子圆吗?
+
+...いいえ、行きません。次(つぎ)の「普通(ふつう)」ですよ。: 不去, 下一趟慢车去。
 
 * misc
 ** 体言和用言
