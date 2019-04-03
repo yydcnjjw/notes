@@ -553,3 +553,7 @@ The shortest possible path has all black nodes, and the longest possible path al
 |      0 | ->    | -> | -> | 4 | -> | -> | -> | -> | -> | -> | -> | 12 |    |    |    |    |    |    |
 |      0 | ->    | 2  | -> | 4 | -> | -> | -> | -> | -> | 10 | -> | 12 |    |    |    |    |    |    |
 |      0 | ->    | 2  | -> | 4 | -> | 6  | -> | -> | -> | 10 | -> | 12 | -> | 14 | -> | 16 | -> | 18 |
+
+# Local Variables:
+# org-confirm-babel-evaluate: nil
+# End:

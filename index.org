@@ -1,0 +1,30 @@
+#+TITLE: Note Home
+
+- algorithm
+  - [[file:algorithm/algorithm.org][algorithm]]
+  - [[file:algorithm/data_struct.org][data_struct]]
+  - [[file:algorithm/leetcode.org][leetcode]]
+- computer_basic
+  - [[file:computer_basic/computer_composition_principle.org][computer_composition_principle]]
+- lang
+  - [[file:lang/c++.org][c++]]
+  - [[file:lang/gcc.org][gcc]]
+  - jp
+    - [[file:lang/jp/jp.org][jp]]
+    - [[file:lang/jp/みんなの日本語.org][みんなの日本語]]
+    - [[file:lang/jp/単語.org][単語]]
+    - [[file:lang/jp/文法.org][文法]]
+- mathematics
+  - [[file:mathematics/math.org][math]]
+  - [[file:mathematics/ml.org][ml]]
+  - [[file:mathematics/papers.org][papers]]
+- network
+  - [[file:network/network.org][network]]
+- os
+  - [[file:os/cpu-arch.org][cpu-arch]]
+  - [[file:os/linux-kernel.org][linux-kernel]]
+  - [[file:os/linux-prog.org][linux-prog]]
+  - [[file:os/unix-network.org][unix-network]]
+- software_engineering
+  - [[file:software_engineering/design_pattern.org][design_pattern]]
+  - [[file:software_engineering/project_impl.org][project_impl]]
