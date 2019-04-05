@@ -10,6 +10,7 @@
   - [[file:lang/c++.org][c++]]
   - [[file:lang/gcc.org][gcc]]
   - jp
+    - [[file:lang/jp/index.org][index]]
     - [[file:lang/jp/jp.org][jp]]
     - [[file:lang/jp/みんなの日本語.org][みんなの日本語]]
     - [[file:lang/jp/単語.org][単語]]
