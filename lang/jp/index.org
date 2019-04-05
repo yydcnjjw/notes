@@ -1,0 +1,6 @@
+- [[file:jp.org][jp]]
+- [[file:みんなの日本語.org][みんなの日本語]]
+- [[file:単語.org][単語]]
+- [[file:文法.org][文法]]
+* TODO 助词 意义 结构 修改
+* TODO 单词分类汇总
