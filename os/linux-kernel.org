@@ -16,7 +16,7 @@
 
 *** GRUB
 #+caption: GRUB 启动过程
-[[file:image/引导/_1528762437_356548471_2018-07-29_20-40-23.png]]
+[[file:image/引导/1528762437_356548471_2018-07-29_20-40-23-.png]]
 
 当跳转到 0x7c00 后，GRUB 开始执行：
 1. boot.img 加载 diskboot.img
@@ -87,7 +87,7 @@
 - MBR 将映像分为三个部分：MBR 中的 boot.img、嵌入空闲扇区的 core.img 和 存储在文件系统的模块。
 
   #+caption: 在MBR分区模式下以嵌人方式安装的GRUB
-  [[file:image/引导/_1528763697_1065589286_2018-07-30_19-40-01.png]]
+  [[file:image/引导/1528763697_1065589286_2018-07-30_19-40-01-.png]]
 
   - boot.img 和 core.img：使用读写磁盘扇区的方式访问
   - 模块：使用文件系统访问
@@ -103,7 +103,7 @@ boot.img 主要功能将 core.img 中的第一个扇区载入内存。
 core.img 包括多个映像和模块，以从硬盘启动为例：
 
 #+caption: core.img 构成示意图
-[[file:image/引导/_1528763923_92428418_2018-07-30_19-48-12.png]]
+[[file:image/引导/1528763923_92428418_2018-07-30_19-48-12-.png]]
 
 - diskboot.img：diskboot.img 用来加载 core.img 中除 diskboot.img 外的其余部分。占据 core.img 中的第一个扇区(boot.img 加载的 core.img 的第一个扇区)。
   在 GRUB 安装时，会将 core.img 占据的扇区号写入 diskboot.img 中。

@@ -38,7 +38,7 @@ Transform numeric ​​into similar orders of magnitude, It group the counts in
     y=\log_{a}(x)
   \end{equation}
 
- #+BEGIN_SRC ipython :session :exports both :results raw drawer
+ #+BEGIN_SRC ipython :session :ipyfile image/Log_Transform.png :exports both :results raw drawer
    x = np.arange(0.1, 10, 0.1)
    y = np.exp(x)
    plt.subplot(1, 2, 1)
@@ -52,8 +52,8 @@ Transform numeric ​​into similar orders of magnitude, It group the counts in
 
   #+RESULTS:
   :RESULTS:
-  # Out[78]:
-  [[file:./obipy-resources/P11sCI.png]]
+  # Out[18]:
+  [[file:image/Log_Transform.png]]
   :END:
 
 *** Feature Scaling or Normalization
@@ -72,7 +72,7 @@ Feature scaling changes the scale of the feature.
     \tilde{x}=\frac{x-\min(x)}{\max(x)-\min(x)}
   \end{equation}
 
-  #+BEGIN_SRC ipython :session :exports both :results raw drawer
+  #+BEGIN_SRC ipython :session :ipyfile image/min_max_scaling.png :exports both :results raw drawer
     def min_max_scaling(x):
         return (x - np.min(x)) / np.max(x) - np.min(x)
 
@@ -85,8 +85,8 @@ Feature scaling changes the scale of the feature.
 
   #+RESULTS:
   :RESULTS:
-  # Out[77]:
-  [[file:./obipy-resources/QHXnjE.png]]
+  # Out[19]:
+  [[file:image/min_max_scaling.png]]
   :END:
 - Standardization(Variance Scaling) :: scale feature to that has a mean of 0 and a variance of 1
   <<Eqn.(1.1.4)>>
@@ -101,7 +101,7 @@ Feature scaling changes the scale of the feature.
     \tilde{x}=\frac{x-mean(x)}{\sqrt{var(x)}}
   \end{equation}
 
-  #+BEGIN_SRC ipython :session :exports both :results raw drawer
+  #+BEGIN_SRC ipython :session :ipyfile image/standardization.png :exports both :results raw drawer
     def standardization(x):
         return (x - np.mean(x)) / np.std(x)
 
@@ -118,8 +118,8 @@ Feature scaling changes the scale of the feature.
 
   #+RESULTS:
   :RESULTS:
-  # Out[15]:
-  [[file:./obipy-resources/Uz7lfl.png]]
+  # Out[20]:
+  [[file:image/standardization.png]]
   :END:
 
   #+BEGIN_QUOTE
@@ -139,7 +139,7 @@ Feature scaling changes the scale of the feature.
     &\left\Vert x \right\Vert _{2}=\sqrt{x_{1}^{2}+x_{2}^{2}+\cdots+x_{m}^{2}}
   \end{align}
 
-#+BEGIN_SRC ipython :session :exports both :results raw drawer
+#+BEGIN_SRC ipython :session :ipyfile image/l2_normalization.png :exports both :results raw drawer
   def l2_normalization(x):
       return x / np.sqrt(np.sum(pow(x, 2)))
 
@@ -156,8 +156,8 @@ Feature scaling changes the scale of the feature.
 
 #+RESULTS:
 :RESULTS:
-# Out[81]:
-[[file:./obipy-resources/vgDZZ1.png]]
+# Out[21]:
+[[file:image/l2_normalization.png]]
 :END:
 
 ** Text Data
@@ -293,13 +293,14 @@ Feature selection techniques fail into three classes:
 #+NAME: import_package
 #+BEGIN_SRC ipython :session :exports both :results raw drawer
   %matplotlib inline
+
   import numpy as np
   import matplotlib.pyplot as plt
 #+END_SRC
 
 #+RESULTS: import_package
 :RESULTS:
-# Out[1]:
+# Out[5]:
 :END:
 
 #+NAME: matplotlib_configure
@@ -309,7 +310,7 @@ Feature selection techniques fail into three classes:
 
 #+RESULTS: matplotlib_configure
 :RESULTS:
-# Out[2]:
+# Out[6]:
 :END:
 
 #+NAME: tool_function
