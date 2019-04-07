@@ -300,7 +300,7 @@ Feature selection techniques fail into three classes:
 
 #+RESULTS: import_package
 :RESULTS:
-# Out[1]:
+# Out[3]:
 :END:
 
 #+NAME: matplotlib_configure
@@ -310,7 +310,7 @@ Feature selection techniques fail into three classes:
 
 #+RESULTS: matplotlib_configure
 :RESULTS:
-# Out[2]:
+# Out[4]:
 :END:
 
 #+NAME: tool_function
