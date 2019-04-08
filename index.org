@@ -4,6 +4,8 @@
   - [[file:algorithm/algorithm.org][algorithm]]
   - [[file:algorithm/data_struct.org][data_struct]]
   - [[file:algorithm/leetcode.org][leetcode]]
+- bibliography
+  - [[file:bibliography/notes.org][notes]]
 - computer_basic
   - [[file:computer_basic/computer_composition_principle.org][computer_composition_principle]]
 - lang

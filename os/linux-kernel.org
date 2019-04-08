@@ -2490,13 +2490,14 @@ Related function:
 ** linux 构建过程
 *** linux kernel Makefile 文件组成
 
-| 名称                    | 描述                                                                                                        |
-|-------------------------+-------------------------------------------------------------------------------------------------------------|
-| 顶级 Makefile           | 顶级 Makefile 主要负责构建：vmlinux(常驻内核映像)和模块(任何模块文件)                                       |
-| .config                 | 配置文件，配置内核时生成。所有的Makefile文件（包括顶层目录和各级子目录）都是根据.config来决定使用哪些文件的 |
-| arch/\$(ARCH)/Makefile  | 不同平台的 Makefile                                                                                         |
-| scripts/Makefile.*      | Makefile 公用的通用规则、脚本等                                                                             |
-| 子目录 kbuild Makefiles | 各级子目录的Makefile相对简单，被上一层Makefile.build调用来编译当前目录的文件                                |
+| 名称                    | 描述                                                                         |
+|-------------------------+------------------------------------------------------------------------------|
+| 顶级 Makefile           | 顶级 Makefile 主要负责构建：vmlinux(常驻内核映像)和模块(任何模块文件)        |
+| .config                 | 配置文件，配置内核时生成。所有的Makefile文件                                 |
+|                         | （包括顶层目录和各级子目录）都是根据.config来决定使用哪些文件的              |
+| arch/\$(ARCH)/Makefile  | 不同平台的 Makefile                                                          |
+| scripts/Makefile.*      | Makefile 公用的通用规则、脚本等                                              |
+| 子目录 kbuild Makefiles | 各级子目录的Makefile相对简单，被上一层Makefile.build调用来编译当前目录的文件 |
 
 #+caption: scripts/Makefile.* 文件组成
 | 名称           | 描述                                          |

@@ -500,21 +500,3 @@ cite:zhao18_objec_detec_with_deep_learn
 * References
 [[bibliography:../bibliography/references.bib]]
 bibliographystyle:unsrt
-
-#+NAME: startup
-#+BEGIN_SRC emacs-lisp :exports none
-  (venv-workon "python3")
-  (setq-local my/org-babel-src-list '())
-
-  (dolist (list my/org-babel-src-list)
-    (org-babel-goto-named-src-block list)
-    (org-babel-execute-src-block))
-  (outline-hide-sublevels 1)
-#+END_SRC
-
-#+RESULTS: startup
-
-# Local Variables:
-# org-confirm-babel-evaluate: nil
-# eval: (progn (org-babel-goto-named-src-block "startup") (org-babel-execute-src-block) (outline-hide-sublevels 1))
-# End:
