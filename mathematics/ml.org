@@ -26,14 +26,7 @@ Transform numeric ​​into similar orders of magnitude, It group the counts in
     *Note*: If there are large gaps in the counts, then there will be many empty bins with no data.
   - quantile binning(adaptive)
 - Log Transform
-  <<Eqn.(1.1.1)>>
-  #+BEGIN_SRC latex :results raw :exports none
-    \begin{equation}
-      y=\log_{a}(x)
-    \end{equation}
-  #+END_SRC 
 
-  #+RESULTS:
   \begin{equation}
     y=\log_{a}(x)
   \end{equation}
@@ -60,14 +53,7 @@ Transform numeric ​​into similar orders of magnitude, It group the counts in
 Feature scaling changes the scale of the feature.
 
 - Min-Max scaling :: squeezes all feature values to be within the range of $[0,1]$
-  <<Eqn.(1.1.3)>>
-  #+BEGIN_SRC latex :results raw :exports none
-    \begin{equation}
-      \tilde{x}=\frac{x-\min(x)}{\max(x)-\min(x)}
-    \end{equation}
-  #+END_SRC 
 
-  #+RESULTS:
   \begin{equation}
     \tilde{x}=\frac{x-\min(x)}{\max(x)-\min(x)}
   \end{equation}
@@ -89,14 +75,7 @@ Feature scaling changes the scale of the feature.
   [[file:image/min_max_scaling.png]]
   :END:
 - Standardization(Variance Scaling) :: scale feature to that has a mean of 0 and a variance of 1
-  <<Eqn.(1.1.4)>>
-  #+BEGIN_SRC latex :results raw :exports none
-    \begin{equation}
-      \tilde{x}=\frac{x-mean(x)}{\sqrt{var(x)}}
-    \end{equation}
-  #+END_SRC 
 
-  #+RESULTS:
   \begin{equation}
     \tilde{x}=\frac{x-mean(x)}{\sqrt{var(x)}}
   \end{equation}
@@ -126,14 +105,7 @@ Feature scaling changes the scale of the feature.
     Don't "center" sparse data!
   #+END_QUOTE
 - $l^{2}$ Normalization :: normalize(divides) the original feature value by what's known as the $l^{2}$ norm(/Euclidean/ norm).
-  #+BEGIN_SRC latex :results raw :exports none
-    \begin{align}
-      &\tilde{x}=\frac{x}{ \left\Vert x \right\Vert _{2} }\\
-      &\left\Vert x \right\Vert _{2}=\sqrt{x_{1}^{2}+x_{2}^{2}+\cdots+x_{m}^{2}}
-    \end{align}
-  #+END_SRC 
 
-  #+RESULTS:
   \begin{align}
     &\tilde{x}=\frac{x}{ \left\Vert x \right\Vert _{2} }\\
     &\left\Vert x \right\Vert _{2}=\sqrt{x_{1}^{2}+x_{2}^{2}+\cdots+x_{m}^{2}}
@@ -300,7 +272,7 @@ Feature selection techniques fail into three classes:
 
 #+RESULTS: import_package
 :RESULTS:
-# Out[34]:
+# Out[1]:
 :END:
 
 #+NAME: matplotlib_configure
@@ -310,7 +282,7 @@ Feature selection techniques fail into three classes:
 
 #+RESULTS: matplotlib_configure
 :RESULTS:
-# Out[35]:
+# Out[2]:
 :END:
 
 #+NAME: tool_function

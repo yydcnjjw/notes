@@ -1,0 +1,655 @@
+@article{he15_deep_resid_learn_image_recog,
+  author =	 {He, Kaiming and Zhang, Xiangyu and Ren, Shaoqing and
+                  Sun, Jian},
+  title =	 {Deep Residual Learning for Image Recognition},
+  journal =	 {CoRR},
+  year =	 2015,
+  url =		 {http://arxiv.org/abs/1512.03385v1},
+  abstract =	 {Deeper neural networks are more difficult to
+                  train. We present a residual learning framework to
+                  ease the training of networks that are substantially
+                  deeper than those used previously. We explicitly
+                  reformulate the layers as learning residual
+                  functions with reference to the layer inputs,
+                  instead of learning unreferenced functions. We
+                  provide comprehensive empirical evidence showing
+                  that these residual networks are easier to optimize,
+                  and can gain accuracy from considerably increased
+                  depth. On the ImageNet dataset we evaluate residual
+                  nets with a depth of up to 152 layers---8x deeper
+                  than VGG nets but still having lower complexity. An
+                  ensemble of these residual nets achieves 3.57 \%
+                  error on the ImageNet test set. This result won the
+                  1st place on the ILSVRC 2015 classification task. We
+                  also present analysis on CIFAR-10 with 100 and 1000
+                  layers.  The depth of representations is of central
+                  importance for many visual recognition tasks. Solely
+                  due to our extremely deep representations, we obtain
+                  a 28 \% relative improvement on the COCO object
+                  detection dataset. Deep residual nets are
+                  foundations of our submissions to ILSVRC \& COCO
+                  2015 competitions, where we also won the 1st places
+                  on the tasks of ImageNet detection, ImageNet
+                  localization, COCO detection, and COCO
+                  segmentation.},
+  archivePrefix ={arXiv},
+  eprint =	 {1512.03385},
+  primaryClass = {cs.CV},
+}
+
+@article{cao16_realt_multi_person_pose_estim,
+  author =	 {Cao, Zhe and Simon, Tomas and Wei, Shih-En and
+                  Sheikh, Yaser},
+  title =	 {Realtime Multi-Person 2d Pose Estimation Using Part
+                  Affinity Fields},
+  journal =	 {CoRR},
+  year =	 2016,
+  url =		 {http://arxiv.org/abs/1611.08050v2},
+  abstract =	 {We present an approach to efficiently detect the 2D
+                  pose of multiple people in an image. The approach
+                  uses a nonparametric representation, which we refer
+                  to as Part Affinity Fields (PAFs), to learn to
+                  associate body parts with individuals in the
+                  image. The architecture encodes global context,
+                  allowing a greedy bottom-up parsing step that
+                  maintains high accuracy while achieving realtime
+                  performance, irrespective of the number of people in
+                  the image. The architecture is designed to jointly
+                  learn part locations and their association via two
+                  branches of the same sequential prediction
+                  process. Our method placed first in the inaugural
+                  COCO 2016 keypoints challenge, and significantly
+                  exceeds the previous state-of-the-art result on the
+                  MPII Multi-Person benchmark, both in performance and
+                  efficiency.},
+  archivePrefix ={arXiv},
+  eprint =	 {1611.08050},
+  primaryClass = {cs.CV},
+}
+
+@article{chen17_cascad_pyram_networ_multi_person_pose_estim,
+  author =	 {Chen, Yilun and Wang, Zhicheng and Peng, Yuxiang and
+                  Zhang, Zhiqiang and Yu, Gang and Sun, Jian},
+  title =	 {Cascaded Pyramid Network for Multi-Person Pose
+                  Estimation},
+  journal =	 {CoRR},
+  year =	 2017,
+  url =		 {http://arxiv.org/abs/1711.07319v2},
+  abstract =	 {The topic of multi-person pose estimation has been
+                  largely improved recently, especially with the
+                  development of convolutional neural
+                  network. However, there still exist a lot of
+                  challenging cases, such as occluded keypoints,
+                  invisible keypoints and complex background, which
+                  cannot be well addressed. In this paper, we present
+                  a novel network structure called Cascaded Pyramid
+                  Network (CPN) which targets to relieve the problem
+                  from these "hard" keypoints. More specifically, our
+                  algorithm includes two stages: GlobalNet and
+                  RefineNet.  GlobalNet is a feature pyramid network
+                  which can successfully localize the "simple"
+                  keypoints like eyes and hands but may fail to
+                  precisely recognize the occluded or invisible
+                  keypoints. Our RefineNet tries explicitly handling
+                  the "hard" keypoints by integrating all levels of
+                  feature representations from the GlobalNet together
+                  with an online hard keypoint mining loss. In
+                  general, to address the multi-person pose estimation
+                  problem, a top-down pipeline is adopted to first
+                  generate a set of human bounding boxes based on a
+                  detector, followed by our CPN for keypoint
+                  localization in each human bounding box. Based on
+                  the proposed algorithm, we achieve state-of-art
+                  results on the COCO keypoint benchmark, with average
+                  precision at 73.0 on the COCO test-dev dataset and
+                  72.1 on the COCO test-challenge dataset, which is a
+                  19 \% relative improvement compared with 60.5 from
+                  the COCO 2016 keypoint challenge.Code
+                  (https://github.com/chenyilun95/tf-cpn.git) and the
+                  detection results are publicly available for further
+                  research.},
+  archivePrefix ={arXiv},
+  eprint =	 {1711.07319},
+  primaryClass = {cs.CV},
+}
+
+@article{balduzzi17_shatt_gradien_probl,
+  author =	 {Balduzzi, David and Frean, Marcus and Leary, Lennox
+                  and Lewis, JP and Ma, Kurt Wan-Duo and McWilliams,
+                  Brian},
+  title =	 {The Shattered Gradients Problem: If Resnets Are the
+                  Answer, Then What Is the Question?},
+  journal =	 {CoRR},
+  year =	 2017,
+  url =		 {http://arxiv.org/abs/1702.08591v2},
+  abstract =	 {A long-standing obstacle to progress in deep
+                  learning is the problem of vanishing and exploding
+                  gradients. Although, the problem has largely been
+                  overcome via carefully constructed initializations
+                  and batch normalization, architectures incorporating
+                  skip-connections such as highway and resnets perform
+                  much better than standard feedforward architectures
+                  despite well-chosen initialization and batch
+                  normalization. In this paper, we identify the
+                  shattered gradients problem. Specifically, we show
+                  that the correlation between gradients in standard
+                  feedforward networks decays exponentially with depth
+                  resulting in gradients that resemble white noise
+                  whereas, in contrast, the gradients in architectures
+                  with skip-connections are far more resistant to
+                  shattering, decaying sublinearly. Detailed empirical
+                  evidence is presented in support of the analysis, on
+                  both fully-connected networks and convnets.
+                  Finally, we present a new "looks linear" (LL)
+                  initialization that prevents shattering, with
+                  preliminary experiments showing the new
+                  initialization allows to train very deep networks
+                  without the addition of skip-connections.},
+  archivePrefix ={arXiv},
+  eprint =	 {1702.08591},
+  primaryClass = {cs.NE},
+}
+
+@article{lin16_featur_pyram_networ_objec_detec,
+  author =	 {Lin, Tsung-Yi and Doll{\'a}r, Piotr and Girshick,
+                  Ross and He, Kaiming and Hariharan, Bharath and
+                  Belongie, Serge},
+  title =	 {Feature Pyramid Networks for Object Detection},
+  journal =	 {CoRR},
+  year =	 2016,
+  url =		 {http://arxiv.org/abs/1612.03144v2},
+  abstract =	 {Feature pyramids are a basic component in
+                  recognition systems for detecting objects at
+                  different scales. But recent deep learning object
+                  detectors have avoided pyramid representations, in
+                  part because they are compute and memory
+                  intensive. In this paper, we exploit the inherent
+                  multi-scale, pyramidal hierarchy of deep
+                  convolutional networks to construct feature pyramids
+                  with marginal extra cost. A top-down architecture
+                  with lateral connections is developed for building
+                  high-level semantic feature maps at all scales. This
+                  architecture, called a Feature Pyramid Network
+                  (FPN), shows significant improvement as a generic
+                  feature extractor in several applications. Using FPN
+                  in a basic Faster R-CNN system, our method achieves
+                  state-of-the-art single-model results on the COCO
+                  detection benchmark without bells and whistles,
+                  surpassing all existing single-model entries
+                  including those from the COCO 2016 challenge
+                  winners. In addition, our method can run at 5 FPS on
+                  a GPU and thus is a practical and accurate solution
+                  to multi-scale object detection.  Code will be made
+                  publicly available.},
+  archivePrefix ={arXiv},
+  eprint =	 {1612.03144},
+  primaryClass = {cs.CV},
+}
+
+@article{zhao18_objec_detec_with_deep_learn,
+  author =	 {Zhao, Zhong-Qiu and Zheng, Peng and Xu, Shou-tao and
+                  Wu, Xindong},
+  title =	 {Object Detection With Deep Learning: a Review},
+  journal =	 {CoRR},
+  year =	 2018,
+  url =		 {http://arxiv.org/abs/1807.05511v1},
+  abstract =	 {Due to object detection's close relationship with
+                  video analysis and image understanding, it has
+                  attracted much research attention in recent years.
+                  Traditional object detection methods are built on
+                  handcrafted features and shallow trainable
+                  architectures. Their performance easily stagnates by
+                  constructing complex ensembles which combine
+                  multiple low-level image features with high-level
+                  context from object detectors and scene
+                  classifiers. With the rapid development in deep
+                  learning, more powerful tools, which are able to
+                  learn semantic, high-level, deeper features, are
+                  introduced to address the problems existing in
+                  traditional architectures. These models behave
+                  differently in network architecture, training
+                  strategy and optimization function, etc. In this
+                  paper, we provide a review on deep learning based
+                  object detection frameworks. Our review begins with
+                  a brief introduction on the history of deep learning
+                  and its representative tool, namely Convolutional
+                  Neural Network (CNN). Then we focus on typical
+                  generic object detection architectures along with
+                  some modifications and useful tricks to improve
+                  detection performance further. As distinct specific
+                  detection tasks exhibit different characteristics,
+                  we also briefly survey several specific tasks,
+                  including salient object detection, face detection
+                  and pedestrian detection. Experimental analyses are
+                  also provided to compare various methods and draw
+                  some meaningful conclusions. Finally, several
+                  promising directions and tasks are provided to serve
+                  as guidelines for future work in both object
+                  detection and relevant neural network based learning
+                  systems.},
+  archivePrefix ={arXiv},
+  eprint =	 {1807.05511},
+  primaryClass = {cs.CV},
+}
+
+@article{NIPS2012_4824,
+  title =	 {ImageNet Classification with Deep Convolutional
+                  Neural Networks},
+  author =	 {Alex Krizhevsky and Sutskever, Ilya and Hinton,
+                  Geoffrey E},
+  booktitle =	 {Advances in Neural Information Processing Systems
+                  25},
+  editor =	 {F. Pereira and C. J. C. Burges and L. Bottou and
+                  K. Q. Weinberger},
+  pages =	 {1097--1105},
+  year =	 2012,
+  publisher =	 {Curran Associates, Inc.},
+  url =
+                  {http://papers.nips.cc/paper/4824-imagenet-classification-with-deep-convolutional-neural-networks.pdf}
+}
+
+@article{zeiler13_visual_under_convol_networ,
+  author =	 {Zeiler, Matthew D and Fergus, Rob},
+  title =	 {Visualizing and Understanding Convolutional
+                  Networks},
+  journal =	 {CoRR},
+  year =	 2013,
+  url =		 {http://arxiv.org/abs/1311.2901v3},
+  abstract =	 {Large Convolutional Network models have recently
+                  demonstrated impressive classification performance
+                  on the ImageNet benchmark. However there is no clear
+                  understanding of why they perform so well, or how
+                  they might be improved. In this paper we address
+                  both issues. We introduce a novel visualization
+                  technique that gives insight into the function of
+                  intermediate feature layers and the operation of the
+                  classifier. We also perform an ablation study to
+                  discover the performance contribution from different
+                  model layers. This enables us to find model
+                  architectures that outperform Krizhevsky \etal on
+                  the ImageNet classification benchmark. We show our
+                  ImageNet model generalizes well to other datasets:
+                  when the softmax classifier is retrained, it
+                  convincingly beats the current state-of-the-art
+                  results on Caltech-101 and Caltech-256 datasets.},
+  archivePrefix ={arXiv},
+  eprint =	 {1311.2901v3},
+  primaryClass = {cs.CV},
+}
+
+@article{szegedy14_going_deeper_with_convol,
+  author =	 {Szegedy, Christian and Liu, Wei and Jia, Yangqing
+                  and Sermanet, Pierre and Reed, Scott and Anguelov,
+                  Dragomir and Erhan, Dumitru and Vanhoucke, Vincent
+                  and Rabinovich, Andrew},
+  title =	 {Going Deeper With Convolutions},
+  journal =	 {CoRR},
+  year =	 2014,
+  url =		 {http://arxiv.org/abs/1409.4842v1},
+  abstract =	 {We propose a deep convolutional neural network
+                  architecture codenamed "Inception", which was
+                  responsible for setting the new state of the art for
+                  classification and detection in the ImageNet
+                  Large-Scale Visual Recognition Challenge 2014
+                  (ILSVRC 2014). The main hallmark of this
+                  architecture is the improved utilization of the
+                  computing resources inside the network. This was
+                  achieved by a carefully crafted design that allows
+                  for increasing the depth and width of the network
+                  while keeping the computational budget constant. To
+                  optimize quality, the architectural decisions were
+                  based on the Hebbian principle and the intuition of
+                  multi-scale processing. One particular incarnation
+                  used in our submission for ILSVRC 2014 is called
+                  GoogLeNet, a 22 layers deep network, the quality of
+                  which is assessed in the context of classification
+                  and detection.},
+  archivePrefix ={arXiv},
+  eprint =	 {1409.4842},
+  primaryClass = {cs.CV},
+}
+
+@article{sermanet13_overf,
+  author =	 {Sermanet, Pierre and Eigen, David and Zhang, Xiang
+                  and Mathieu, Michael and Fergus, Rob and LeCun,
+                  Yann},
+  title =	 {Overfeat: Integrated Recognition, Localization and
+                  Detection Using Convolutional Networks},
+  journal =	 {CoRR},
+  year =	 2013,
+  url =		 {http://arxiv.org/abs/1312.6229v4},
+  abstract =	 {We present an integrated framework for using
+                  Convolutional Networks for classification,
+                  localization and detection. We show how a multiscale
+                  and sliding window approach can be efficiently
+                  implemented within a ConvNet. We also introduce a
+                  novel deep learning approach to localization by
+                  learning to predict object boundaries. Bounding
+                  boxes are then accumulated rather than suppressed in
+                  order to increase detection confidence. We show that
+                  different tasks can be learned simultaneously using
+                  a single shared network. This integrated framework
+                  is the winner of the localization task of the
+                  ImageNet Large Scale Visual Recognition Challenge
+                  2013 (ILSVRC2013) and obtained very competitive
+                  results for the detection and classifications
+                  tasks. In post-competition work, we establish a new
+                  state of the art for the detection task. Finally, we
+                  release a feature extractor from our best model
+                  called OverFeat.},
+  archivePrefix ={arXiv},
+  eprint =	 {1312.6229},
+  primaryClass = {cs.CV},
+}
+
+@article{girshick13_rich_featur_hierar_accur_objec,
+  author =	 {Girshick, Ross and Donahue, Jeff and Darrell, Trevor
+                  and Malik, Jitendra},
+  title =	 {Rich Feature Hierarchies for Accurate Object
+                  Detection and Semantic Segmentation},
+  journal =	 {CoRR},
+  year =	 2013,
+  url =		 {http://arxiv.org/abs/1311.2524v5},
+  abstract =	 {Object detection performance, as measured on the
+                  canonical PASCAL VOC dataset, has plateaued in the
+                  last few years. The best-performing methods are
+                  complex ensemble systems that typically combine
+                  multiple low-level image features with high-level
+                  context. In this paper, we propose a simple and
+                  scalable detection algorithm that improves mean
+                  average precision (mAP) by more than 30 \% relative
+                  to the previous best result on VOC 2012---achieving
+                  a mAP of 53.3 \%. Our approach combines two key
+                  insights: (1) one can apply high-capacity
+                  convolutional neural networks (CNNs) to bottom-up
+                  region proposals in order to localize and segment
+                  objects and (2) when labeled training data is
+                  scarce, supervised pre-training for an auxiliary
+                  task, followed by domain-specific fine-tuning,
+                  yields a significant performance boost. Since we
+                  combine region proposals with CNNs, we call our
+                  method R-CNN: Regions with CNN features. We also
+                  compare R-CNN to OverFeat, a recently proposed
+                  sliding-window detector based on a similar CNN
+                  architecture. We find that R-CNN outperforms
+                  OverFeat by a large margin on the 200-class
+                  ILSVRC2013 detection dataset. Source code for the
+                  complete system is available at
+                  http://www.cs.berkeley.edu/~rbg/rcnn.},
+  archivePrefix ={arXiv},
+  eprint =	 {1311.2524},
+  primaryClass = {cs.CV},
+}
+
+@article{girshick15_fast_r_cnn,
+  author =	 {Girshick, Ross},
+  title =	 {Fast R-Cnn},
+  journal =	 {CoRR},
+  year =	 2015,
+  url =		 {http://arxiv.org/abs/1504.08083v2},
+  abstract =	 {This paper proposes a Fast Region-based
+                  Convolutional Network method (Fast R-CNN) for object
+                  detection. Fast R-CNN builds on previous work to
+                  efficiently classify object proposals using deep
+                  convolutional networks. Compared to previous work,
+                  Fast R-CNN employs several innovations to improve
+                  training and testing speed while also increasing
+                  detection accuracy. Fast R-CNN trains the very deep
+                  VGG16 network 9x faster than R-CNN, is 213x faster
+                  at test-time, and achieves a higher mAP on PASCAL
+                  VOC 2012. Compared to SPPnet, Fast R-CNN trains
+                  VGG16 3x faster, tests 10x faster, and is more
+                  accurate. Fast R-CNN is implemented in Python and
+                  C++ (using Caffe) and is available under the
+                  open-source MIT License at
+                  https://github.com/rbgirshick/fast-rcnn.},
+  archivePrefix ={arXiv},
+  eprint =	 {1504.08083},
+  primaryClass = {cs.CV},
+}
+
+@article{ren15_faster_r_cnn,
+  author =	 {Ren, Shaoqing and He, Kaiming and Girshick, Ross and
+                  Sun, Jian},
+  title =	 {Faster R-Cnn: Towards Real-Time Object Detection
+                  With Region Proposal Networks},
+  journal =	 {CoRR},
+  year =	 2015,
+  url =		 {http://arxiv.org/abs/1506.01497v3},
+  abstract =	 {State-of-the-art object detection networks depend on
+                  region proposal algorithms to hypothesize object
+                  locations. Advances like SPPnet and Fast R-CNN have
+                  reduced the running time of these detection
+                  networks, exposing region proposal computation as a
+                  bottleneck. In this work, we introduce a Region
+                  Proposal Network (RPN) that shares full-image
+                  convolutional features with the detection network,
+                  thus enabling nearly cost-free region proposals. An
+                  RPN is a fully convolutional network that
+                  simultaneously predicts object bounds and objectness
+                  scores at each position. The RPN is trained
+                  end-to-end to generate high-quality region
+                  proposals, which are used by Fast R-CNN for
+                  detection. We further merge RPN and Fast R-CNN into
+                  a single network by sharing their convolutional
+                  features---using the recently popular terminology of
+                  neural networks with 'attention' mechanisms, the RPN
+                  component tells the unified network where to
+                  look. For the very deep VGG-16 model, our detection
+                  system has a frame rate of 5fps (including all
+                  steps) on a GPU, while achieving state-of-the-art
+                  object detection accuracy on PASCAL VOC 2007, 2012,
+                  and MS COCO datasets with only 300 proposals per
+                  image. In ILSVRC and COCO 2015 competitions, Faster
+                  R-CNN and RPN are the foundations of the 1st-place
+                  winning entries in several tracks. Code has been
+                  made publicly available.},
+  archivePrefix ={arXiv},
+  eprint =	 {1506.01497},
+  primaryClass = {cs.CV},
+}
+
+@article{chollet16_xcept,
+  author =	 {Chollet, Fran{\c{c}}ois},
+  title =	 {Xception: Deep Learning With Depthwise Separable
+                  Convolutions},
+  journal =	 {CoRR},
+  year =	 2016,
+  url =		 {http://arxiv.org/abs/1610.02357v3},
+  abstract =	 {We present an interpretation of Inception modules in
+                  convolutional neural networks as being an
+                  intermediate step in-between regular convolution and
+                  the depthwise separable convolution operation (a
+                  depthwise convolution followed by a pointwise
+                  convolution). In this light, a depthwise separable
+                  convolution can be understood as an Inception module
+                  with a maximally large number of towers.  This
+                  observation leads us to propose a novel deep
+                  convolutional neural network architecture inspired
+                  by Inception, where Inception modules have been
+                  replaced with depthwise separable convolutions. We
+                  show that this architecture, dubbed Xception,
+                  slightly outperforms Inception V3 on the ImageNet
+                  dataset (which Inception V3 was designed for), and
+                  significantly outperforms Inception V3 on a larger
+                  image classification dataset comprising 350 million
+                  images and 17,000 classes. Since the Xception
+                  architecture has the same number of parameters as
+                  Inception V3, the performance gains are not due to
+                  increased capacity but rather to a more efficient
+                  use of model parameters.},
+  archivePrefix ={arXiv},
+  eprint =	 {1610.02357},
+  primaryClass = {cs.CV},
+}
+
+@article{liu18_deep_learn_gener_objec_detec,
+  author =	 {Liu, Li and Ouyang, Wanli and Wang, Xiaogang and
+                  Fieguth, Paul and Chen, Jie and Liu, Xinwang and
+                  Pietik{\"a}inen, Matti},
+  title =	 {Deep Learning for Generic Object Detection: a
+                  Survey},
+  journal =	 {CoRR},
+  year =	 2018,
+  url =		 {http://arxiv.org/abs/1809.02165v1},
+  abstract =	 {Generic object detection, aiming at locating object
+                  instances from a large number of predefined
+                  categories in natural images, is one of the most
+                  fundamental and challenging problems in computer
+                  vision. Deep learning techniques have emerged in
+                  recent years as powerful methods for learning
+                  feature representations directly from data, and have
+                  led to remarkable breakthroughs in the field of
+                  generic object detection. Given this time of rapid
+                  evolution, the goal of this paper is to provide a
+                  comprehensive survey of the recent achievements in
+                  this field brought by deep learning techniques. More
+                  than 250 key contributions are included in this
+                  survey, covering many aspects of generic object
+                  detection research: leading detection frameworks and
+                  fundamental subproblems including object feature
+                  representation, object proposal generation, context
+                  information modeling and training strategies;
+                  evaluation issues, specifically benchmark datasets,
+                  evaluation metrics, and state of the art
+                  performance. We finish by identifying promising
+                  directions for future research.},
+  archivePrefix ={arXiv},
+  eprint =	 {1809.02165},
+  primaryClass = {cs.CV},
+}
+
+@article{he17_mask_r_cnn,
+  author =	 {He, Kaiming and Gkioxari, Georgia and Doll{\'a}r,
+                  Piotr and Girshick, Ross},
+  title =	 {Mask R-Cnn},
+  journal =	 {CoRR},
+  year =	 2017,
+  url =		 {http://arxiv.org/abs/1703.06870v3},
+  abstract =	 {We present a conceptually simple, flexible, and
+                  general framework for object instance
+                  segmentation. Our approach efficiently detects
+                  objects in an image while simultaneously generating
+                  a high-quality segmentation mask for each
+                  instance. The method, called Mask R-CNN, extends
+                  Faster R-CNN by adding a branch for predicting an
+                  object mask in parallel with the existing branch for
+                  bounding box recognition. Mask R-CNN is simple to
+                  train and adds only a small overhead to Faster
+                  R-CNN, running at 5 fps. Moreover, Mask R-CNN is
+                  easy to generalize to other tasks, e.g., allowing us
+                  to estimate human poses in the same framework. We
+                  show top results in all three tracks of the COCO
+                  suite of challenges, including instance
+                  segmentation, bounding-box object detection, and
+                  person keypoint detection. Without bells and
+                  whistles, Mask R-CNN outperforms all existing,
+                  single-model entries on every task, including the
+                  COCO 2016 challenge winners. We hope our simple and
+                  effective approach will serve as a solid baseline
+                  and help ease future research in instance-level
+                  recognition.  Code has been made available at:
+                  https://github.com/facebookresearch/Detectron},
+  archivePrefix ={arXiv},
+  eprint =	 {1703.06870},
+  primaryClass = {cs.CV},
+}
+
+@article{kokot17_even_faster_sortin_integ,
+  author =	 {Kokot, Marek and Deorowicz, Sebastian and Dlugosz,
+                  Maciej},
+  title =	 {Even Faster Sorting of (not only) Integers},
+  journal =	 {CoRR},
+  year =	 2017,
+  url =		 {http://arxiv.org/abs/1703.00687v1},
+  abstract =	 {In this paper we introduce RADULS2, the fastest
+                  parallel sorter based on radix algorithm. It is
+                  optimized to process huge amounts of data making use
+                  of modern multicore CPUs. The main novelties
+                  include: extremely optimized algorithm for handling
+                  tiny arrays (up to about a hundred of records) that
+                  could appear even billions times as subproblems to
+                  handle and improved processing of larger subarrays
+                  with better use of non-temporal memory stores.},
+  archivePrefix ={arXiv},
+  eprint =	 {1703.0687},
+  primaryClass = {cs.DS},
+}
+
+@article{simonyan14_very_deep_convol_networ_large,
+  author =	 {Simonyan, Karen and Zisserman, Andrew},
+  title =	 {Very Deep Convolutional Networks for Large-Scale
+                  Image Recognition},
+  journal =	 {CoRR},
+  year =	 2014,
+  url =		 {http://arxiv.org/abs/1409.1556v6},
+  abstract =	 {In this work we investigate the effect of the
+                  convolutional network depth on its accuracy in the
+                  large-scale image recognition setting. Our main
+                  contribution is a thorough evaluation of networks of
+                  increasing depth using an architecture with very
+                  small (3x3) convolution filters, which shows that a
+                  significant improvement on the prior-art
+                  configurations can be achieved by pushing the depth
+                  to 16-19 weight layers. These findings were the
+                  basis of our ImageNet Challenge 2014 submission,
+                  where our team secured the first and the second
+                  places in the localisation and classification tracks
+                  respectively. We also show that our representations
+                  generalise well to other datasets, where they
+                  achieve state-of-the-art results. We have made our
+                  two best-performing ConvNet models publicly
+                  available to facilitate further research on the use
+                  of deep visual representations in computer vision.},
+  archivePrefix ={arXiv},
+  eprint =	 {1409.1556},
+  primaryClass = {cs.CV},
+}
+
+@article { lecun-98,
+  original =	 "orig/lecun-98.ps.gz",
+  author =	 "LeCun, Y. and Bottou, L. and Bengio, Y. and Haffner,
+                  P.",
+  title =	 "Gradient-Based Learning Applied to Document
+                  Recognition",
+  journal =	 "Proceedings of the IEEE",
+  month =	 "November",
+  volume =	 86,
+  number =	 11,
+  pages =	 "2278-2324",
+  year =	 1998
+}
+
+@article{lin13_networ_networ,
+  author =	 {Lin, Min and Chen, Qiang and Yan, Shuicheng},
+  title =	 {Network in Network},
+  journal =	 {CoRR},
+  year =	 2013,
+  url =		 {http://arxiv.org/abs/1312.4400v3},
+  abstract =	 {We propose a novel deep network structure called
+                  "Network In Network" (NIN) to enhance model
+                  discriminability for local patches within the
+                  receptive field.  The conventional convolutional
+                  layer uses linear filters followed by a nonlinear
+                  activation function to scan the input. Instead, we
+                  build micro neural networks with more complex
+                  structures to abstract the data within the receptive
+                  field. We instantiate the micro neural network with
+                  a multilayer perceptron, which is a potent function
+                  approximator. The feature maps are obtained by
+                  sliding the micro networks over the input in a
+                  similar manner as CNN; they are then fed into the
+                  next layer. Deep NIN can be implemented by stacking
+                  mutiple of the above described structure. With
+                  enhanced local modeling via the micro network, we
+                  are able to utilize global average pooling over
+                  feature maps in the classification layer, which is
+                  easier to interpret and less prone to overfitting
+                  than traditional fully connected layers. We
+                  demonstrated the state-of-the-art classification
+                  performances with NIN on CIFAR-10 and CIFAR-100, and
+                  reasonable performances on SVHN and MNIST datasets.},
+  archivePrefix ={arXiv},
+  eprint =	 {1312.4400},
+  primaryClass = {cs.NE},
+}

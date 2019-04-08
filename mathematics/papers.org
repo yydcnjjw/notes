@@ -497,8 +497,12 @@ cite:zhao18_objec_detec_with_deep_learn
 * Natural Language Processing
 [[file:~/resources/mathematics/books/nlp/Speech_and_Language_Processing.pdf][Speech and Language Processing]]
 
+* References
+[[bibliography:../bibliography/references.bib]]
+bibliographystyle:unsrt
+
 #+NAME: startup
-#+BEGIN_SRC emacs-lisp
+#+BEGIN_SRC emacs-lisp :exports none
   (venv-workon "python3")
   (setq-local my/org-babel-src-list '())
 
@@ -514,8 +518,3 @@ cite:zhao18_objec_detec_with_deep_learn
 # org-confirm-babel-evaluate: nil
 # eval: (progn (org-babel-goto-named-src-block "startup") (org-babel-execute-src-block) (outline-hide-sublevels 1))
 # End:
-
-bibliography:/home/yydcnjjw/resources/mathematics/bibliography/references.bib
-bibliographystyle:unsrt
-
-

@@ -10,13 +10,6 @@
 *** 指数族(exponential family)
 如果一个分布能用下面的方式来写出来,我们就说这类分布属于指数族:
 
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{equation}
-    p(y;\eta)=b(y)\exp^{(\eta^{T}T(y)-a(\eta))}
-  \end{equation}
-#+END_SRC 
-
-#+RESULTS:
 \begin{equation}
   p(y;\eta)=b(y)\exp^{(\eta^{T}T(y)-a(\eta))}
 \end{equation}
@@ -36,19 +29,6 @@
 *** 普通最小二乘法
 Gaussian 分布的指数族为:
 
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{align}
-    p(y;\mu)&=\frac{1}{\sqrt{2\pi}}\exp^{-\frac{1}{2}(y-\mu)^{2}}\\
-            &=\frac{1}{\sqrt{2\pi}}\exp^{-\frac{1}{2}y^{2}}\cdot\exp^{\mu-\frac{1}{2}\mu^{2}}\\
-    \\
-    \eta&=\mu\\
-    T(y)&=y\\
-    a(\eta)&=\frac{\mu^{2}}{2}=\frac{\eta^{2}}{2}\\
-    b(y)&=\frac{1}{\sqrt{2\pi}}\exp^{-\frac{y^{2}}{2}}
-  \end{align}
-#+END_SRC 
-
-#+RESULTS:
 \begin{align}
   p(y;\mu)&=\frac{1}{\sqrt{2\pi}}\exp^{-\frac{1}{2}(y-\mu)^{2}}\\
           &=\frac{1}{\sqrt{2\pi}}\exp^{-\frac{1}{2}y^{2}}\cdot\exp^{\mu-\frac{1}{2}\mu^{2}}\\
@@ -61,16 +41,6 @@ Gaussian 分布的指数族为:
 
 假设 $y|x;\theta \sim N(\mu,\sigma^{2})$, $y$ 属于连续的变量, 即 $\eta=\theta^{T}x$ , 那么假设函数 $h(x)$ 为:
 
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{align}
-    h_{\theta}(x)&=E[y|x;\theta]\\
-                 &=\mu\\
-                 &=\eta\\
-                 &=\theta^{T}x
-  \end{align}
-#+END_SRC 
-
-#+RESULTS:
 \begin{align}
   h_{\theta}(x)&=E[y|x;\theta]\\
                &=\mu\\
@@ -80,21 +50,7 @@ Gaussian 分布的指数族为:
 
 *** 逻辑回归
 Bernoulli 分布的指数族为:
-#+BEGIN_SRC latex :results value raw :exports none
-  \begin{align}
-    p(y;\phi)&=\phi^{y}(1-\phi)^{1-y}\\
-             &=\exp(y\log\phi+(1-y)\log(1-\phi))\\
-             &=\exp^{\log(\frac{\phi}{1-\phi})y+log(1-\phi)}\\
-    \\
-    \eta&=\log(\frac{\phi}{1-\phi})\\
-    T(y)&=y\\
-    a(\eta)&=-\log(1-\phi)\\
-           &=\log(1+\exp^{\eta})\\
-    b(y)&=1
-  \end{align}
-#+END_SRC
 
-#+RESULTS:
 \begin{align}
   p(y;\phi)&=\phi^{y}(1-\phi)^{1-y}\\
            &=\exp(y\log\phi+(1-y)\log(1-\phi))\\
@@ -109,16 +65,6 @@ Bernoulli 分布的指数族为:
 
 假设 $y|x;\theta \sim Bernoulli(\phi),\ y\in \{0,1\}$ , 那么假设函数 $h(x)$ 为:
 
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{align}
-    h_{\theta}&=E[y|x;\theta]\\
-              &=\phi\\
-              &=\frac{1}{1+\exp^{-\eta}}\\
-              &=\frac{1}{1+e^{-\theta^{T}x}}
-  \end{align}
-#+END_SRC 
-
-#+RESULTS:
 \begin{align}
   h_{\theta}&=E[y|x;\theta]\\
             &=\phi\\
@@ -128,32 +74,6 @@ Bernoulli 分布的指数族为:
 *** Softmax 回归
 Multinomial 分布的分布族为: 设 $\phi_{i}=p(y=i;\phi),\ y\in\{1,\dots,k\}$
 
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{align}
-    p(y;\phi)&=\phi_{1}^{1\{y=1\}}\phi_{2}^{1\{y=2\}}\cdots\phi_{k}^{1\{y=k\}}\\
-             &=\phi_{1}^{1\{y=1\}}\phi_{2}^{1\{y=2\}}\cdots\phi_{k}^{1-\sum_{i=1}^{k-1}1\{y=i\}}\\
-             &=\exp^{1\{y=1\}\log(\phi_{1})+1\{y=2\}\log(\phi_{2})+\cdots+1-\sum_{i=1}^{k-1}1\{y=i\}\log(\phi_{i})}\\
-             &=\exp^{1\{y=1\}\log(\frac{\phi_{1}}{\phi_{k}})+1\{y=2\}\log(\frac{\phi_{2}}{\phi_{k}})+\cdots+1\{y=k-1\}\log(\frac{\phi_{k-1}}{\phi_{k}})+\log(\phi_{k})}\\
-             &=b(y)\exp(\eta^{T}T(y)-a(\eta))\\
-    \\
-    \eta&=\left[\begin{array}{c}
-                  \log(\frac{\phi_{1}}{\phi_{k}})\\
-                  \log(\frac{\phi_{2}}{\phi_{k}})\\
-                  \vdots\\
-                  \log(\frac{\phi_{k-1}}{\phi_{k}})
-                \end{array}\right]\\
-    T(y)&=\left[\begin{array}{c}
-                  1\{y=1\}\\
-                  1\{y=2\}\\
-                  \vdots\\
-                  1\{y=k-1\}
-                \end{array}\right]\\
-    a(\eta)&=-\log(\phi_k)\\
-    b(y)&=1
-  \end{align}
-#+END_SRC
-
-#+RESULTS:
 \begin{align}
   p(y;\phi)&=\phi_{1}^{1\{y=1\}}\phi_{2}^{1\{y=2\}}\cdots\phi_{k}^{1\{y=k\}}\\
            &=\phi_{1}^{1\{y=1\}}\phi_{2}^{1\{y=2\}}\cdots\phi_{k}^{1-\sum_{i=1}^{k-1}1\{y=i\}}\\
@@ -179,18 +99,6 @@ Multinomial 分布的分布族为: 设 $\phi_{i}=p(y=i;\phi),\ y\in\{1,\dots,k\}
 
 其中可以得出 $\eta$ 和 $\phi$ 的映射, 称为 Softmax 函数:
 
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{align}
-    \eta_{i}&=\log(\frac{\phi_{i}}{\phi_{k}})\\
-    \exp^{\eta_{i}}&=\frac{\phi_{i}}{\phi_{k}}\\
-    \phi_{k}\exp^{\eta_{i}}&=\phi_{i}\\
-    \phi_{k}\sum_{i=1}^{k}\exp^{\eta_{i}}&=\sum_{i=1}^{k}\phi_{i}=1\\
-    \phi_{k}&=\frac{1}{\sum_{i=1}^{k}\exp^{\eta_{i}}}\\
-    Softmax=\phi_{i}&=\frac{\exp^{\eta_{i}}}{\sum_{j=1}^{k}\exp^{\eta_{j}}}
-  \end{align}
-#+END_SRC 
-
-#+RESULTS:
 \begin{align}
   \eta_{i}&=\log(\frac{\phi_{i}}{\phi_{k}})\\
   \exp^{\eta_{i}}&=\frac{\phi_{i}}{\phi_{k}}\\
@@ -202,28 +110,6 @@ Multinomial 分布的分布族为: 设 $\phi_{i}=p(y=i;\phi),\ y\in\{1,\dots,k\}
 
 假设 $T(y)|x;\theta \sim multinomial(\phi),\ y\in \{1,\cdots,k\}$ , 那么假设函数 $h(x)$ 为:
 
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{align}
-    h_{\theta}(x)&=E[T(y)|x;\theta]\\
-                 &=\left[\begin{array}{c|c}
-                           1\{y=1\}\\
-                           \vdots&x;\theta\\
-                           1\{y=k-1\}
-                         \end{array}\right]\\
-                 &=\left[\begin{array}{c}
-                           \phi_{1}\\
-                           \vdots\\
-                           \phi_{k-1}
-                         \end{array}\right]\\
-                 &=\left[\begin{array}{c}
-                           \frac{\exp^{\theta_{1}^{T}x}}{\sum_{j=1}^{k}\exp^{\theta_{j}^{T}x}}\\
-                           \vdots\\
-                           \frac{\exp^{\theta_{k-1}^{T}x}}{\sum_{j=1}^{k}\exp^{\theta_{j}^{T}x}}
-                         \end{array}\right]
-  \end{align}
-#+END_SRC 
-
-#+RESULTS:
 \begin{align}
   h_{\theta}(x)&=E[T(y)|x;\theta]\\
                &=\left[\begin{array}{c|c}
@@ -263,14 +149,6 @@ Multinomial 分布的分布族为: 设 $\phi_{i}=p(y=i;\phi),\ y\in\{1,\dots,k\}
 *** 最优边界分类器(optimal margin classifier)
 定义一个优化问题: 其中 $\gamma=\frac{\hat{\gamma}}{\Vert w \Vert}$ 保证函数边界和几何边界联系起来 让 $\frac{\hat{\gamma}}{\Vert w \Vert}$ 取最大值，即使每个训练样本的函数边界和几何边界至少为 $\gamma$
 
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{align}
-    max_{\gamma,w,b} &\ \ \frac{\hat{\gamma}}{\Vert w \Vert}\\
-    s.t. &\ \ y^{(i)}(w^{T}x^{(i)}+b)\geq \gamma,i=1,\dots,m\\
-  \end{align}
-#+END_SRC 
-
-#+RESULTS:
 \begin{align}
   max_{\gamma,w,b} &\ \ \frac{\hat{\gamma}}{\Vert w \Vert}\\
   s.t. &\ \ y^{(i)}(w^{T}x^{(i)}+b)\geq \gamma,i=1,\dots,m\\
@@ -278,14 +156,6 @@ Multinomial 分布的分布族为: 设 $\phi_{i}=p(y=i;\phi),\ y\in\{1,\dots,k\}
 
 对 $\hat{\gamma}$ 进行缩放使 $\hat{\gamma}=1$ , 因为只对 $w,b$ 进行缩放, $max\frac{\hat{\gamma}}{\Vert w \Vert}=max\frac{1}{\Vert w \Vert} = min\frac{1}{2}\Vert w \Vert^{2}$ (方便下面的推导)
 
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{align}
-    min_{w,b} &\ \ \frac{1}{2}\Vert w \Vert^{2}\\
-    s.t. &\ \ y^{(i)}(w^{T}x^{(i)}+b)\geq 1,i=1,\dots,m\\
-  \end{align}
-#+END_SRC 
-
-#+RESULTS:
 \begin{align}
   min_{w,b} &\ \ \frac{1}{2}\Vert w \Vert^{2}\\
   s.t. &\ \ y^{(i)}(w^{T}x^{(i)}+b)\geq 1,i=1,\dots,m\\
@@ -293,14 +163,6 @@ Multinomial 分布的分布族为: 设 $\phi_{i}=p(y=i;\phi),\ y\in\{1,\dots,k\}
 
 针对上式的优化问题, 可以使用 *拉格朗日乘数法* 进行求解, 构建拉格朗日函数 $l(w,b,\alpha)$, 根据拉格朗日对偶性, 即可的出下面的极大极小问题:
 
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{align}
-    \ell\left(w,b,\alpha\right)&=\frac{1}{2}\left\Vert w \right\Vert^{2}-\sum_{i=1}^{m}\alpha_{i}\left[y^{\left(i\right)}\left(w^{T}x^{\left(i\right)}+b\right)-1\right]\\
-    &\max\limits_{\alpha}\min\limits_{w,b}\ell(w,b,\alpha)
-  \end{align}
-#+END_SRC 
-
-#+RESULTS:
 \begin{align}
   \ell\left(w,b,\alpha\right)&=\frac{1}{2}\left\Vert w \right\Vert^{2}-\sum_{i=1}^{m}\alpha_{i}\left[y^{\left(i\right)}\left(w^{T}x^{\left(i\right)}+b\right)-1\right]\\
   &\max\limits_{\alpha}\min\limits_{w,b}\ell(w,b,\alpha)
@@ -308,15 +170,6 @@ Multinomial 分布的分布族为: 设 $\phi_{i}=p(y=i;\phi),\ y\in\{1,\dots,k\}
 
 首先求 $\min\limits_{w,b}\ell(w,b,\alpha)$, 即对 $w,b$ 求偏导令其等于 0。
 
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{align}
-    \bigtriangledown_{w}\ell\left(w,b,\alpha\right)&=w-\sum_{i=1}^{m}\alpha_{i}y^{\left(i\right)}x^{\left(i\right)}=0\\
-    w&=\sum_{i=1}^{m}\alpha_{i}y^{\left(i\right)}x^{\left(i\right)}\\
-    \frac{\partial}{\partial{b}}\ell\left(w,b,\alpha\right)&=\sum_{i=1}^{m}\alpha_{i}y^{\left(i\right)}=0\\
-  \end{align}
-#+END_SRC
-
-#+RESULTS:
 \begin{align}
   \bigtriangledown_{w}\ell\left(w,b,\alpha\right)&=w-\sum_{i=1}^{m}\alpha_{i}y^{\left(i\right)}x^{\left(i\right)}=0\\
   w&=\sum_{i=1}^{m}\alpha_{i}y^{\left(i\right)}x^{\left(i\right)}\\
@@ -325,20 +178,6 @@ Multinomial 分布的分布族为: 设 $\phi_{i}=p(y=i;\phi),\ y\in\{1,\dots,k\}
 
 将其带回 $l(w,b,\alpha)$ 得到
 
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{align}
-    \ell\left(w,b,\alpha\right)&=\frac{1}{2}\left\Vert\sum_{i=1}^{m}\alpha_{i}y^{\left(i\right)}x^{\left(i\right)}\right\Vert^{2}\\
-                               &-\sum_{i=1}^{m}\alpha_{i}\left[y^{\left(i\right)}\left(\left(\sum_{j=1}^{m}\alpha_{j}y^{\left(j\right)}x^{\left(j\right)}\right)^{T}x^{\left(i\right)}+b\right)-1\right]\\
-                               &=\frac{1}{2}\left\vert\sum_{i=1}^{m}\sum_{j=1}^{m}\alpha_{i}\alpha_{j}y^{\left(i\right)}y^{\left(j\right)}x^{\left(i\right)}x^{\left(j\right)}\right\vert\\
-                               &-\sum_{i=1}^{m}\alpha_{i}\left[y^{\left(i\right)}\left(\left(\sum_{j=1}^{m}\alpha_{j}y^{\left(j\right)}x^{\left(j\right)}\right)^{T}x^{\left(i\right)}+b\right)-1\right]\\
-                               &=\frac{1}{2}\sum_{i=1}^{m}\sum_{j=1}^{m}\alpha_{i}\alpha_{j}y^{\left(i\right)}y^{\left(j\right)}\left(x^{\left(i\right)}\right)^{T}x^{\left(j\right)}\\
-                               &-\sum_{i=1}^{m}\sum_{j=1}^{m}\alpha_{i}\alpha_{j}y^{\left(i\right)}y^{\left(j\right)}\left(x^{\left(i\right)}\right)^{T}x^{\left(j\right)}-b\sum_{i=1}^{m}\alpha_{i}y^{\left(i\right)}+\sum_{i=1}^{m}\alpha_{i}\\
-                               &=-\frac{1}{2}\sum_{i=1}^{m}\sum_{j=1}^{m}\alpha_{i}\alpha_{j}y^{\left(i\right)}y^{\left(j\right)}\left(x^{\left(i\right)}\right)^{T}x^{\left(j\right)}-b\sum_{i=1}^{m}\alpha_{i}y^{\left(i\right)}+\sum_{i=1}^{m}\alpha_{i}\\
-                               &=-\frac{1}{2}\sum_{i=1}^{m}\sum_{j=1}^{m}\alpha_{i}\alpha_{j}y^{\left(i\right)}y^{\left(j\right)}\left(x^{\left(i\right)}\right)^{T}x^{\left(j\right)}+\sum_{i=1}^{m}\alpha_{i}
-  \end{align}
-#+END_SRC 
-
-#+RESULTS:
 \begin{align}
   \ell\left(w,b,\alpha\right)&=\frac{1}{2}\left\Vert\sum_{i=1}^{m}\alpha_{i}y^{\left(i\right)}x^{\left(i\right)}\right\Vert^{2}\\
                              &-\sum_{i=1}^{m}\alpha_{i}\left[y^{\left(i\right)}\left(\left(\sum_{j=1}^{m}\alpha_{j}y^{\left(j\right)}x^{\left(j\right)}\right)^{T}x^{\left(i\right)}+b\right)-1\right]\\
@@ -353,15 +192,6 @@ Multinomial 分布的分布族为: 设 $\phi_{i}=p(y=i;\phi),\ y\in\{1,\dots,k\}
 
 再求 $\max\limits_{\alpha}\ell(w,b,\alpha)$ 为满足 KKT 条件即 $a_{i}\geq0$
 
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{align}
-    max_{\alpha}\ \ &W(\alpha)=\sum_{i=1}^{m}\alpha_{i}-\frac{1}{2}\sum_{i=1}^{m}\sum_{j=1}^{m}\alpha_{i}\alpha_{j}y^{\left(i\right)}y^{\left(j\right)}\left(x^{\left(i\right)}\right)^{T}x^{\left(j\right)}\\
-    s.t.\ \ &\alpha_{i}\geq 0,\ i=1,\dots,m\\
-            &\sum_{i=1}^{m}\alpha_{i}y^{(i)}=0
-  \end{align}
-#+END_SRC 
-
-#+RESULTS:
 \begin{align}
   max_{\alpha}\ \ &W(\alpha)=\sum_{i=1}^{m}\alpha_{i}-\frac{1}{2}\sum_{i=1}^{m}\sum_{j=1}^{m}\alpha_{i}\alpha_{j}y^{\left(i\right)}y^{\left(j\right)}\left(x^{\left(i\right)}\right)^{T}x^{\left(j\right)}\\
   s.t.\ \ &\alpha_{i}\geq 0,\ i=1,\dots,m\\
@@ -370,14 +200,6 @@ Multinomial 分布的分布族为: 设 $\phi_{i}=p(y=i;\phi),\ y\in\{1,\dots,k\}
 
 求得 $\alpha$ 即可得到 $w,b$ 的解:
 
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{align}
-    w&=\sum_{i=1}^{m}\alpha_{i}y^{\left(i\right)}x^{\left(i\right)}\\
-    b&=\frac{1}{y_{i}}-\sum_{i}^{m}\alpha_{i}y_{i}x_{i}^{T}x_{j}
-  \end{align}
-#+END_SRC 
-
-#+RESULTS:
 \begin{align}
   w&=\sum_{i=1}^{m}\alpha_{i}y^{\left(i\right)}x^{\left(i\right)}\\
   b&=\frac{1}{y_{i}}-\sum_{i}^{m}\alpha_{i}y_{i}x_{i}^{T}x_{j}
@@ -385,14 +207,6 @@ Multinomial 分布的分布族为: 设 $\phi_{i}=p(y=i;\phi),\ y\in\{1,\dots,k\}
 
 预测的解为:
 
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{align}
-    w^{T}x+b&=\left(\sum_{i=1}^{m}a_{i}y^{(i)}x^{(i)}\right)^{T}x+b\\
-            &=\sum_{i=1}^{m}a_{i}y^{(i)}\left\langle x^{(i)},x \right\rangle+b
-  \end{align}
-#+END_SRC 
-
-#+RESULTS:
 \begin{align}
   w^{T}x+b&=\left(\sum_{i=1}^{m}a_{i}y^{(i)}x^{(i)}\right)^{T}x+b\\
           &=\sum_{i=1}^{m}a_{i}y^{(i)}\left\langle x^{(i)},x \right\rangle+b
@@ -401,14 +215,6 @@ Multinomial 分布的分布族为: 设 $\phi_{i}=p(y=i;\phi),\ y\in\{1,\dots,k\}
 *** 拉格郎日对偶(lagrange duality)
 **** 单约束优化问题
 
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{align}
-    min_{w}\ \ &f(w)\\
-    s.t. \ \ &h_{i}(w)=0,\ i=1,\dots,l
-  \end{align}
-#+END_SRC 
-
-#+RESULTS:
 \begin{align}
   min_{w}\ \ &f(w)\\
   s.t. \ \ &h_{i}(w)=0,\ i=1,\dots,l
@@ -416,41 +222,18 @@ Multinomial 分布的分布族为: 设 $\phi_{i}=p(y=i;\phi),\ y\in\{1,\dots,k\}
 
 定义拉格朗日函数为, 其中 $\beta_{i}$ 叫做拉格朗日乘数(lagrange multipliers)
 
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{equation}
-    \ell(w,\beta)=f(w)+\sum_{i=1}^{l}\beta_{i}h_{i}(w)
-  \end{equation}
-#+END_SRC 
-
-#+RESULTS:
 \begin{equation}
   \ell(w,\beta)=f(w)+\sum_{i=1}^{l}\beta_{i}h_{i}(w)
 \end{equation}
 
 对 $\ell$ 取偏导，使其为零，解出对应的 $w$ 和 $\beta$:
 
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{equation}
-    \frac{\partial\ell}{\partial w_{i}}=0;\ \frac{\partial\ell}{\partial\beta_{i}}=0
-  \end{equation}
-#+END_SRC 
-
-#+RESULTS:
 \begin{equation}
   \frac{\partial\ell}{\partial w_{i}}=0;\ \frac{\partial\ell}{\partial\beta_{i}}=0
 \end{equation}
 
 **** 主最优化问题
 
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{align}
-    min_{w}\ \ &f(w)\\
-    s.t. \ \ &g_{i}(w)\leq 0,\ i=1,\dots,k\\
-               &h_{i}(w)=0,\ i=1,\dots,l
-  \end{align}
-#+END_SRC 
-
-#+RESULTS:
 \begin{align}
   min_{w}\ \ &f(w)\\
   s.t. \ \ &g_{i}(w)\leq 0,\ i=1,\dots,k\\
@@ -459,30 +242,12 @@ Multinomial 分布的分布族为: 设 $\phi_{i}=p(y=i;\phi),\ y\in\{1,\dots,k\}
 
 定义广义拉格朗日函数(generalized Lagrangian), 其中 $\alpha_{i}$ 和 $\beta_{i}$ 为拉格朗日乘数:
 
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{equation}
-    \ell(w,\alpha,\beta)=f(w)+\sum_{i=1}^{k}\alpha_{i}g_{i}(w)+\sum_{i=1}^{l}\beta_{i}h_{i}(w)
-  \end{equation}
-#+END_SRC 
-
-#+RESULTS:
 \begin{equation}
   \ell(w,\alpha,\beta)=f(w)+\sum_{i=1}^{k}\alpha_{i}g_{i}(w)+\sum_{i=1}^{l}\beta_{i}h_{i}(w)
 \end{equation}
 
 设 $\theta_{p}(w)=\max\limits_{\alpha,\beta}\ell(w,\alpha,\beta)$, 其中 $p$ 是对 "primal" 的简写, 可以得到:如果 $w$ 不满足主要约束则为 $\infty$
 
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{equation}
-    \theta_{p}(w)=
-      \begin{cases}
-        f(w)& \text{if w satisfies primal constraints}\\
-        \infty& \text{otherwise}
-      \end{cases}
-  \end{equation}
-#+END_SRC
-
-#+RESULTS:
 \begin{equation}
   \theta_{p}(w)=
     \begin{cases}
@@ -493,39 +258,18 @@ Multinomial 分布的分布族为: 设 $\phi_{i}=p(y=i;\phi),\ y\in\{1,\dots,k\}
 
 即可引出下面的最小化问题, 同时定义一个目标量的最优值 $p^{*}=\min\limits_{w}\theta_{p}(w)$
 
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{equation}
-    \min\limits_{w}\theta_{p}(w)=\min\limits_{w}\max\limits_{\alpha,\beta}\ell(w,\alpha,\beta)
-  \end{equation}
-#+END_SRC 
-
-#+RESULTS:
 \begin{equation}
   \min\limits_{w}\theta_{p}(w)=\min\limits_{w}\max\limits_{\alpha,\beta}\ell(w,\alpha,\beta)
 \end{equation}
 
 设 $\theta_{D}(\alpha,\beta)=\min\limits_{w}\ell(w,\alpha,\beta)$, $D$ 是 "dual" 的缩写, 注意这是找 $w$ 的最小值，即可得出对偶优化问题:
 
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{equation}
-    d^{*}=\max\limits_{\alpha,\beta}\theta_{D}(\alpha,\beta)=\max\limits_{\alpha,\beta}\min\limits_{w}\ell(w,\alpha,\beta)
-  \end{equation}
-#+END_SRC 
-
-#+RESULTS:
 \begin{equation}
   d^{*}=\max\limits_{\alpha,\beta}\theta_{D}(\alpha,\beta)=\max\limits_{\alpha,\beta}\min\limits_{w}\ell(w,\alpha,\beta)
 \end{equation}
 
 即可得出以下关系: 当符合 KKT 条件时 $d^{*}=p^{*}$, 即可替代原来的主要约束问题
 
-#+BEGIN_SRC #+BEGIN_SRC latex :results raw :exports none
-  \begin{equation}
-    d^{*}=\max\limits_{\alpha,\beta}\min\limits_{w}\ell(w,\alpha,\beta)\leq\min\limits_{w}\max\limits_{\alpha,\beta}\ell(w,\alpha,\beta)=p^{*}
-  \end{equation}
-#+END_SRC 
-
-#+RESULTS:
 \begin{equation}
   d^{*}=\max\limits_{\alpha,\beta}\min\limits_{w}\ell(w,\alpha,\beta)\leq\min\limits_{w}\max\limits_{\alpha,\beta}\ell(w,\alpha,\beta)=p^{*}
 \end{equation}
@@ -534,17 +278,6 @@ Multinomial 分布的分布族为: 设 $\phi_{i}=p(y=i;\phi),\ y\in\{1,\dots,k\}
 假设 $f$ 和 $g_{i}$ 都是凸的, $h_{i}$ 是仿射的。进一步设 $g$ 是严格可行的; 这就意味着会存在某个 $w$, 使得对所有的 $i$ 都有 $g_{i}(w)<0$ 。
 基于上面的假设, 可知必然存在 $w^{*},\alpha^{*},\beta^{*}$ 满足 $w^{*}$ 为主要约束问题(primal problem)的解, 而 $\alpha^{*},\beta^{*}$ 为对偶问题的解, 此外存在一个 $p^{*}=d^{*}=\ell(w^{*},\alpha^{*},\beta^{*})$ 。另外, $w^{*},\alpha^{*},\beta^{*}$ 这三个还会满足卡罗需-库恩-塔克条件(Karush-Kuhn-Tucker conditions, 缩写为 KKT),如下所示:
 
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{align}
-    \frac{\partial}{\partial w_{i}}\ell(w^{*},\alpha^{*},\beta^{*})&=0,\ i=1,\dots,n\\
-    \frac{\partial}{\partial\beta_{i}}\ell(w^{*},\alpha^{*},\beta^{*})&=0,\ i=1,\dots,l\\
-    \alpha_{i}^{*}g_{i}(w^{*})&= 0,i=1,\dots,k\\
-    g_{i}(w^{*})&\leq 0,i=1,\dots,k\\
-    \alpha^{*}&\geq 0,i=1,\dots,k\\
-  \end{align}
-#+END_SRC 
-
-#+RESULTS:
 \begin{align}
   \frac{\partial}{\partial w_{i}}\ell(w^{*},\alpha^{*},\beta^{*})&=0,\ i=1,\dots,n\\
   \frac{\partial}{\partial\beta_{i}}\ell(w^{*},\alpha^{*},\beta^{*})&=0,\ i=1,\dots,l\\
@@ -555,32 +288,14 @@ Multinomial 分布的分布族为: 设 $\phi_{i}=p(y=i;\phi),\ y\in\{1,\dots,k\}
 *** 核技巧
 利用核技巧解决非线性支持向量机
 定义:(核函数)设 $\chi$ 是输入空间(欧式空间 $R^{n}$ 的子集或离散集合), 又设 $H$ 为特征空间(希尔伯特空间)，如果存在一个从 $\chi$ 到 $H$ 的映射
-<<Eqn.(1.1.4.1)>>
-#+BEGIN_SRC latex :results raw :exports none
-\begin{equation}
-\label{eq:1}
-\phi(\chi):\chi\to\H
-\end{equation}
-#+END_SRC 
 
-#+RESULTS:
 \begin{equation}
 \phi(\chi):\chi\to H
 \end{equation}
 
 使得对所有 $x,z\in\chi$, 函数 $K(x,z)$ 满足条件
 
-<<Eqn.(1.1.4.2)>>
-#+BEGIN_SRC latex :results raw :exports none
 \begin{equation}
-\label{eq:2}
-  K(x,z)=\phi(x)\cdot\phi(z)
-\end{equation}
-#+END_SRC 
-
-#+RESULTS:
-\begin{equation}
-\label{eq:2}
   K(x,z)=\phi(x)\cdot\phi(z)
 \end{equation}
 
@@ -597,28 +312,10 @@ Multinomial 分布的分布族为: 设 $\phi_{i}=p(y=i;\phi),\ y\in\{1,\dots,k\}
 为 SVM 推导出的对偶问题提供了一种有效解法
 SMO 算法是一种启发式算法,其基本思路是: 如果所有变量的解都满足此最优化问题的KKT条件, 那么这个最优化问题的解就得到了。若使用坐标上升算法进行求解由于约束条件若固定 $a_{i}$ 以外的值则无法修改 $a_{i}$ 即需要同时更新两个, 如下所示: $a_{1}$ 由其他 $a_{i}$ 决定
 
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{equation}
-    a_{1}=-y^{(1)}\sum_{i=2}^{m}a_{i}y^{(i)}
-  \end{equation}
-#+END_SRC 
-
-#+RESULTS:
 \begin{equation}
   a_{1}=-y^{(1)}\sum_{i=2}^{m}a_{i}y^{(i)}
 \end{equation}
 
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{align}
-    &Loop\ until\ convergence: \{\\
-    &\ \ For\ i=1,\dots,m \{\\
-    &\ \ \ \ \alpha_{i},\alpha_{j}:=arg\max\limits_{\hat{\alpha_{i}},\hat{\alpha_{j}}}w(\alpha_{1},\dots,\hat{\alpha_{i}},\dots,\alpha_{j},\dots,\alpha_{m})\\
-    &\ \ \}\\
-    &\}
-  \end{align}
-#+END_SRC
-
-#+RESULTS:
 \begin{align}
   &Loop\ until\ convergence: \{\\
   &\ \ For\ i=1,\dots,m \{\\
@@ -629,13 +326,6 @@ SMO 算法是一种启发式算法,其基本思路是: 如果所有变量的解�
 
 根据约束条件 $\sum_{i=1}^{m}\alpha_{i}y^{(i)}=0$, 可以得到:$\alpha_{i},\alpha_{j}$ 必须在 $\left[0,C\right]\times\left[0,C\right]$ 所构成的方框里，必须在 $\alpha_{i}y^{(i)}+\alpha_{j}y^{(j)}=\xi$ 线条上, 则 $0\leq\alpha_{i}\leq C ,L\leq\alpha_{j}\leq H$
 
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{equation}
-    \alpha_{i}y^{(i)}+\alpha_{j}y^{(j)}=-\sum_{k\neq i,j}^{m}\alpha_{k}y^{(k)}=\xi
-  \end{equation}
-#+END_SRC
-
-#+RESULTS:
 \begin{equation}
   \alpha_{i}y^{(i)}+\alpha_{j}y^{(j)}=-\sum_{k\neq i,j}^{m}\alpha_{k}y^{(k)}=\xi
 \end{equation}
@@ -645,17 +335,6 @@ SMO 算法是一种启发式算法,其基本思路是: 如果所有变量的解�
 **** 坐标上升算法
 设 $\max\limits_{\alpha_{i}}w(\alpha_{1},\alpha_{2},\dots,\alpha_{m})$
 
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{align}
-    &Loop\ until\ convergence: \{\\
-    &\ \ For\ i=1,\dots,m\ \{\\
-    &\ \ \ \ \alpha_{i}:=arg\max\limits_{\hat{\alpha_{i}}}w(\alpha_{1},\dots,\hat{\alpha_{i}},\dots,\alpha_{m})\\
-    &\ \ \}\\
-    &\}
-  \end{align}
-#+END_SRC
-
-#+RESULTS:
 \begin{align}
 &Loop\ until\ convergence: \{\\
 &\ \ For\ i=1,\dots,m\ \{\\
@@ -686,27 +365,12 @@ SMO 算法是一种启发式算法,其基本思路是: 如果所有变量的解�
 
 决策树的剪枝往往通过极小化决策树整体的损失函数(loss function)或代价函数(cost function)来实现。设树 $T$ 的叶结点个数为 $T$, $t$ 是树 $T$ 的叶结点, 该叶结点有 $N_{t}$ 个样本点,其中类的样本点有 $N_{tk}$ 个, $k=1,2,\dots,K$, $H_{t}(T)$ 为叶结点 $t$ 上的 KL散度, $a\geq 0$ 为参数, 则 *决策树学习的损失函数* 可以定义为:
 
-<<Eqn.(1.3.2.1)>>
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{equation}
-    C_{\alpha}(T)=\sum_{t=1}^{T}N_{t}H_{t}(T)+\alpha|T|
-  \end{equation}
-#+END_SRC 
-
-#+RESULTS:
 \begin{equation}
   C_{\alpha}(T)=\sum_{t=1}^{T}N_{t}H_{t}(T)+\alpha|T|
 \end{equation}
 
 其中 KL 散度为:
-<<Eqn.(1.3.2.2)>>
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{equation}
-    H_{t}(T)=-\sum_{k}\frac{N_{tk}}{N_{t}}\log\frac{N_{tk}}{N_{t}}
-  \end{equation}
-#+END_SRC 
 
-#+RESULTS:
 \begin{equation}
   H_{t}(T)=-\sum_{k}\frac{N_{tk}}{N_{t}}\log\frac{N_{tk}}{N_{t}}
 \end{equation}
@@ -724,14 +388,7 @@ SMO 算法是一种启发式算法,其基本思路是: 如果所有变量的解�
 1. 计算每个结点得 KL 散度
 2. 递归地从树的叶结点向上回缩
 设一组叶结点回缩到其父结点之前与之后的整体树分别为 $T_{B}$ 与 $T_{A}$, 其对应的损失函数值分别是 $C_{\alpha}(T_{B})$ 与 $C_{\alpha}(T_{A})$, 如果
-<<Eqn.(1.3.2.3)>>
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{equation}
-    C_{\alpha}(T_{A}) \leq C_{\alpha}(T_{B})
-  \end{equation}
-#+END_SRC 
 
-#+RESULTS:
 \begin{equation}
   C_{\alpha}(T_{A}) \leq C_{\alpha}(T_{B})
 \end{equation}
@@ -760,28 +417,13 @@ CART 算法由以下两步组成:
 决策树的生成就是递归地构建二叉决策树的过程。对回归树用平方误差最小化准则, 对分类树用基尼指数(Gini index)最小化准则, 进行特征选择, 生成二叉树。
 - 回归树的生成:
   假设 $X$ 与 $Y$ 分别为输入和输出变量, 并且 $Y$ 是连续变量, 给定训练数据集:
-  <<Eqn.(1.3.3.1)>>
-  #+BEGIN_SRC latex :results raw :exports none
-    \begin{equation}
-      D=\{(x_{1},y_{1},(x_{2},y_{2},\dots,(x_{N},y_{N}))\}
-    \end{equation}
-  #+END_SRC 
 
-  #+RESULTS:
   \begin{equation}
     D=\{(x_{1},y_{1},(x_{2},y_{2},\dots,(x_{N},y_{N}))\}
   \end{equation}
 
   一个回归树对应着输入空间(即特征空间)的一个划分以及在划分的单元上的输出值。假设已将输入空间划分为 $M$ 个单元 $R_{1},R_{2},\dots,R_{M}$, 并且在每个单元 $R_{m}$ 上有一个固定的输出值 $c_{m} , 于是回归树模型可表示为:
 
-  <<Eqn.(1.3.3.2)>>
-  #+BEGIN_SRC latex :results raw :exports none
-    \begin{equation}
-      f(x)=\sum_{m=1}^{M}C_{m}I(x\in R_{m})
-    \end{equation}
-  #+END_SRC 
-
-  #+RESULTS:
   \begin{equation}
     f(x)=\sum_{m=1}^{M}C_{m}I(x\in R_{m})
   \end{equation}
@@ -791,31 +433,17 @@ CART 算法由以下两步组成:
   输出: 回归树 $f(x)$
   在训练数据集所在的输入空间中, 递归地将每个区域划分为两个子区域并决定每个子区域上的输出值, 构建二叉决策树:
   1. 选择最优切分变量 $j$ 与切分点 $s$, 求解
-     <<Eqn.(1.3.3.3)>>
-     #+BEGIN_SRC latex :results raw :exports none
-       \begin{align}
-         &\min\limits_{j,s} \left[ \min\limits_{C_{1}}\sum_{x_{i\in R_{1}(j,s)}}(y_{i}-C_{1})^{2}+\min\limits_{C_{2}}\sum_{x_{i}\in R_{2}(j,s)}(y_{i}-C_{2})^{2} \right]\\
-         &C_{m}=ave(y_{i}|x_{i}\in R_{m}(j,s))=\sum_{x_{i}\in R_{m}}(y_{i}-f(x_{i}))^{2}\\
-         &R_{1}(j,s)=\{x|x^{j}\leq s\}\ \ R_{2}(j,s)=\{x|x^{j}>s\}\\
-       \end{align}
-     #+END_SRC 
 
-     #+RESULTS:
      \begin{align}
+       \label{eq-1.3.3.3}
        &\min\limits_{j,s} \left[ \min\limits_{C_{1}}\sum_{x_{i\in R_{1}(j,s)}}(y_{i}-C_{1})^{2}+\min\limits_{C_{2}}\sum_{x_{i}\in R_{2}(j,s)}(y_{i}-C_{2})^{2} \right]\\
        &C_{m}=ave(y_{i}|x_{i}\in R_{m}(j,s))=\sum_{x_{i}\in R_{m}}(y_{i}-f(x_{i}))^{2}\\
        &R_{1}(j,s)=\{x|x^{j}\leq s\}\ \ R_{2}(j,s)=\{x|x^{j}>s\}\\
      \end{align}
 
-     遍历变量 $j$, 对固定的切分变量 $j$ 扫描切分点 $s$, 选择使 [[Eqn.(1.3.3.3)][Eqn.(1.3.3.3)]] 达到最小值的对 $j,s$
+     遍历变量 $j$, 对固定的切分变量 $j$ 扫描切分点 $s$, 选择使 eqref:eq-1.3.3.3 达到最小值的对 $j,s$
   2. 用选定的对 $(j,s)$ 划分区域并决定相应的输出值:
      <<Eqn.(1.3.3.4)>>
-     #+BEGIN_SRC latex :results raw :exports none
-       \begin{align}
-         R_{1}(j,s)=\{x|x^{(j)}\leq s\}&,\ R_{2}(j,s)=\{x|x^{(j)}>s\}\\
-         \hat{C}_{m}=\frac{1}{N_{m}}\sum_{x_{i}\in R_{m}(j,s)}y_{i}&,\ x\in R_{m},\ m=1,2
-       \end{align}
-     #+END_SRC
 
      #+RESULTS:
      \begin{align}
@@ -825,14 +453,7 @@ CART 算法由以下两步组成:
 
   3. 继续对两个子区域调用步骤 1,2 直至满足停止条件。
   4. 将输入空间划分为 $M$ 个区域 $R_{1},R_{2},\dots,R_{M}$, 生成决策树:
-     <<Eqn.(1.3.3.5)>>
-     #+BEGIN_SRC latex :results raw :exports none
-       \begin{equation}
-         f(x)=\sum_{m=1}^{M}\hat{C}_{m}I(x\in R_{m})
-       \end{equation}
-     #+END_SRC 
 
-     #+RESULTS:
      \begin{equation}
        f(x)=\sum_{m=1}^{M}\hat{C}_{m}I(x\in R_{m})
      \end{equation}
@@ -849,26 +470,12 @@ M-Step：假设missing data已知的情况下，最大化似然函数。
 1. 初始化分布参数 $\theta$
 2. 重复 E-step 和 M-step 直到收敛
    1. E-step: 根据参数的初始值或上次迭代的模型参数来计算出隐性变量的后验概率(条件概率), 其实就是隐性变量的期望。作为隐性变量的现有估计值: 
-      <<Eqn.(1.5.1.0-1)>>
-      #+BEGIN_SRC latex :results raw :exports none
-        \begin{equation}
-        Q_{i}(z^{(i)}):=p(z^{(i)}|x^{(i)};\theta)
-        \end{equation}
-      #+END_SRC 
 
-      #+RESULTS:
       \begin{equation}
       Q_{i}(z^{(i)}):=p(z^{(i)}|x^{(i)};\theta)
       \end{equation}
    2. M-step: 最大化似然函数从而获得新的参数值:
-      <<Eqn.(1.5.1.0-2)>>
-      #+BEGIN_SRC latex :results raw :exports none
-        \begin{equation}
-          \theta:=\arg\max\limits_{\theta}\sum_{i}\sum_{z^{(i)}}Q_{i}(z^{(i)})\log\frac{p(x^{(i)},z^{(i)};\theta)}{Q_{i}(z^{(i)})}
-        \end{equation}
-      #+END_SRC 
 
-      #+RESULTS:
       \begin{equation}
         \theta:=\arg\max\limits_{\theta}\sum_{i}\sum_{z^{(i)}}Q_{i}(z^{(i)})\log\frac{p(x^{(i)},z^{(i)};\theta)}{Q_{i}(z^{(i)})}
       \end{equation}
@@ -877,14 +484,7 @@ M-Step：假设missing data已知的情况下，最大化似然函数。
 <<Jensen>>
 定理:
 - 设 $f$ 是一个凸函数, 且设 $X$ 是一随机变量(random variable)。然后则有:
-  <<Eqn.(1.5.1.1)>>
-  #+BEGIN_SRC latex :results raw :exports none
-    \begin{equation}
-      E[f(X)] \geq f(E(X))
-    \end{equation}
-  #+END_SRC 
 
-  #+RESULTS:
   \begin{equation}
     E[f(X)] \geq f(E(X))
   \end{equation}
@@ -899,31 +499,14 @@ M-Step：假设missing data已知的情况下，最大化似然函数。
 
 **** EM algorithm 推导
 假设我们有一个估计问题, 其中由训练样本集 $x^{(1)},\dots,x^{(m)}$ 包含了 $m$ 个独立样本。使用模型 $p(x,z)$ 对数据进行建模，拟合其参数，其中的似然函数如下所示:
-<<Eqn.(1.5.1.2)>>
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{align}
-    l(\theta)&=\sum_{i=1}^{m}\log{p(x;\theta)}\\
-             &=\sum_{i=1}^{m}\log{\sum_{z}p(x,z;\theta)}
-  \end{align}
-#+END_SRC 
 
-#+RESULTS:
 \begin{align}
   l(\theta)&=\sum_{i=1}^{m}\log{p(x;\theta)}\\
            &=\sum_{i=1}^{m}\log{\sum_{z}p(x,z;\theta)}
 \end{align}
 
 对于每个 $i$, 设 $Q_{i}$ 是某个对 $z$ 的分布, $\sum_{z}Q_{i}(z)=1, Q_{i}(z)\geq 0$ 。则有下列式子:
-<<Eqn.(1.5.1.3)>>
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{align}
-    \sum_{i}\log{p(x^{(i)};\theta)}&=\sum_{i}\log{\sum_{z^{(i)}}p \left( x^{(i)},z^{(i)};\theta \right)}\\
-                                   &=\sum_{i}\log{\sum_{z^{(i)}}Q_{i}(z^{(i)})\frac{p(x^{(i)},z^{(i)};\theta)}{Q_{i}(z^{(i)})}}\\
-    &\geq\sum_{i}\sum_{z^{(i)}}Q_{i}(z^{(i)})\log\frac{p(x^{(i)},z^{(i)};\theta)}{Q_{i}(z^{(i)})}
-  \end{align}
-#+END_SRC 
 
-#+RESULTS:
 \begin{align}
   \sum_{i}\log{p(x^{(i)};\theta)}&=\sum_{i}\log{\sum_{z^{(i)}}p \left( x^{(i)},z^{(i)};\theta \right)}\\
                                  &=\sum_{i}\log{\sum_{z^{(i)}}Q_{i}(z^{(i)})\frac{p(x^{(i)},z^{(i)};\theta)}{Q_{i}(z^{(i)})}}\\
@@ -932,74 +515,31 @@ M-Step：假设missing data已知的情况下，最大化似然函数。
 
 上面推导的最后一步使用了 [[Jensen][Jensen]] 不等式。其中的 $f(x)=\log(x)$ 是一个凹函数 $E(f(X))\leq f(E[X])$ , 因为其二阶导数 $f''(x)=\frac{-1}{x^{2}}\leq 0$ 在整个定义域 $x\in R^{+}$ 上都成立
 上式的求和中的单项: 
-<<Eqn.(1.5.1.4)>>
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{equation}
-    \sum_{z^{(i)}}Q_{i}(z^{(i)}) \left[ \frac{p(x^{(i)},z^{(i)};\theta)}{Q_{i}(z^{(i)})} \right]
-  \end{equation}
-#+END_SRC 
 
-#+RESULTS:
 \begin{equation}
   \sum_{z^{(i)}}Q_{i}(z^{(i)}) \left[ \frac{p(x^{(i)},z^{(i)};\theta)}{Q_{i}(z^{(i)})} \right]
 \end{equation}
 
 是变量 $\frac{p(x^{(i)},z^{(i)};\theta)}{Q_{i}(z^{(i)})}$ 基于 $z^{(i)}$ 的期望, 其中 $z^{(i)}$ 是根据 $Q_{i}$ 给定的分布确定。然后利用 [[Jensen][Jensen]] 不等式就得到了
 
-<<Eqn.(1.5.1.5)>>
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{equation}
-    f \left( E_{z^{(i)}\sim Q_{i}}\left[ \frac{p(x^{(i)},z^{(i)};\theta)}{Q_{i}(z^{(i)})} \right] \right) \geq E_{z^{(i)}\sim Q_{i}}\left[f \left( \frac{p(x^{(i)},z^{(i)};\theta)}{Q_{i}(z^{(i)})} \right) \right]
-  \end{equation}
-#+END_SRC 
-
-#+RESULTS:
 \begin{equation}
   f \left( E_{z^{(i)}\sim Q_{i}}\left[ \frac{p(x^{(i)},z^{(i)};\theta)}{Q_{i}(z^{(i)})} \right] \right) \geq E_{z^{(i)}\sim Q_{i}}\left[f \left( \frac{p(x^{(i)},z^{(i)};\theta)}{Q_{i}(z^{(i)})} \right) \right]
 \end{equation}
 
 为了使上式相等, 只需确保对一个常数值随机变量求期望([[Jensen][Jensen]]):
 
-<<Eqn.(1.5.1.6)>>
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{equation}
-  \frac{p(x^{(i)},z^{(i)};\theta)}{Q_{i}(z^{(i)})}=c
-  \end{equation}
-#+END_SRC 
-
-#+RESULTS:
 \begin{equation}
 \frac{p(x^{(i)},z^{(i)};\theta)}{Q_{i}(z^{(i)})}=c
 \end{equation}
 
 其中常数 $c$ 不依赖 $z^{(i)}$ 。要实现这一条件, 只需满足：
 
-<<Eqn.(1.5.1.7)>>
-n#+BEGIN_SRC latex :results raw :exports none
-  \begin{equation}
-    Q_{i}(z^{(i)})\propto p(x^{(i)},z^{(i)};\theta)
-  \end{equation}
-#+END_SRC 
-
-#+RESULTS:
 \begin{equation}
   Q_{i}(z^{(i)})\propto p(x^{(i)},z^{(i)};\theta)
 \end{equation}
 
 实际上, 由于我们已知 $\sum_{z}Q_{i}(z^{(i)})=1$, 这就进一步表明: 在给定 $x^{(i)}$ 和参数 $\theta$ 的设置下, 我们可以简单地把 $Q_{i}$ 设置为 $z^{(i)}$ 的后验分布
 
-<<Eqn.(1.5.1.8)>>
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{align}
-    \sum_{z}p(x^{(i)},z^{(i)};\theta)&=\sum_{z}Q_{i}(z^{(i)})c\\
-    \sum_{z}p(x^{(i)},z^{(i)};\theta)&=c\\
-    Q_{i}(z^{(i)})&=\frac{p(x^{(i)},z^{(i)};\theta)}{\sum_{z}p(x^{(i)},z;\theta)}\\
-                                     &=\frac{p(x^{(i)},z^{(i)};\theta)}{p(x^{(i)};\theta)}\\
-                                     &=p(z^{(i)}|x^{(i)};\theta)
-  \end{align}
-#+END_SRC 
-
-#+RESULTS:
 \begin{align}
   \sum_{z}p(x^{(i)},z^{(i)};\theta)&=\sum_{z}Q_{i}(z^{(i)})c\\
   \sum_{z}p(x^{(i)},z^{(i)};\theta)&=c\\
@@ -1018,30 +558,14 @@ n#+BEGIN_SRC latex :results raw :exports none
 假设每个 $x^{i}$ 都是从 $z^{j}\{1,\dots,k\}$ 中随机选取来生成的, 然后 $x^{i}$ 就是从一个 $z^{j}$ 上的高斯分布中的 $k$ 个值当中的一个, 这就是 Gaussian mixture models.
 
 对 $\varphi,\mu,\Sigma$ 使用似然函数进行估计:
-<<Eqn.(1.5.3.1)>>
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{align}
-    l(\varphi,\mu,\Sigma)&=\sum_{i=1}^{m}\log{p(x^{i};\varphi,\mu,\Sigma)}\\
-                         &=\sum_{i=1}^{m}\log{\sum_{j=1}^{k}p(x^{i}|z^{j};\mu,\Sigma)p(z^{j};\varphi)}
-  \end{align}
-#+END_SRC 
 
-#+RESULTS:
 \begin{align}
   l(\varphi,\mu,\Sigma)&=\sum_{i=1}^{m}\log{p(x^{i};\varphi,\mu,\Sigma)}\\
                        &=\sum_{i=1}^{m}\log{\sum_{j=1}^{k}p(x^{i}|z^{j};\mu,\Sigma)p(z^{j};\varphi)}
 \end{align}
 
 使用 EM 算法, "猜测" $z^{j}$ 的值和更新参数:
-<<Eqn.(1.5.3.2)>>
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{align}
-    l(\varphi,\mu,\Sigma)&=\sum_{i=1}^{m}\sum_{j=1}^{k}p(z^{j})\log\frac{p(x^{i}|z^{j};\mu,\Sigma)p(z^{j};\varphi)}{p(z^{j})}\\
-                         &=\sum_{i=1}^{m}\sum_{j=1}^{k}w_{j}^{i}\log\frac{\frac{1}{(2\pi)^{\frac{n}{2}}|\Sigma_{j}|^{\frac{1}{2}}}\exp(-\frac{1}{2}(x^{i}-\mu_{j})^{T}\Sigma_{j}^{-1}(x^{i}-\mu_{j}))\cdot\varphi_{j}}{w_{j}^{i}}
-  \end{align}
-#+END_SRC 
 
-#+RESULTS:
 \begin{align}
   l(\varphi,\mu,\Sigma)&=\sum_{i=1}^{m}\sum_{j=1}^{k}p(z^{j})\log\frac{p(x^{i}|z^{j};\mu,\Sigma)p(z^{j};\varphi)}{p(z^{j})}\\
                        &=\sum_{i=1}^{m}\sum_{j=1}^{k}w_{j}^{i}\log\frac{\frac{1}{(2\pi)^{\frac{n}{2}}|\Sigma_{j}|^{\frac{1}{2}}}\exp(-\frac{1}{2}(x^{i}-\mu_{j})^{T}\Sigma_{j}^{-1}(x^{i}-\mu_{j}))\cdot\varphi_{j}}{w_{j}^{i}}
@@ -1050,29 +574,13 @@ n#+BEGIN_SRC latex :results raw :exports none
 算法如下: 
 重复下列过程直至收敛: {
 1. E-step: 对每个 i, j, 设
-   <<Eqn.(1.5.3.3)>>
-   #+BEGIN_SRC latex :results raw :exports none
-     \begin{equation}
-       w_{j}^{i}:=p(z^{j}|x^{i};\varphi,\mu,\Sigma)
-     \end{equation}
-   #+END_SRC 
 
-   #+RESULTS:
    \begin{equation}
      w_{j}^{i}:=p(z^{j}|x^{i};\varphi,\mu,\Sigma)
    \end{equation}
 
 2. M-step: 更新参数
-   <<Eqn.(1.5.3.4)>>
-   #+BEGIN_SRC latex :results raw :exports none
-     \begin{align}
-       \varphi_{j}&:=\frac{1}{m}\sum_{i=1}^{m}w_{j}^{i}\\
-       \mu_{j}&:=\frac{\sum_{i=1}^{m}w_{j}^{i}x^{i}}{\sum_{i=1}^{m}w_{j}^{i}}\\
-       \Sigma_{j}&:=\frac{\sum_{i=1}^{m}w_{j}^{i}(x^{i}-\mu_{j})(x^{i}-\mu_{j})^{T}}{\sum_{i=1}^{m}w_{j}^{i}}
-     \end{align}
-   #+END_SRC 
 
-   #+RESULTS:
    \begin{align}
      \varphi_{j}&:=\frac{1}{m}\sum_{i=1}^{m}w_{j}^{i}\\
      \mu_{j}&:=\frac{\sum_{i=1}^{m}w_{j}^{i}x^{i}}{\sum_{i=1}^{m}w_{j}^{i}}\\
@@ -1082,56 +590,24 @@ n#+BEGIN_SRC latex :results raw :exports none
 
 推导: 
 - E-step:
-  <<Eqn.(1.5.3.5)>>
-  #+BEGIN_SRC latex :results raw :exports none
-    \begin{equation}
-      p(z^{j}|x^{i};\varphi,\mu,\Sigma)=\frac{p(x^{i}|z^{j};\mu,\Sigma)p(z^{j};\varphi)}{\sum_{j=1}^{k}p(x^{i}|z^{j};\mu,\Sigma)p(z^{i};\varphi)}
-    \end{equation}
-  #+END_SRC 
 
-  #+RESULTS:
   \begin{equation}
     p(z^{j}|x^{i};\varphi,\mu,\Sigma)=\frac{p(x^{i}|z^{j};\mu,\Sigma)p(z^{j};\varphi)}{\sum_{j=1}^{k}p(x^{i}|z^{j};\mu,\Sigma)p(z^{i};\varphi)}
   \end{equation}
 - M-step:
   - $\varphi_{j}$ 更新规则: 计算 $\varphi_{j}$ 的偏导
-    <<Eqn.(1.5.3.6)>>
-    #+BEGIN_SRC latex :results raw :exports none
-      \begin{equation}
-        \sum_{i=1}^{m}\sum_{j=1}^{k}w_{j}^{i}\log{\varphi_{j}}
-      \end{equation}
-    #+END_SRC 
 
-    #+RESULTS:
     \begin{equation}
       \sum_{i=1}^{m}\sum_{j=1}^{k}w_{j}^{i}\log{\varphi_{j}}
     \end{equation}
     由于 $\varphi_{j}$ 的和为 1, 为了保证约束条件成立, 构建 [[https://zh.wikipedia.org/wiki/%E6%8B%89%E6%A0%BC%E6%9C%97%E6%97%A5%E4%B9%98%E6%95%B0][拉格朗日函数]]
-    <<Eqn.(1.5.3.7)>>
-    #+BEGIN_SRC latex :results raw :exports none
-      \begin{equation}
-        \mathcal{L}(\varphi)=\sum_{i=1}^{m}\sum_{j=1}^{k}w_{j}^{i}\log{\varphi_{j}}+\beta(\sum_{j=1}^{k}\varphi_{j}-1)
-      \end{equation}
-    #+END_SRC 
 
-    #+RESULTS:
     \begin{equation}
       \mathcal{L}(\varphi)=\sum_{i=1}^{m}\sum_{j=1}^{k}w_{j}^{i}\log{\varphi_{j}}+\beta(\sum_{j=1}^{k}\varphi_{j}-1)
     \end{equation}
 
     其中的 $\beta$ 是拉格朗日乘数。求导后得到:
-    <<Eqn.(1.5.3.8)>>
-    #+BEGIN_SRC latex :results raw :exports none
-      \begin{align}
-        \frac{\partial}{\partial\varphi_{j}}\mathcal{L}(\varphi)=\sum_{i=1}^{m}\frac{w_{j}^{i}}{\varphi_{j}}+\beta&=0\\
-        \varphi_{j}&=\frac{\sum_{i=1}^{m}w_{j}^{i}}{-\beta}\\
-        \sum_{j=1}^{k}\varphi_{j}&=\sum_{j=1}^{k}\frac{\sum_{i=1}^{m}w_{j}^{i}}{-\beta}\\
-        -\beta&=\sum_{i=1}^{m}\sum_{j=1}^{k}w_{j}^{i}=\sum_{i=1}^{m}1=m\\
-        \varphi_{j}:=\frac{1}{m}\sum_{i=1}^{m}w_{j}^{i}
-      \end{align}
-    #+END_SRC 
 
-    #+RESULTS:
     \begin{align}
       \frac{\partial}{\partial\varphi_{j}}\mathcal{L}(\varphi)=\sum_{i=1}^{m}\frac{w_{j}^{i}}{\varphi_{j}}+\beta&=0\\
       \varphi_{j}&=\frac{\sum_{i=1}^{m}w_{j}^{i}}{-\beta}\\
@@ -1140,17 +616,7 @@ n#+BEGIN_SRC latex :results raw :exports none
       \varphi_{j}:=\frac{1}{m}\sum_{i=1}^{m}w_{j}^{i}
     \end{align}
   - $\mu_{j}$ 更新规则: 计算 $\mu_{j}$ 的偏导数
-    <<Eqn.(1.5.3.9)>>
-    #+BEGIN_SRC latex :results raw :exports none
-      \begin{align}
-        &-\nabla_{\mu_{j}}\sum_{i=1}^{m}\sum_{j=1}^{k}w_{j}^{i}\frac{1}{2}(x^{i}-\mu_{j})^{T}\Sigma_{j}^{-1}(x^{i}-\mu_{j})\\
-        &=\frac{1}{2}\sum_{i=1}^{m}w_{j}^{i}\nabla_{\mu_{j}}2\mu_{j}^{T}\Sigma_{j}^{-1}x^{i}-\mu_{j}^{T}\Sigma_{j}^{-1}\mu_{j}\\
-        &=\sum_{i=1}^{m}w_{j}^{i}(\Sigma_{j}^{-1}x^{i}-\Sigma_{j}^{-1}\mu_{j})=0\\
-        &\mu_{j}:=\frac{\sum_{i=1}^{m}w_{j}^{i}x^{i}}{\sum_{i=1}^{m}w_{j}^{i}}
-      \end{align}
-    #+END_SRC 
 
-    #+RESULTS:
     \begin{align}
       &-\nabla_{\mu_{j}}\sum_{i=1}^{m}\sum_{j=1}^{k}w_{j}^{i}\frac{1}{2}(x^{i}-\mu_{j})^{T}\Sigma_{j}^{-1}(x^{i}-\mu_{j})\\
       &=\frac{1}{2}\sum_{i=1}^{m}w_{j}^{i}\nabla_{\mu_{j}}2\mu_{j}^{T}\Sigma_{j}^{-1}x^{i}-\mu_{j}^{T}\Sigma_{j}^{-1}\mu_{j}\\
@@ -1223,15 +689,6 @@ n#+BEGIN_SRC latex :results raw :exports none
 *** 神经网络的求解
 假设有一个固定样本集 $\{(x(1),y(1)),\dots,(x(m),y(m))\}$, 包含 m 个样例，用批量梯度下降法来求解神经网络。具体来讲，对于单个样例 $(x,y)$, 其代价函数为：
 
-<<Eqn.(2.1.2.1)>>
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{equation}
-  \label{eq:1}
-  J(W,b;x,y)=\frac{1}{2}\Vert h_{W,b}(x)-y \Vert^{2}
-  \end{equation}
-#+END_SRC 
-
-#+RESULTS:
 \begin{equation}
 \label{eq:1}
 J(W,b;x,y)=\frac{1}{2}\Vert h_{W,b}(x)-y \Vert^{2}
@@ -1239,15 +696,6 @@ J(W,b;x,y)=\frac{1}{2}\Vert h_{W,b}(x)-y \Vert^{2}
 
 这是一个(二分之一的)方差代价函数。给定一个包含 $m$ 个样例的数据集, 我们可以定义整体代价函数为:
 
-<<Eqn.(2.1.2.2)>>
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{align}
-    J(W,b)&= \left[ \frac{1}{m}\sum_{i=1}^{m}J\left(W,b;x^{(i)},y^{(i)}\right) \right]+\frac{\lambda}{2}\sum_{l=1}^{n_{t}-1}\sum_{j=1}^{s_{t+1}} \left( W_{ji}^{(l)} \right) ^{2}\\
-          &= \left[ \frac{1}{m}\sum_{i=1}^{m} \left( \frac{1}{2}\left\Vert h_{W,b} \left( x^{(i)} \right) -y^{(i)}\right\Vert^{2}\right)\right]+\frac{\lambda}{2}\sum_{l=1}^{n_{t}-1}\sum_{j=1}^{s_{t+1}} \left( W_{ji}^{(l)} \right) ^{2}
-  \end{align}
-#+END_SRC
-
-#+RESULTS:
 \begin{align}
   J(W,b)&= \left[ \frac{1}{m}\sum_{i=1}^{m}J\left(W,b;x^{(i)},y^{(i)}\right) \right]+\frac{\lambda}{2}\sum_{l=1}^{n_{t}-1}\sum_{j=1}^{s_{t+1}} \left( W_{ji}^{(l)} \right) ^{2}\\
         &= \left[ \frac{1}{m}\sum_{i=1}^{m} \left( \frac{1}{2}\left\Vert h_{W,b} \left( x^{(i)} \right) -y^{(i)}\right\Vert^{2}\right)\right]+\frac{\lambda}{2}\sum_{l=1}^{n_{t}-1}\sum_{j=1}^{s_{t+1}} \left( W_{ji}^{(l)} \right) ^{2}
@@ -1264,16 +712,6 @@ J(W,b;x,y)=\frac{1}{2}\Vert h_{W,b}(x)-y \Vert^{2}
 
 梯度下降法中每一次迭代都按照如下公式对参数 $W$ 和 $b$ 进行更新:
 
-<<Eqn.(2.1.2.3)>>
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{align}
-  \label{eq:3}
-    W_{ij}^{(l)}&=W_{ij}^{(l)}-\alpha \frac{\partial}{\partial W_{ij}^{(l)}}J(W,b)\\
-    b_{i}^{(l)}&=b_{i}^{(l)}-\alpha \frac{\partial}{\partial b_{i}^{(l)}}J(W,b)
-  \end{align}
-#+END_SRC 
-
-#+RESULTS:
 \begin{align}
 \label{eq:3}
   W_{ij}^{(l)}&=W_{ij}^{(l)}-\alpha \frac{\partial}{\partial W_{ij}^{(l)}}J(W,b)\\
@@ -1288,15 +726,7 @@ J(W,b;x,y)=\frac{1}{2}\Vert h_{W,b}(x)-y \Vert^{2}
 - 不是预测 $y$ 的完整概率分布, 而是仅仅预测在给定 $x$ 的条件下 $y$ 的某种统计量。某些专门的损失函数允许我们来训练这些估计量的预测器。
 
 **** 使用最大似然学习条件分布
-<<Eqn.(2.1.3.1)>>
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{equation}
-    \label{eq:4}
-    J(\theta)=-\mathbb{E}_{x,y\backsim\hat{P}_{data}} \log{P_{model} \left( y|x \right)}
-  \end{equation}
-#+END_SRC
 
-#+RESULTS:
 \begin{equation}
   \label{eq:4}
   J(\theta)=-\mathbb{E}_{x,y\backsim\hat{P}_{data}} \log{P_{model} \left( y|x \right)}
@@ -1304,14 +734,6 @@ J(W,b;x,y)=\frac{1}{2}\Vert h_{W,b}(x)-y \Vert^{2}
 
 代价函数的具体形式随着模型而改变,取决于 $\log\left(P_{model}\right)$ 的具体形式,如:
 
-<<Eqn.(2.1.3.2)>>
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{equation}
-    P_{model} \left( y|x \right) = \mathcal{N} \left( y;f(x;\theta,I) \right)
-  \end{equation}
-#+END_SRC 
-
-#+RESULTS:
 \begin{equation}
   P_{model} \left( y|x \right) = \mathcal{N} \left( y;f(x;\theta,I) \right)
 \end{equation}
@@ -1319,15 +741,6 @@ J(W,b;x,y)=\frac{1}{2}\Vert h_{W,b}(x)-y \Vert^{2}
 
 即为均方误差代价函数
 
-<<Eqn.(2.1.3.3)>>
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{equation}
-    \label{eq:5}
-    J(\theta)=\frac{1}{2}\mathbb{E}_{x,y\backsim\hat{P}_{data}} \left\Vert y-f(x;\theta) \right\Vert ^{2}+const
-  \end{equation}
-#+END_SRC 
-
-#+RESULTS:
 \begin{equation}
   \label{eq:5}
   J(\theta)=\frac{1}{2}\mathbb{E}_{x,y\backsim\hat{P}_{data}} \left\Vert y-f(x;\theta) \right\Vert ^{2}+const
@@ -1336,14 +749,6 @@ J(W,b;x,y)=\frac{1}{2}\Vert h_{W,b}(x)-y \Vert^{2}
 **** 交叉熵(cross-Entropy)
 假设有两个分布 $p,q$ , 则它们在给定样本集上的交叉熵定义如下:
 
-<<Eqn.(2.1.3.4)>>
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{equation}
-    CEH(p,q)=E_{p} \left[ -\log{q} \right] =-\sum_{x\in X}p(x)\log{q(x)}=H(p)+D_{KL}(p||q)
-  \end{equation}
-#+END_SRC 
-
-#+RESULTS:
 \begin{equation}
   CEH(p,q)=E_{p} \left[ -\log{q} \right] =-\sum_{x\in X}p(x)\log{q(x)}=H(p)+D_{KL}(p||q)
 \end{equation}
@@ -1354,16 +759,7 @@ J(W,b;x,y)=\frac{1}{2}\Vert h_{W,b}(x)-y \Vert^{2}
 - $q$: 待估计得模型，服从参数为 $q$ 得 $0-1$ 分布，即 $X\sim B(1,q)$
 
 两者得交叉熵为:
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{align}
-    CEH(p,q)&=-\sum_{x\in X}p(x)\log{q(x)}\\
-            &=- [P_{p}(x=1)\log{P_{q}(x=1)}\\&+P_{p}(x=0)\log{P_{q}(x=0)}]\\
-            &=- \left[ p\log{q}+(1-p)\log(1-q) \right]\\
-            &=- \left[ y\log{h_{\theta}(x)}+(1-y)\log\left(1-h_{\theta}(x)\right) \right]
-  \end{align}
-#+END_SRC 
 
-#+RESULTS:
 \begin{align}
   CEH(p,q)&=-\sum_{x\in X}p(x)\log{q(x)}\\
           &=- [P_{p}(x=1)\log{P_{q}(x=1)}\\&+P_{p}(x=0)\log{P_{q}(x=0)}]\\
@@ -1373,13 +769,6 @@ J(W,b;x,y)=\frac{1}{2}\Vert h_{W,b}(x)-y \Vert^{2}
 
 对所有训练样本取均值得:
 
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{equation}
-    -\frac{1}{m}\sum_{i=1}^{m} \left[ y^{(i)}\log{h_{\theta}(x^{(i)})}+\left(1-y^{(i)}\right)\log\left( 1-h_{theta}(x^{(i)}) \right) \right] 
-  \end{equation}
-#+END_SRC 
-
-#+RESULTS:
 \begin{equation}
   -\frac{1}{m}\sum_{i=1}^{m} \left[ y^{(i)}\log{h_{\theta}(x^{(i)})}+\left(1-y^{(i)}\right)\log\left( 1-h_{theta}(x^{(i)}) \right) \right] 
 \end{equation}
@@ -1393,14 +782,6 @@ J(W,b;x,y)=\frac{1}{2}\Vert h_{W,b}(x)-y \Vert^{2}
 
 为了满足上述三个性质,我们定义一个事件 $X=x$ 的自信息(self-information)为:
 
-<<Eqn.(2.1.3.5)>>
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{equation}
-    I(X)= - \log{P\left( x \right)}
-  \end{equation}
-#+END_SRC 
-
-#+RESULTS:
 \begin{equation}
   I(X)= - \log{P\left( x \right)}
 \end{equation}
@@ -1411,16 +792,6 @@ J(W,b;x,y)=\frac{1}{2}\Vert h_{W,b}(x)-y \Vert^{2}
 香农熵是指对整个概率分布中的不确定性总量进行量化。
 设随机变量 $X={x_{1},\dots,x_{n}}$ , $P$ 为 $X$ 得概率质量分布，香农熵记为 $H(X)$ (当 $x$ 时连续的,香农熵被称为微分熵)
 
-<<Eqn.(2.1.3.6)>>
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{align}
-    H(X)&=E \left[ I(X) \right]\\
-        &=E \left[ -\ln{ \left( P(X) \right)  } \right]\\
-        &=-\sum_{i=1}^{n}P(x_{i})\log{P(x_{i})}
-  \end{align}
-#+END_SRC
-
-#+RESULTS:
 \begin{align}
   H(X)&=E \left[ I(X) \right]\\
       &=E \left[ -\ln{ \left( P(X) \right)  } \right]\\
@@ -1437,20 +808,6 @@ J(W,b;x,y)=\frac{1}{2}\Vert h_{W,b}(x)-y \Vert^{2}
 ***** KL 散度(Kullback-Leibler(KL) divergence)
 如果我们对于同一个随机变量 $x$ 有两个单独的概率分布 $P(x)$ 和 $Q(x)$ , 我们可以使用 $KL$ 散度来衡量这两个分布的差异, $KL$ 距离是两个随机分布间距离的度量,度量当真实分布为 $p$ 时,假设分布 $q$ 的无效性:
 
-<<Eqn.(2.1.3.7)>>
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{align}
-    D_{KL} \left( p||q \right) &= E_{p}\left[ \log{\frac{p(x)}{q(x)}} \right]\\
-                               &=\sum_{x\in X}p(x)\log{\frac{p(x)}{q(x)}}\\
-                               &=\sum_{x\in X} \left[ p(x)\log{p(x)}-p(x)\log{q(x)} \right]\\
-                               &=\sum_{x\in X}p(x)\log{p(x)}-\sum_{x\in X}p(x)\log{q(x)}\\
-                               &=-H(p)-\sum_{x\in X}p(x)\log{q(x)}\\
-                               &=-H(p)+E_{p} \left[ -\log{q(x)} \right]\\
-                               &=H_{p}(q)-H(p)
-  \end{align}
-#+END_SRC
-
-#+RESULTS:
 \begin{align}
   D_{KL} \left( p||q \right) &= E_{p}\left[ \log{\frac{p(x)}{q(x)}} \right]\\
                              &=\sum_{x\in X}p(x)\log{\frac{p(x)}{q(x)}}\\
@@ -1463,14 +820,6 @@ J(W,b;x,y)=\frac{1}{2}\Vert h_{W,b}(x)-y \Vert^{2}
 
 显然，当 $p=q$ 时，两者之间得 $KL$ 散度 $D_{KL}(p||q)=0$ ,其中为了保证连续性，做如下约定:
 
-<<Eqn.(2.1.3.8)>>
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{equation}
-    0\log{\frac{0}{0}}=0,\ 0\log{\frac{0}{q}}=0,\ p\log{\frac{p}{0}}=\infty
-  \end{equation}
-#+END_SRC 
-
-#+RESULTS:
 \begin{equation}
   0\log{\frac{0}{0}}=0,\ 0\log{\frac{0}{q}}=0,\ p\log{\frac{p}{0}}=\infty
 \end{equation}
@@ -1490,15 +839,6 @@ J(W,b;x,y)=\frac{1}{2}\Vert h_{W,b}(x)-y \Vert^{2}
 不同的代价函数给出不同的统计量:
 - 最小化均方误差代价函数：得到一个函数, 可以用来对每个 $x$ 的值预测出 $y$ 的均值。
   
-  <<Eqn.(2.1.3.9)>>
-  #+BEGIN_SRC latex :results raw :exports none
-    \begin{align}
-      \hat{f}&=\mathop{\arg\min}\limits_{f} \mathbb{E}_{x,y\sim P_{data}} \left\Vert y-f(x) \right\Vert^{2}\\
-      \hat{f}(x)&=\mathbb{E}_{y\sim P_{data}(y|x)}[y]
-    \end{align}
-  #+END_SRC
-
-  #+RESULTS:
   \begin{align}
     \hat{f}&=\mathop{\arg\min}\limits_{f} \mathbb{E}_{x,y\sim P_{data}} \left\Vert y-f(x) \right\Vert^{2}\\
     \hat{f}(x)&=\mathbb{E}_{y\sim P_{data}(y|x)}[y]
@@ -1506,14 +846,6 @@ J(W,b;x,y)=\frac{1}{2}\Vert h_{W,b}(x)-y \Vert^{2}
 
 - 平均绝对误差代价函数：得到一个函数可以对每个 $x$ 预测 $y$ 取值的中位数。
 
-  <<Eqn.(2.1.3.10)>>
-  #+BEGIN_SRC latex :results raw :exports none
-    \begin{equation}
-      \hat{f}=\mathop{\arg\min}\limits_{f} \mathbb{E}_{x,y\sim P_{data}} \left\Vert y-f(x) \right\Vert_{1}
-    \end{equation}
-  #+END_SRC 
-
-  #+RESULTS:
   \begin{equation}
     \hat{f}=\mathop{\arg\min}\limits_{f} \mathbb{E}_{x,y\sim P_{data}} \left\Vert y-f(x) \right\Vert_{1}
   \end{equation}
@@ -1525,28 +857,14 @@ J(W,b;x,y)=\frac{1}{2}\Vert h_{W,b}(x)-y \Vert^{2}
 一种简单的输出单元是基于仿射变换的输出单元,仿射变换不具有非线性。这些单元往往被直接称为线性单元。
 给定特征 $h$, 线性输出单元层产生一个向量 $\hat{y}=w^Th+b$ 。
 线性输出层经常被用来 *产生条件高斯分布的均值(代价函数等价于最小化均方误差)*:
-<<Eqn.(2.1.4.1)>>
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{equation}
-    p(y|x)=\mathcal{N}(y,\hat{y},I)
-  \end{equation}
-#+END_SRC 
 
-#+RESULTS:
 \begin{equation}
   p(y|x)=\mathcal{N}(y,\hat{y},I)
 \end{equation}
 
 **** 用于 Bernoulli 输出分布的 sigmoid 单元(二值输出)
 sigmoid 输出单元定义为($\sigma$ 为 logistic sigmoid 函数 $\frac{1}{1+e^{-x}}$):
-<<Eqn.(2.1.4.2)>>
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{equation}
-    \hat{y}=\sigma \left( w^{T}h+b \right)
-  \end{equation}
-#+END_SRC 
 
-#+RESULTS:
 \begin{equation}
   \hat{y}=\sigma \left( w^{T}h+b \right)
 \end{equation}
@@ -1554,29 +872,13 @@ sigmoid 输出单元定义为($\sigma$ 为 logistic sigmoid 函数 $\frac{1}{1+e
 设 $z = w^Th + b$, 用 $z$ 的值来定义 $y$ 的概率分布。
 思路:sigmoid 可以 *通过构造一个非归一化的概率分布 $\widetilde{P}(y)$ 来得到。随后除以一个合适的常数得到有效概率分布* 。
 1. 假设非归一化的对数概率对 $y$ 和 $z$ 是线性的, 对其取指数来得到非归一化的概率。
-  <<Eqn.(2.1.4.3)>>
-  #+BEGIN_SRC latex :results raw :exports none
-    \begin{align}
-      \log \widetilde{P}(y)&=yz\\
-      \widetilde{P}(y)&=\exp{(yz)}
-    \end{align}
-  #+END_SRC 
 
-  #+RESULTS:
-  \begin{align}
-    \log \widetilde{P}(y)&=yz\\
-    \widetilde{P}(y)&=\exp{(yz)}
-  \end{align}
+   \begin{align}
+     \log \widetilde{P}(y)&=yz\\
+     \widetilde{P}(y)&=\exp{(yz)}
+   \end{align}
 2. 然后归一化,可以看出 P(y) 服从 Bernoulli 分布,该分布受 z 的 sigmoid 变换控制。
-   <<Eqn.(2.1.4.4)>>
-   #+BEGIN_SRC latex :results raw :exports none
-     \begin{align}
-       P(y)&=\frac{\exp(yz)}{\sum_{y'=0}^{1}\exp(y'z)}\\
-       P(y)&=\sigma \left( \left( 2y-1 \right)z \right)
-     \end{align}
-   #+END_SRC
 
-   #+RESULTS:
    \begin{align}
      P(y)&=\frac{\exp(yz)}{\sum_{y'=0}^{1}\exp(y'z)}\\
      P(y)&=\sigma \left( \left( 2y-1 \right)z \right)
@@ -1585,16 +887,7 @@ sigmoid 输出单元定义为($\sigma$ 为 logistic sigmoid 函数 $\frac{1}{1+e
    基于指数和归一化的概率分布在统计建模的文献中很常见。用于定义这种二值型变量分布的变量 $z$ 被称为分对数(logit)。
 
 确定 $y$ 的概率分布即可使用最大似然学习,代价函数为($\zeta$ 为 softplus 函数 $log(1+e^x)$):
-<<Eqn.(2.1.4.5)>>
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{align}
-    J(\theta)&=-\log{P(y|x)}\\
-             &=-\log{\sigma((2y-1)z)}\\
-             &=\zeta((1-2y)z)
-  \end{align}
-#+END_SRC 
 
-#+RESULTS:
 \begin{align}
   J(\theta)&=-\log{P(y|x)}\\
            &=-\log{\sigma((2y-1)z)}\\
@@ -1618,38 +911,17 @@ softmax 函数最常用作分类器的输出,来表示 $n$ 个不同类上的概
 
 设向量 $\hat{y}$, $\hat{y}_{i}=P(y=i|x),\hat{y}_{i}\subset(0,1),\sum_{i}\hat{y}=1$ 。使它称为一个有效的概率分布。用于 Bernoulli 分布的方法同样可以推广到  Multinomial 分布。
 1. 首先线性层 $z=wTh + b$ 预测未归一化的对数概率:
-   <<Eqn.(2.1.4.6)>>
-   #+BEGIN_SRC latex :results raw :exports none
-     \begin{equation}
-       z_{i}=\log\hat{P}(y=i|x)
-     \end{equation}
-   #+END_SRC
 
-   #+RESULTS:
-     \begin{equation}
-       z_{i}=\log\hat{P}(y=i|x)
-     \end{equation}
+   \begin{equation}
+     z_{i}=\log\hat{P}(y=i|x)
+   \end{equation}
 2. softmax 函数然后可以对 $z$ 指数化和归一化来获得需要的 $\hat{y}$ 。
-   <<Eqn.(2.1.4.7)>>
-   #+BEGIN_SRC latex :results raw :exports none
-     \begin{equation}
-       softmax(z)_{i}=\frac{e^{z_{i}}}{\sum_je^{z_{j}}}
-     \end{equation}
-   #+END_SRC 
 
-   #+RESULTS:
    \begin{equation}
      softmax(z)_{i}=\frac{e^{z_{i}}}{\sum_j e^{z_{j}}}
    \end{equation}
 3. 使用最大化对数似然训练 softmax 来输出目标值 $y$, 即最大化 $\log{P(y=i;z)}=\sum_{i}\log{y_{i}softmax(z)_{i}}$ 。
-   <<Eqn.(2.1.4.8)>>
-   #+BEGIN_SRC latex :results raw :exports none
-     \begin{equation}
-       \sum_{i}\log{y_{i}softmax(z)_{i}}=\sum_{i}(log{y_{i}}+z_{i}-\log{\sum_{j}e^{z_{j}}})
-     \end{equation}
-   #+END_SRC 
 
-   #+RESULTS:
    \begin{equation}
      \sum_{i}\log{y_{i}softmax(z)_{i}}=\sum_{i}(log{y_{i}}+z_{i}-\log{\sum_{j}e^{z_{j}}})
    \end{equation}
@@ -1660,20 +932,6 @@ softmax 函数最常用作分类器的输出,来表示 $n$ 个不同类上的概
   - 当 $i=j$ 时:$\frac{\partial{softmax(z)_i}}{\partial{z_i}}=z_i(1-z_i)$
   - 当 $i\neq j$ 时:$\frac{\partial{softmax(z)_i}}{\partial{z_j}}=-z_iz_j$
 
-<<Eqn.(2.1.4.9)>>
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{align}
-    \frac{\partial{L}}{\partial{z_{i}}}&=\frac{\partial{L}}{\partial{softmax(z_{i})}}\frac{\partial{softmax(z_{i})}}{\partial{z_{i}}}\\
-                                       &=-\sum_{j}y_{j}\frac{\partial{\log{softmax(z_{j})}}}{\partial{z_{i}}}\\
-                                       &=-\sum_{j}y_{j}\frac{1}{softmax(z_{j})}\frac{\partial{softmax(z_{j})}}{\partial{z_{i}}}\\
-                                       &=-y_{i}(1-softmax(z_{i}))-\\
-                                       &\sum_{i\ne j}y_{i}\frac{1}{softmax(z_{j})}(-softmax(z_{i})softmax(z_{j}))\\
-                                       &=-y_{i}(1-softmax(z_{j}))+\sum_{j\ne i}y_{j}softmax(z_{j})\\
-                                       &=softmax(z_{i})-y_{i}
-  \end{align}
-#+END_SRC 
-
-#+RESULTS:
 \begin{align}
   \frac{\partial{L}}{\partial{z_{i}}}&=\frac{\partial{L}}{\partial{softmax(z_{i})}}\frac{\partial{softmax(z_{i})}}{\partial{z_{i}}}\\
                                      &=-\sum_{j}y_{j}\frac{\partial{\log{softmax(z_{j})}}}{\partial{z_{i}}}\\
@@ -1705,14 +963,7 @@ softmax 函数最常用作分类器的输出,来表示 $n$ 个不同类上的概
  - 参数化整流线性单元(parametric ReLU)或者 PReLU 将 $\alpha_{i}$ 作为学习的参数。
 **** maxout 单元
 maxout 单元将 $z$ 划分为每组具有 $k$ 个值的组,而不是使用作用于每个元素的函数 $g(z)$ 。每个 maxout 单元则输出每组中的最大元素:
-<<Eqn.(2.1.5.1)>>
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{equation}
-    g(z)_{i}=\max\limits_{j\in\mathbb{G}^{(i)}}z_{j}
-  \end{equation}
-#+END_SRC
 
-#+RESULTS:
 \begin{equation}
   g(z)_{i}=\max\limits_{j\in\mathbb{G}^{(i)}}z_{j}
 \end{equation}
@@ -1747,58 +998,24 @@ logistic sigmoid 激活函数: $g(z)=\sigma(z)=\frac{1}{1+\exp(-z)}$
 
 **** 其他隐藏单元
 - 径向基函数(radial basis function, RBF): 这个函数在 $x$ 接近模板 $W_{:,i}$ 时更加活跃。因为它对大部分 $x$ 都饱和到 0, 因此很难优化。
-  <<Eqn.(2.1.5.2)>>
-  #+BEGIN_SRC latex :results raw :exports none
-    \begin{equation}
-      h_{i}=\exp \left( -\frac{1}{\sigma^{2}} \left\Vert W_{:,i}-x \right\Vert ^{2} \right)
-    \end{equation}
-  #+END_SRC 
 
-  #+RESULTS:
   \begin{equation}
     h_{i}=\exp \left( -\frac{1}{\sigma^{2}} \left\Vert W_{:,i}-x \right\Vert ^{2} \right)
   \end{equation}
 - softplus函数: 这是整流线性单元的平滑版本, 通常不鼓励使用 softplus 函数。softplus 表明隐藏单元类型的性能可能是非常反直觉的---因为它处处可导或者因为它不完全饱和, 人们可能希望它具有优于整流线性单元的点, 但根据经验来看, 它并没有。
 
-  <<Eqn.(2.1.5.3)>>
-  #+BEGIN_SRC latex :results raw :exports none
-    \begin{equation}
-      g(a)=\xi(a)=\log(1+\exp^{a})
-    \end{equation}
-  #+END_SRC 
-
-  #+RESULTS:
   \begin{equation}
     g(a)=\xi(a)=\log(1+\exp^{a})
   \end{equation}
 - 硬双曲正切函数(hard tanh): 它的形状和 tanh 以及整流线性单元类似, 但是不同于后者, 它是有界的。
 
-  <<Eqn.(2.1.5.4)>>
-  #+BEGIN_SRC latex :results raw :exports none
-    \begin{equation}
-      g(a)=\max(-1, \min(1,a))
-    \end{equation}
-  #+END_SRC 
-
-  #+RESULTS:
   \begin{equation}
     g(a)=\max(-1, \min(1,a))
   \end{equation}
 *** 前向传播
 前向传播过程: 假设神经网络架构如下所示
 [[file:image/Deep learning/-1528631640-885172327-2018-09-02-19-20-35.png]]
-<<Eqn.(2.1.6.1)>>
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{align}
-    z^{2}&=\sum_{j=1}^{j=n^{2}} \left( \left( \sum_{k=1}^{k=n^{1}}w_{jk}^{2}a_{k}^{1} \right) +b_{j}^{2} \right) ,n^{2}=4,n^{1}=3\\
-    a^{2}&=\sigma(z^{2})\\
-    z^{3}&=\sum_{j=1}^{j=n^{3}} \left( \left( \sum_{k=1}^{k=n^{2}}w_{jk}^{3}a_{k}^{2} \right) +b_{j}^{3} \right) ,n^{3}=2\\
-    a^{3}&=\sigma(z^{3})\\
-    h_{w,b}(x)&=a^{3}
-  \end{align}
-#+END_SRC
 
-#+RESULTS:
 \begin{align}
   z^{2}&=\sum_{j=1}^{j=n^{2}} \left( \left( \sum_{k=1}^{k=n^{1}}w_{jk}^{2}a_{k}^{1} \right) +b_{j}^{2} \right) ,n^{2}=4,n^{1}=3\\
   a^{2}&=\sigma(z^{2})\\
@@ -1809,14 +1026,6 @@ logistic sigmoid 激活函数: $g(z)=\sigma(z)=\frac{1}{1+\exp(-z)}$
 
 cost 函数以平方代价函数为例:
 
-<<Eqn.(2.1.6.2)>>
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{equation}
-    c=\frac{1}{2} \left\Vert y-a^{L} \right\Vert = \frac{1}{2} \sum_{j=1}^{j=n^{L}} \left( y_{j}-a_{j}^{L} \right) ^{2},L=n^{3}
-  \end{equation}
-#+END_SRC 
-
-#+RESULTS:
 \begin{equation}
   c=\frac{1}{2} \left\Vert y-a^{L} \right\Vert = \frac{1}{2} \sum_{j=1}^{j=n^{L}} \left( y_{j}-a_{j}^{L} \right) ^{2},L=n^{3}
 \end{equation}
@@ -1845,27 +1054,12 @@ cost 函数以平方代价函数为例:
     在代价函数为平方代价函数的情况下, 一个训练样本的代价是 $C_x=\frac{1}{2}\Vert y-a^L \Vert^2$ 。
   - 原因:反向传播实际上是对单个训练数据计算偏导数 $\frac{\partial{C_x}}{\partial{w}}$ 和 $\frac{\partial{C_x}}{\partial{b}}$ 。然后通过对所有训练样本求平均值获得 $\frac{\partial{C}}{\partial{w}}$ 和 $\frac{\partial{C}}{\partial{b}}$ 。事实上,有了这个假设,我们 *可以认为训练样本 $x$ 是固定的, 然后把代价 $C_x$ 去掉下标表示为 $C$ 。最终我们会重新把 $x$ 加回公式, 但目前为了简便我们将它隐去* 。
 - 假设可以写成关于神经网络输出结果得函数:
-  <<Eqn.(2.1.7.1)>>
-  #+BEGIN_SRC latex :results raw :exports none
-    \begin{equation}
-      cost\ C=C(a^{L})
-    \end{equation}
-  #+END_SRC 
 
-  #+RESULTS:
   \begin{equation}
     cost\ C=C(a^{L})
   \end{equation}
   - 平方代价函数满足该要求, 因为单一训练样本 $x$ 的二次代价可以表示为:
 
-    <<Eqn.(2.1.7.2)>>
-    #+BEGIN_SRC latex :results raw :exports none
-      \begin{equation}
-        C=\frac{1}{2} \left\Vert y-a^{L} \right\Vert ^{2}=\frac{1}{2}\sum_{j}(y_{j}-a_{j}^{L})^{2}
-      \end{equation}
-    #+END_SRC 
-
-    #+RESULTS:
     \begin{equation}
       C=\frac{1}{2} \left\Vert y-a^{L} \right\Vert ^{2}=\frac{1}{2}\sum_{j}(y_{j}-a_{j}^{L})^{2}
     \end{equation}
@@ -1873,14 +1067,7 @@ cost 函数以平方代价函数为例:
 **** 反向传播的四个基本等式
 定义:
 第 $l$ 层第 $j$ 个神经元的错误量 $\delta_{j}^{l}$ 为(使用 $\delta^{l}$ 来表示与 $l$ 层相关联的错误量的向量): 改善代价, 实际值与预测值之间的误差。
-<<Eqn.(2.1.7.3)>>
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{equation}
-    \delta_{j}^{l}=\frac{\partial C}{\partial z_{j}^{l}}
-  \end{equation}
-#+END_SRC 
 
-#+RESULTS:
 \begin{equation}
   \delta_{j}^{l}=\frac{\partial C}{\partial z_{j}^{l}}
 \end{equation}
@@ -1890,42 +1077,20 @@ cost 函数以平方代价函数为例:
 四个基本等式:
 - 公式一: 输出层中关于错误量 $\delta^{L}$ 的等式, $\delta^{L}$ 得构成为($j$ 表示第几个神经单元):
 
-  <<Eqn.(2.1.7.4)>>
-  #+BEGIN_SRC latex :results raw :exports none
-  \begin{equation}
+  \begin{equation} \label{eq:2.1.7.4}
     \delta_{j}^{L}=\frac{\partial C}{\partial a_{j}^{L}}\sigma'(z_{j}^{L})
   \end{equation}
-  #+END_SRC 
 
-  #+RESULTS:
-  \begin{equation}
-    \delta_{j}^{L}=\frac{\partial C}{\partial a_{j}^{L}}\sigma'(z_{j}^{L})
-  \end{equation}
   - $\frac{\partial{C}}{\partial{a_{j}^L}}$: 用于测量 $j^{th}$ 输出激活代价改变有多快的函数。(该式的确切形式依赖于代价函数的形式)。如: $C=\frac{1}{2}\sum_j^L(y_j-a_j)^2$,那么 $\frac{\partial{C}}{\partial{a^L_j}}=(a_j-y_j)$
     举个例子,如果 $C$ 并不太依赖于某个特别的输出神经元 $j$, 那么 $\delta_j^L$ 就会很小, 这是我们所期望的。
   - $\sigma'(z_j^L)$: 用于测量 $z_j^L$ 处的激活函数 $\sigma$ 改变有多快
-  - [[Eqn.(2.1.7.4)][Eqn.(2.1.7.4)]] 的矩阵形式:
+  - [[ref:eq:2.1.7.4]] 的矩阵形式:
     
-    <<Eqn.(2.1.7.5)>>
-    #+BEGIN_SRC latex :results raw :exports none
-      \begin{equation}
-        \delta^{L}=\nabla_{a}C \odot \sigma'(z^{L})
-      \end{equation}
-    #+END_SRC 
-
-    #+RESULTS:
     \begin{equation}
       \delta^{L}=\nabla_{a}C \odot \sigma'(z^{L})
     \end{equation}
 - 公式二: 依据下一层错误量 $\delta^{l+1}$ 获取错误量 $\delta^{l}$ 的等式:
-  <<Eqn.(2.1.7.5)>>
-  #+BEGIN_SRC latex :results raw :exports none
-    \begin{equation}
-      \delta^{l}= \left( \left( w^{l+1} \right) ^{T}\delta^{l+1} \right) \odot \sigma'(z^{l})
-    \end{equation}
-  #+END_SRC 
 
-  #+RESULTS:
   \begin{equation}
     \delta^{l}= \left( \left( w^{l+1} \right) ^{T}\delta^{l+1} \right) \odot \sigma'(z^{l})
   \end{equation}
@@ -1936,39 +1101,18 @@ cost 函数以平方代价函数为例:
   - 表示错误量 $\delta_j^l$ 完全等于改变速率 $\frac{\partial{C}}{\partial{b_j^l}}$ 。
   - 可以理解成 $\delta$ 可以和偏置 $b$ 在相同的神经元中被估计
   - 简化公式:
-    <<Eqn.(2.1.7.6)>>
-   #+BEGIN_SRC latex :results raw :exports none
-     \begin{equation}
-       \frac{\partial C}{\partial b}=\delta
-     \end{equation}
-   #+END_SRC 
 
-   #+RESULTS:
    \begin{equation}
      \frac{\partial C}{\partial b}=\delta
    \end{equation}
 - 公式四: *网络的代价函数相对于权重的改变速率的等式*:
-  <<Eqn.(2.1.7.7)>>
-  #+BEGIN_SRC latex :results raw :exports none
-    \begin{equation}
-      \frac{\partial C}{\partial w_{jk}^{l}}=a_{k}^{l-1}\delta_{j}^{l}
-    \end{equation}
-  #+END_SRC 
 
-  #+RESULTS:
   \begin{equation}
     \frac{\partial C}{\partial w_{jk}^{l}}=a_{k}^{l-1}\delta_{j}^{l}
   \end{equation}
   - 上式告诉我们如何依据 $\delta^l$ 和 $a^{l-1}$ 来计算偏导 $\frac{\partial{C}}{\partial{w_{jk}^l}}$ 。
   - 上式可以转化为:
-    <<Eqn.(2.1.7.8)>>
-    #+BEGIN_SRC latex :results raw :exports none
-      \begin{equation}
-        \frac{\partial C}{\partial w}=a_{in}\delta_{out}
-      \end{equation}
-    #+END_SRC 
 
-    #+RESULTS:
     \begin{equation}
       \frac{\partial C}{\partial w}=a_{in}\delta_{out}
     \end{equation}
@@ -1983,68 +1127,28 @@ cost 函数以平方代价函数为例:
 - *如果输入神经元是低激活量的, 或者输出神经元已经饱和(高激活量或低激活量), 那么权重就会学习得缓慢* 。
 **** 四个基本等式的证明
 - 公式一:
-  <<Eqn.(2.1.7.9)>>
-  #+BEGIN_SRC latex :results raw :exports none
-    \begin{equation}
-      \delta_{j}^{L}=\frac{\partial C}{\partial a_{j}^{L}}\sigma(z_{j}^{L})
-    \end{equation}
-  #+END_SRC 
 
-  #+RESULTS:
   \begin{equation}
     \delta_{j}^{L}=\frac{\partial C}{\partial a_{j}^{L}}\sigma(z_{j}^{L})
   \end{equation}
   - 对 $\delta^{l}$ 得定义应用链式法则该写成带有输出激活值得偏导数形式
-    <<Eqn.(2.1.7.10)>>
-    #+BEGIN_SRC latex :results raw :exports none
-      \begin{align}
-        \delta_{j}^{L}&=\frac{\partial C}{\partial z_{j}^{L}}\\
-                      &=\sum_{k}^{k=n^{L}}\frac{\partial C}{\partial a_{k}^{L}}\frac{\partial a_{k}^{L}}{\partial z_{j}^{L}}
-      \end{align}
-    #+END_SRC 
- 
-    #+RESULTS:
+
      \begin{align}
       \delta_{j}^{L}&=\frac{\partial C}{\partial z_{j}^{L}}\\
                     &=\sum_{k}^{k=n^{L}}\frac{\partial C}{\partial a_{k}^{L}}\frac{\partial a_{k}^{L}}{\partial z_{j}^{L}}
      \end{align}
   - 这里的求和是对于输出层的所有神经元 $k$ 而言的。当 $j=k$ 时, 第 $k^{th}$ 个神经元的输出激活 $a_k^L$ 只依赖于对第 $j^{th}$ 个神经元的输入 $z_j^L$ 。并且当 $j\neq k$ 时, $\frac{\partial a_k^L}{\partial z_j^L}$ 项为零。因此我们可以简化上面的方程为:
-    <<Eqn.(2.1.7.11)>>
-    #+BEGIN_SRC latex :results raw :exports none
-      \begin{equation}
-        \delta_{j}^{L}=\frac{\partial C}{\partial a_{j}^{L}}\frac{\partial a_{j}^{L}}{\partial z_{j}^{L}}
-      \end{equation}
-    #+END_SRC 
 
-    #+RESULTS:
     \begin{equation}
       \delta_{j}^{L}=\frac{\partial C}{\partial a_{j}^{L}}\frac{\partial a_{j}^{L}}{\partial z_{j}^{L}}
     \end{equation}
   - 将因为 $a_j^L=\sigma(z_j^L)$ 右边的第二项可以写为 $\sigma'(z_j^L)$,则
-    <<Eqn.(2.1.7.12)>>
-    #+BEGIN_SRC latex :results raw :exports none
-      \begin{equation}
-        \delta_{j}^{L}=\frac{\partial C}{\partial a_{j}^{L}}\sigma'(z_{j}^{L})
-      \end{equation}
-    #+END_SRC 
 
-    #+RESULTS:
     \begin{equation}
       \delta_{j}^{L}=\frac{\partial C}{\partial a_{j}^{L}}\sigma'(z_{j}^{L})
     \end{equation}
 - 公式二:
-  <<Eqn.(2.1.7.13)>>
-  #+BEGIN_SRC latex :results raw :exports none
-    \begin{align}
-      \delta_{j}^{l}&=\frac{\partial C}{\partial z_{j}^{l}}\\
-                    &=\sum_{k=1}^{k=n^{l+1}}\frac{\partial C}{\partial z_{k}^{l+1}}\frac{\partial z_{k}^{l+1}}{\partial z_{j}^{l}}\\
-                    &=\sum_{k}^{k=n^{l+1}}\frac{\partial z_{k}^{l+1}}{\partial z_{j}^{l}}\delta_{k}^{l+1}\\
-                    &=\sum_{k}^{k=n^{l+1}}\frac{\partial\sum_{j=1}^{j=n^{l}}w_{kj}^{l+1}a_{j}^{l}+b_{k}^{l+1}}{\partial z_{j}^{l}}\delta_{k}^{l+1}\\
-                    &=\sum_{k}^{k=n^{l+1}}w_{kj}^{l+1}\delta_{k}^{l+1}\sigma'(z_{j}^{l})
-    \end{align}
-  #+END_SRC 
 
-  #+RESULTS:
   \begin{align}
     \delta_{j}^{l}&=\frac{\partial C}{\partial z_{j}^{l}}\\
                   &=\sum_{k=1}^{k=n^{l+1}}\frac{\partial C}{\partial z_{k}^{l+1}}\frac{\partial z_{k}^{l+1}}{\partial z_{j}^{l}}\\
@@ -2055,26 +1159,12 @@ cost 函数以平方代价函数为例:
 *** 万能近似定理
 ** 深度学习的正则化
 - 参数范数惩罚
-  <<Eqn.(2.2.1.1)>>
-  #+BEGIN_SRC latex :results raw :exports none
-    \begin{equation}
-      \widetilde{J}(\theta;X,y)=J(\theta;X,y)+\alpha\Omega(\theta)
-    \end{equation}
-  #+END_SRC 
 
-  #+RESULTS:
   \begin{equation}
     \widetilde{J}(\theta;X,y)=J(\theta;X,y)+\alpha\Omega(\theta)
   \end{equation}
 - 作为约束的范数惩罚
-  <<Eqn.(2.2.1.2)>>
-  #+BEGIN_SRC latex :results raw :exports none
-    \begin{equation}
-      \mathcal{L}(\theta,\alpha;X,y)=J(\theta;X,y)+\alpha(\Omega(\theta)-k)
-    \end{equation}
-  #+END_SRC 
 
-  #+RESULTS:
   \begin{equation}
     \mathcal{L}(\theta,\alpha;X,y)=J(\theta;X,y)+\alpha(\Omega(\theta)-k)
   \end{equation}
@@ -2116,15 +1206,7 @@ cost 函数以平方代价函数为例:
 
 **** 动量
 更新规则
-<<Eqn.(2.3.2.1)>>
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{align}
-    v &\gets \alpha v - \epsilon\nabla_{\theta} \left( \frac{1}{m}\sum_{i=1}^{m}L \left(f(x^{(i)};\theta),y^{(i)}\right) \right) \\
-    \theta &\gets \theta+v
-  \end{align}
-#+END_SRC 
 
-#+RESULTS:
 \begin{align}
   v &\gets \alpha v - \epsilon\nabla_{\theta} \left( \frac{1}{m}\sum_{i=1}^{m}L \left(f(x^{(i)};\theta),y^{(i)}\right) \right) \\
   \theta &\gets \theta+v
@@ -2136,14 +1218,7 @@ cost 函数以平方代价函数为例:
 - $v$(速度): 用随机数字初始化参数等同于在某个位置给质点设定初始速度为 0。
 - $\alpha$: 超参数, 模拟某种摩擦机制, 一般设为 0.9, 交叉验证, 通常设为[0.5,0.9,0.95,0.99]中的一个。
 - 步长则为: 则若 $\alpha=0.9$, 对应着速度最大 10 倍于梯度算法。
-  <<Eqn.(2.3.2.2)>>
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{equation}
-    \frac{\epsilon||g||}{1-\alpha}
-  \end{equation}
-#+END_SRC 
 
-#+RESULTS:
 \begin{equation}
   \frac{\epsilon||g||}{1-\alpha}
 \end{equation}
@@ -2160,15 +1235,7 @@ cost 函数以平方代价函数为例:
 
 **** Nesterov 动量
 更新规则
-<<Eqn.(2.3.2.3)>>
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{align}
-    v &\gets \alpha v - \epsilon\nabla_{\theta} \left[ \frac{1}{m}\sum_{i=1}^{m}L \left(f(x^{(i)};\theta+\alpha v),y^{(i)}\right) \right] \\
-    \theta &\gets \theta+v
-  \end{align}
-#+END_SRC 
 
-#+RESULTS:
 \begin{align}
   v &\gets \alpha v - \epsilon\nabla_{\theta} \left[ \frac{1}{m}\sum_{i=1}^{m}L \left(f(x^{(i)};\theta+\alpha v),y^{(i)}\right) \right] \\
   \theta &\gets \theta+v
@@ -2372,14 +1439,6 @@ $W_{out}\times{H_{out}\times{D_{i}}}$ 由 $n$ 个 $W_{in} \times H_{in} \times D
 LRN 是一种提高深度学习准确度的技术方法。LRN一般是在激活、池化函数后的一种方法。
 在 AlexNet 中, 提出了 LRN 层, 对局部神经元的活动创建竞争机制, 使其中响应比较大对值变得相对更大, 并抑制其他反馈较小的神经元, 增强了模型的泛化能力。
 
-<<Eqn.(2.4.4.1)>>
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{equation}
-    b_{x,y}^{i}=a_{x,y}^{i} / \left(k+\alpha \sum^{\min(N-1,i+\frac{n}{2})}_{j=\max(0,i-\frac{n}{2})}(a_{x,y}^{j})^{2} \right)^{\beta}
-  \end{equation}
-#+END_SRC 
-
-#+RESULTS:
 \begin{equation}
   b_{x,y}^{i}=a_{x,y}^{i} / \left(k+\alpha \sum^{\min(N-1,i+\frac{n}{2})}_{j=\max(0,i-\frac{n}{2})}(a_{x,y}^{j})^{2} \right)^{\beta}
 \end{equation}
@@ -2419,14 +1478,7 @@ GoogLeNet 架构是由 Christian Szegedy 等人开发的。来自 Google Researc
 ** 循环神经网络(RNN)
 *** 展开计算图
 隐藏单元值得常用形式:
-<<Eqn.(2.5.1.1)>>
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{equation}
-    h^{\left(t\right)}=f\left(h^{\left(t-1\right)},x^{\left(t\right)};\theta\right)
-  \end{equation}
-#+END_SRC 
 
-#+RESULTS:
 \begin{equation}
   h^{\left(t\right)}=f\left(h^{\left(t-1\right)},x^{\left(t\right)};\theta\right)
 \end{equation}
@@ -2447,19 +1499,6 @@ GoogLeNet 架构是由 Christian Szegedy 等人开发的。来自 Google Researc
 **** BPTT
 设序列 $x_{t}\in{\{x_{1},x_{2},\dots,x_{\tau}\}}$, 输出单元 $o_{i}\in{\{o_{1},o_{2},\dots,o_{\tau}\}}$, $y^{t}\in{\{y^{1},y^{2},\dots,y^{\tau}\}}$ 表示正确的序列, 整个序列表示一个训练样本, 则总误差就是每个时间步长的误差的总和。
 
-<<Eqn.(2.5.3.1)>>
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{align}
-    a^{t}&=Wh^{t-1}+Ux^{t}+b\\
-    h^{t}&=tanh\left(a^{t}\right)\\
-    o^{t}&=Vh^{t}+c\\
-    \hat{y}^{t}&=softmax\left(o^{t}\right)\\
-    L&=-\sum_{t=1}^{\tau}{y^{t}\cdot{ln\left(\hat{y}^{t}\right)}}\\
-    L^{t}&=-y^{t}\cdot{ln\left(\hat{y}^{t}\right)}
-\end{align}
-#+END_SRC 
-
-#+RESULTS:
 \begin{align}
     a^{t}&=Wh^{t-1}+Ux^{t}+b\\
     h^{t}&=tanh\left(a^{t}\right)\\
@@ -2470,46 +1509,19 @@ GoogLeNet 架构是由 Christian Szegedy 等人开发的。来自 Google Researc
 \end{align}
 
 - $\nabla_{o_{i}^t}L$ 的梯度:
-  <<Eqn.(2.5.3.2)>>
-  #+BEGIN_SRC latex :results raw :exports none
-    \begin{align}
-      \frac{\partial{L}}{\partial{L^{t}}}&=1\\
-      \nabla_{\hat{y}_{i}^{t}}L&=\frac{\partial{L}}{\partial{L^{t}}}\frac{\partial{L^{t}}}{\partial{\hat{y}_{i}^{t}}}=-\frac{1}{\hat{y}_{i}^{t}}\\
-      \nabla_{o_{i}^{t}}L&=\nabla_{\hat{y}_{i}^{t}}L\cdot{\frac{\partial{\hat{y}_{i}^{t}}}{\partial{o_{i}^{t}}}}=-\frac{1}{\hat{y}_{i}^{t}}\cdot{\hat{y}_{i}^{t}\left(1-\hat{y}_{i}^{t}\right)}=\hat{y}_{i}^{t}-1
-    \end{align}
-  #+END_SRC
 
-  #+RESULTS:
   \begin{align}
     \frac{\partial{L}}{\partial{L^{t}}}&=1\\
     \nabla_{\hat{y}_{i}^{t}}L&=\frac{\partial{L}}{\partial{L^{t}}}\frac{\partial{L^{t}}}{\partial{\hat{y}_{i}^{t}}}=-\frac{1}{\hat{y}_{i}^{t}}\\
     \nabla_{o_{i}^{t}}L&=\nabla_{\hat{y}_{i}^{t}}L\cdot{\frac{\partial{\hat{y}_{i}^{t}}}{\partial{o_{i}^{t}}}}=-\frac{1}{\hat{y}_{i}^{t}}\cdot{\hat{y}_{i}^{t}\left(1-\hat{y}_{i}^{t}\right)}=\hat{y}_{i}^{t}-1
   \end{align}
 - $\nabla_{h^{\tau}}L$ 的梯度：
-  <<Eqn.(2.5.3.3)>>
-  #+BEGIN_SRC latex :results raw :exports none
-    \begin{equation}
-      \nabla_{h^{\tau}}L=\nabla_{o^{\tau}}L\left(\frac{\partial{o_{i}^{\tau}}}{\partial{h^{\tau}}}\right)=V^{T}\left(\hat{y}^{\tau}-1\right)
-    \end{equation}
-  #+END_SRC 
 
-  #+RESULTS:
   \begin{equation}
     \nabla_{h^{\tau}}L=\nabla_{o^{\tau}}L\left(\frac{\partial{o_{i}^{\tau}}}{\partial{h^{\tau}}}\right)=V^{T}\left(\hat{y}^{\tau}-1\right)
   \end{equation}
 - $\nabla_{h^{t}}L$ 的梯度：
-  <<Eqn.(2.5.3.4)>>
-  #+BEGIN_SRC latex :results raw :exports none
-    \begin{align}
-      \nabla_{h^{t}}L&=\left(\nabla_{h^{t+1}}L\right)\left(\frac{\partial{h^{t+1}}}{\partial{a^{t+1}}}\right)+\left(\nabla_{o^{t}}L\right)\left(\frac{\partial{o^{t}}}{\partial{h^{t}}}\right)^{T}\\
-                     &=\left(\nabla_{h^{t+1}}L\right)\cdot{diag\left(1-\left(h^{t+1}\right)^{2}\right)W^{T}}\\
-                     &+V^{T}\nabla_{o^{t}}L\\
-                     &=\nabla_{h^{\tau}}L\cdot{\prod_{i=t+1}^{\tau}{diag\left(1-\left(h^{i}\right)^{2}\right)W^{T}}}\\
-                     &+\prod_{i=t}^{\tau}V^{T}\nabla_{o^{t}}L\cdot{\prod_{j=t+1}^{i-t}{diag\left(1-\left(h^{j}\right)^{2}\right)W^{T}}}
-    \end{align}
-  #+END_SRC
 
-  #+RESULTS:
   \begin{align}
     \nabla_{h^{t}}L&=\left(\nabla_{h^{t+1}}L\right)\left(\frac{\partial{h^{t+1}}}{\partial{a^{t+1}}}\right)+\left(\nabla_{o^{t}}L\right)\left(\frac{\partial{o^{t}}}{\partial{h^{t}}}\right)^{T}\\
                    &=\left(\nabla_{h^{t+1}}L\right)\cdot{diag\left(1-\left(h^{t+1}\right)^{2}\right)W^{T}}\\
@@ -2521,22 +1533,7 @@ GoogLeNet 架构是由 Christian Szegedy 等人开发的。来自 Google Researc
 由于激活函数有多个,每个激活函数都需要乘以权重所以为对角矩阵。
 - 梯度消失和爆炸问题:求 $\nabla_{h^{t}}L$ 求偏导随着越加靠前, *偏导相乘的次数就会增加, 其中的导数小于 1 是就会趋近于0, 导数越大时就会趋近于无穷* 。随着序列长度的增长, 越靠前的信息就有可能丢失。
 - 参数的梯度
-  <<Eqn.(2.5.3.5)>>
-  #+BEGIN_SRC latex :results raw :exports none
-    \begin{align}
-      \nabla_{c}L&=\sum_{t=1}^{\tau}\nabla_{o^{t}}L\cdot \left( \frac{\partial o^{t}}{\partial C} \right) ^{T}=\sum_{t=1}^{\tau}\hat{y}^{t}-1\\
-      \nabla_{V}L&=\sum_{t=1}^{\tau}\nabla_{o^{t}}L\cdot \left( \frac{\partial o^{t}}{\partial V} \right) ^{T}\\
-                 &=\sum_{t=1}^{\tau} (\hat{y}^{t}-1)(h^{t})^{T}\\
-      \nabla_{b}L&=\sum_{t=1}^{\tau}\nabla_{h^{t}}L\cdot \left( \frac{\partial h^{t}}{\partial b^{t}} \right) ^{T}\\
-                 &=\sum_{t=1}^{\tau}diag \left( 1- \left( h^{t} \right) ^{2} \right) \cdot\nabla_{h^{t}}L\\
-      \nabla_{W}L&=\sum_{t=1}^{\tau}\frac{\partial L}{\partial h^{t}}\frac{\partial h^{t}}{\partial a^{t}}\frac{\partial a^{t}}{\partial W^{t}}\\
-                 &=\sum_{t=1}^{\tau}\nabla_{h^{t}}L\cdot diag \left( 1- \left( h^{t} \right) ^{2} \right) \cdot \left( h^{t-1} \right) ^{T}\\
-      \nabla_{U}L&=\sum_{t=1}^{\tau}\frac{\partial L}{\partial h^{t}}\frac{\partial h^{t}}{\partial a^{t}}\frac{\partial a^{t}}{\partial U^{t}}\\
-                 &=\sum_{t=1}^{\tau}\nabla_{h^{t}}L \cdot diag \left( 1- \left( h^{t} \right) ^{2} \right) \cdot(x^{t})^{T}
-    \end{align}
-  #+END_SRC
 
-  #+RESULTS:
   \begin{align}
     \nabla_{c}L&=\sum_{t=1}^{\tau}\nabla_{o^{t}}L\cdot \left( \frac{\partial o^{t}}{\partial C} \right) ^{T}=\sum_{t=1}^{\tau}\hat{y}^{t}-1\\
     \nabla_{V}L&=\sum_{t=1}^{\tau}\nabla_{o^{t}}L\cdot \left( \frac{\partial o^{t}}{\partial V} \right) ^{T}\\
@@ -2629,14 +1626,6 @@ https://www.deeplearningbook.org
 为了满足上述三个性质
 我们定义一个事件 $X=x$ 的自信息(self-information)为:
 
-<<Eqn.(3.1.1.1)>>
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{equation}
-    I(X)= - \log{P\left( x \right)}
-  \end{equation}
-#+END_SRC 
-
-#+RESULTS:
 \begin{equation}
   I(X)= - \log{P\left( x \right)}
 \end{equation}
@@ -2647,16 +1636,6 @@ https://www.deeplearningbook.org
 香农熵是指对整个概率分布中的不确定性总量进行量化。
 设随机变量 $X={x_{1},\dots,x_{n}}$ , $P$ 为 $X$ 得概率质量分布，香农熵记为 $H(X)$ (当 $x$ 时连续的,香农熵被称为微分熵)
 
-<<Eqn.(3.2.1.1)>>
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{align}
-    H(X)&=E \left[ I(X) \right]\\
-        &=E \left[ -\ln{ \left( P(X) \right)  } \right]\\
-        &=-\sum_{i=1}^{n}P(x_{i})\log{P(x_{i})}
-  \end{align}
-#+END_SRC
-
-#+RESULTS:
 \begin{align}
   H(X)&=E \left[ I(X) \right]\\
       &=E \left[ -\ln{ \left( P(X) \right)  } \right]\\
@@ -2674,20 +1653,6 @@ https://www.deeplearningbook.org
 <<KL散度>>
 如果我们对于同一个随机变量 $x$ 有两个单独的概率分布 $P(x)$ 和 $Q(x)$ , 我们可以使用 $KL$ 散度来衡量这两个分布的差异, $KL$ 距离是两个随机分布间距离的度量,度量当真实分布为 $p$ 时,假设分布 $q$ 的无效性:
 
-<<Eqn.(3.3.1.1)>>
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{align}
-    D_{KL} \left( p||q \right) &= E_{p}\left[ \log{\frac{p(x)}{q(x)}} \right]\\
-                               &=\sum_{x\in X}p(x)\log{\frac{p(x)}{q(x)}}\\
-                               &=\sum_{x\in X} \left[ p(x)\log{p(x)}-p(x)\log{q(x)} \right]\\
-                               &=\sum_{x\in X}p(x)\log{p(x)}-\sum_{x\in X}p(x)\log{q(x)}\\
-                               &=-H(p)-\sum_{x\in X}p(x)\log{q(x)}\\
-                               &=-H(p)+E_{p} \left[ -\log{q(x)} \right]\\
-                               &=H_{p}(q)-H(p)
-  \end{align}
-#+END_SRC
-
-#+RESULTS:
 \begin{align}
   D_{KL} \left( p||q \right) &= E_{p}\left[ \log{\frac{p(x)}{q(x)}} \right]\\
                              &=\sum_{x\in X}p(x)\log{\frac{p(x)}{q(x)}}\\
@@ -2700,14 +1665,6 @@ https://www.deeplearningbook.org
 
 显然，当 $p=q$ 时，两者之间得 $KL$ 散度 $D_{KL}(p||q)=0$ ,其中为了保证连续性，做如下约定:
 
-<<Eqn.(3.3.1.2)>>
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{equation}
-    0\log{\frac{0}{0}}=0,\ 0\log{\frac{0}{q}}=0,\ p\log{\frac{p}{0}}=\infty
-  \end{equation}
-#+END_SRC 
-
-#+RESULTS:
 \begin{equation}
   0\log{\frac{0}{0}}=0,\ 0\log{\frac{0}{q}}=0,\ p\log{\frac{p}{0}}=\infty
 \end{equation}
@@ -2725,14 +1682,6 @@ https://www.deeplearningbook.org
 <<KL散度比>>
 KL 散度得大小是想对于训练数据集而言的，并没有绝对意义。在分类问题困难时，也就是说在训练数据集的信息量大的时候, KL 散度会偏大，反之, KL 散度会偏小。使用 KL 散度可以对这一问题进行校正。
 
-<<Eqn.(3.3.1.3)>>
-#+BEGIN_SRC latex :results raw :exports none
-  \begin{equation}
-    \text{information gain ratio}(p,q)=\frac{KL(p||q)}{H(p)}
-  \end{equation}
-#+END_SRC 
-
-#+RESULTS:
 \begin{equation}
   \text{information gain ratio}(p,q)=\frac{KL(p||q)}{H(p)}
 \end{equation}
