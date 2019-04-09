@@ -1,3 +1,5 @@
+#+TITLE: JP Index
+
 * Index
 - [[file:みんなの日本語.org][みんなの日本語]]
 - [[file:文法.org][文法]]

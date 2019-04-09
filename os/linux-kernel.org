@@ -1,3 +1,5 @@
+#+TITLE: Linux Kernel
+
 * Booting
 ** BIOS 阶段
 1. 加电启动时： CPU RESET，初始化寄存器，执行物理地址 =0xfffffff0= 处代码(BIOS，实地址模式)。(**硬件把这个地址映射到 ROM BIOS 里**)。
@@ -1406,7 +1408,7 @@ The slab allocator has three principle aims:
 Basic Structure:
 The slab allocator consists of a variable number of caches that are linked together on a doubly linked circular list called a =cache chain=.
 
-#+begin_src dot :file image/slab_structure.png :cmdline -Tpng :exports none :results silent
+#+begin_src dot :file image/slab_structure.png :cmdline -Tpng :export none :results silent
   digraph slab_structure {
     rankdir=TB
     size=8
@@ -1421,6 +1423,7 @@ The slab allocator consists of a variable number of caches that are linked toget
   }
 #+end_src
 
+#+RESULTS:
 [[file:image/slab_structure.png]]
 
 
