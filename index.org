@@ -1,5 +1,7 @@
 #+TITLE: Note Home
 
+- [[file:patch.org][patch]]
+- [[file:todo.org][todo]]
 - algorithm
   - [[file:algorithm/algorithm.org][algorithm]]
   - [[file:algorithm/data_struct.org][data_struct]]

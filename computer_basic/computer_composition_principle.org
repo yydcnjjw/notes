@@ -127,19 +127,14 @@
    2) 地址寄存器多少位? 系统地址 $128K=2^{17}$, 所以地址寄存器 17 位
    3) 共需多少个 E^{2}PROM 芯片? 8 片
    4) 画出此存储器组成框图。
+
       [[file:image/screenshot_2018-10-31_09-52-15.png]]
 4. 设存储器容量为 64M, 字长为 64 位, 模块数 m=8, 分别用顺序和交叉方式进行组织。存储周期 T=100ns, 数据总线宽度位 64 位, 总线传送周期 $\tau=50ns$ 。求: 顺序存储器和交叉存储器的带宽是多少?
 
    信息总量: $q=64\times{8}=512$ 位
 
    顺序存储器和交叉存储器连续读出 8 个字所需的时间分别是:
-   #+BEGIN_SRC latex :results raw :exports none
-     \begin{align}
-       t_{1}&=mT=8\times{100ns}=8\times{10^{-7}}s\\
-       t_{2}&=T+(m-1)\tau=100ns+7\times{50ns}-450ns=4.5*10^{-7}ns
-     \end{align}
-   #+END_SRC 
-   #+RESULTS:
+
    \begin{align}
      t_{1}&=mT=8\times{100ns}=8\times{10^{-7}}s\\
      t_{2}&=T+(m-1)\tau=100ns+7\times{50ns}-450ns=4.5*10^{-7}ns
@@ -147,13 +142,6 @@
 
    顺序存储器和交叉存储器的带宽分别为:
 
-   #+BEGIN_SRC latex :results raw :exports none
-     \begin{align}
-       W_{1}=\frac{q}{t_{1}}=\frac{512}{8\times{10^{-7}}}=64\times{10^{7}}\\
-       W_{2}=\frac{q}{t_{2}}=\frac{512}{4.5\times{10^{-7}}}=113.8\times{10^{7}}
-     \end{align}
-   #+END_SRC 
-   #+RESULTS:
    \begin{align}
      W_{1}=\frac{q}{t_{1}}=\frac{512}{8\times{10^{-7}}}=64\times{10^{7}}\\
      W_{2}=\frac{q}{t_{2}}=\frac{512}{4.5\times{10^{-7}}}=113.8\times{10^{7}}
@@ -162,14 +150,6 @@
 
    cache 的命中率:
 
-   #+BEGIN_SRC latex :results raw :exports none
-     \begin{align}
-       H&=\frac{N_{c}}{N_{c}+N_{m}}=\frac{2420}{2420+80}=0.968\\
-       r&=\frac{T_{m}}{T_{c}}=\frac{240}{40}=6
-     \end{align}
-   #+END_SRC 
-
-   #+RESULTS:
    \begin{align}
      H&=\frac{N_{c}}{N_{c}+N_{m}}=\frac{2420}{2420+80}=0.968\\
      r&=\frac{T_{m}}{T_{c}}=\frac{240}{40}=6
@@ -177,42 +157,20 @@
 
    cache/主存系统效率 $e$ 为:
 
-   #+BEGIN_SRC latex :results raw :exports none
-     \begin{equation}
-       e=\frac{1}{r+(1-r)H}\times{100\percent}=\frac{1}{6+(1-6)\times{0.968}}\times{100\percent}=86.2\percent
-     \end{equation}
-   #+END_SRC 
-
-   #+RESULTS:
    \begin{equation}
-     e=\frac{1}{r+(1-r)H}\times{100\percent}=\frac{1}{6+(1-6)\times{0.968}}\times{100\percent}=86.2\percent
+     e=\frac{1}{r+(1-r)H}\times{100}=\frac{1}{6+(1-6)\times{0.968}}\times{100}=86.2
    \end{equation}
 
    平均访问时间 $T_{a}$ 为:
 
-   #+BEGIN_SRC latex :results raw :exports none
-     \begin{equation}
-       T_{a}=\frac{T_{c}}{e}=\frac{40ns}{0.862ns}=46.4ns
-     \end{equation}
-   #+END_SRC 
-
-   #+RESULTS:
    \begin{equation}
      T_{a}=\frac{T_{c}}{e}=\frac{40ns}{0.862ns}=46.4ns
    \end{equation}
 6. 已知 cache 存储周期 40ns, 主存存储周期 200ns, cache/主存系统平均访问时间为 50ns, 求 cache 的命中率多少?
    
-   #+BEGIN_SRC latex :results raw :exports none
-     \begin{align}
-       h\times{t_{c}}+(1-h)\times{t_{m}}&=t_{a}\\
-       h=\frac{t_{a}-t_{m}}{t_{c}-t_{m}}=\frac{50-200}{40-200}=93.75\percent
-     \end{align}
-   #+END_SRC 
-
-   #+RESULTS:
    \begin{align}
      h\times{t_{c}}+(1-h)\times{t_{m}}&=t_{a}\\
-     h=\frac{t_{a}-t_{m}}{t_{c}-t_{m}}=\frac{50-200}{40-200}=93.75\percent
+     h=\frac{t_{a}-t_{m}}{t_{c}-t_{m}}=\frac{50-200}{40-200}=93.75
    \end{align}
 * 第四章
 1. 假设某计算机指令长度位 32 位, 具有双操作数、单操作数、无操作数三类指令形式, 指令系统共有 70条指令, 请设计满足要求的指令格式。
@@ -302,16 +260,7 @@
 2. 在图 8.9 中, 假定 CPU 取指并执行一条指令的时间为 $t_{1}$, 保护现场需 $t_{2}$, 恢复现场需 $t_{3}$, 中断周期需 $t_{4}$, 每个设备的设备服务时间为 $t_{A},t_{B},\cdots,t_{G}$ 。试计算只有设备 A, D, G 时的系统中断饱和时间。
 
    依次处理设备 A, D, G 的时间 $T$ 为:
-   #+BEGIN_SRC latex :results raw :exports none
-     \begin{align}
-       T_{1}&=t_{1}+t_{2}+t_{3}+t_{4}+t_{A}\\
-       T_{2}&=t_{1}+t_{2}+t_{3}+t_{4}+t_{D}\\
-       T_{3}&=t_{1}+t_{2}+t_{3}+t_{4}+t_{G}\\
-       T&=T_{1}+T_{2}+T_{3}=3*(t_{1}+t_{2}+t_{3}+t_{4})+t_{A}+t_{D}+t_{G}
-     \end{align}
-   #+END_SRC 
 
-   #+RESULTS:
    \begin{align}
      T_{1}&=t_{1}+t_{2}+t_{3}+t_{4}+t_{A}\\
      T_{2}&=t_{1}+t_{2}+t_{3}+t_{4}+t_{D}\\
