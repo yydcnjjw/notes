@@ -19,7 +19,7 @@
   $HOME/.asoundrc
   defaults.pcm.rate_converter "samplerate_best"
   #+END_EXAMPLE
-- imagemagick
+- imagemagick: for fix emacs imagemagick error
   #+BEGIN_EXAMPLE
     /etc/ImageMagick-7/policy.xml
     comment
@@ -29,6 +29,16 @@
   https://deepzz.com/post/based-on-openssl-privateCA-issuer-cert.html
 - proxy
   - =dnsmasq=
+
+** wine configure
+- galgame
+  - disable =winegstreamer= at functional library
+  - install =d3dx9 d3dx10 quartz devenum gdiplus=
+  - install =codec K-Lite_Codec_Pack=
+  - start env =TZ=Japan LC_ALL=ja_JP.ujis=
+
+[[https://wiki.archlinux.org/index.php/Wine_(%E7%AE%80%E4%BD%93%E4%B8%AD%E6%96%87)][archlinux wiki wine]]
+
 * developer env
 ** flutter
 - configure cn repository
@@ -44,4 +54,5 @@
         }
     }
   #+END_SRC
+
 * Test
