@@ -1685,3 +1685,4 @@ KL 散度得大小是想对于训练数据集而言的，并没有绝对意义�
 \begin{equation}
   \text{information gain ratio}(p,q)=\frac{KL(p||q)}{H(p)}
 \end{equation}
+* Information Retrieval
