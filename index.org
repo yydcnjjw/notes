@@ -30,6 +30,6 @@
   - [[file:os/linux-prog.org][linux-prog]]
   - [[file:os/unix-network.org][unix-network]]
 - software_engineering
-  - [[file:software_engineering/common.org][common]]
   - [[file:software_engineering/design_pattern.org][design_pattern]]
+  - [[file:software_engineering/misc.org][misc]]
   - [[file:software_engineering/project_impl.org][project_impl]]

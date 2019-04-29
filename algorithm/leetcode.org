@@ -3,7 +3,217 @@
 [[https://leetcode-cn.com/problems/valid-parentheses/][Valid Parentheses]]
 
 #+BEGIN_SRC C++
+  class Solution {
 
+    public:
+      bool isValid(string s) {
+
+          for (auto c : s) {
+              auto ret = parentheses_.find(c);
+
+              if (ret == parentheses_.end()) {
+                  stack_.push(c);
+                  continue;
+              }
+
+              auto pare = stack_.empty() ? '#' : stack_.top();
+              stack_.pop();
+
+              if (pare != ret->second) {
+                  return false;
+              }
+          }
+          return stack_.empty();
+      }
+
+    private:
+      stack<char> stack_;
+      const map<char, char> parentheses_ = {{')', '('}, {']', '['}, {'}', '{'}};
+  };
+#+END_SRC
+** Remove Outermost Parentheses
+[[https://leetcode-cn.com/problems/remove-outermost-parentheses/][Remove Outermost Parentheses]]
+
+#+BEGIN_SRC C++
+  class Solution {
+    public:
+      string removeOuterParentheses(string S) {
+          string s;
+          for (const auto &c : S) {
+	    
+              if (c != ')') {
+		
+                  if (!c_stack_.empty()) {
+                      s.push_back(c);
+                  }
+		
+                  c_stack_.push(c);
+                  continue;
+              }
+
+              char top = c_stack_.top();
+              c_stack_.pop();
+
+              if (!c_stack_.empty()) {
+                  s.push_back(c);
+              }
+          }
+          return s;
+      }
+
+    private:
+      stack<char> c_stack_;
+  };
+#+END_SRC
+** Baseball Game
+[[https://leetcode-cn.com/problems/baseball-game/][Baseball Game]]
+
+#+BEGIN_SRC C++
+  class Solution {
+    public:
+      int calPoints(vector<string> &ops) {
+          vector<int> v;
+          for (const auto &opt : ops) {
+              if (opt == "C") {
+                  v.pop_back();
+              } else if (opt == "D") {
+                  v.push_back(v.back() * 2);
+              } else if (opt == "+") {
+                  v.push_back(v.back() + v[v.size() - 2]);
+              } else {
+                  v.push_back(stoi(opt));
+              }
+          }
+          return accumulate(v.begin(), v.end(), 0);
+      }
+  };
+#+END_SRC
+** Implement Stacks using Queue
+[[https://leetcode-cn.com/problems/implement-stack-using-queues/][Implement Stacks using Queue]]
+
+#+BEGIN_SRC C++
+  class MyQueue {
+    public:
+      /** Initialize your data structure here. */
+      MyQueue() {}
+
+      /** Push element x to the back of queue. */
+      void push(int x) { in_s.push(x); }
+
+      /** Removes the element from in front of queue and returns that element. */
+      int pop() {
+          if (out_s.empty()) {
+              move_reverse(in_s, out_s);
+          }
+          auto top = out_s.top();
+          out_s.pop();
+          return top;
+      }
+
+      /** Get the front element. */
+      int peek() {
+          if (out_s.empty()) {
+              move_reverse(in_s, out_s);
+          }
+          return out_s.top();;
+      }
+
+      /** Returns whether the queue is empty. */
+      bool empty() { return in_s.empty() && out_s.empty(); }
+
+      void move_reverse(stack<int> &s, stack<int> &t) {
+          auto size = s.size();
+          while (size) {
+              t.push(s.top());
+              s.pop();
+              size--;
+          }
+      }
+
+    private:
+      stack<int> in_s;
+      stack<int> out_s;
+  };
+#+END_SRC
+
+** Implement Queue using Stacks
+[[https://leetcode-cn.com/problems/implement-queue-using-stacks/][Implement Queue using Stacks]]
+
+#+BEGIN_SRC C++
+  class MyStack {
+    public:
+      /** Initialize your data structure here. */
+      MyStack() {}
+
+      /** Push element x onto stack. */
+      void push(int x) { in_q.push(x); }
+
+      /** Removes the element on top of the stack and returns that element. */
+      int pop() {
+          queue<int> tmp_q;
+          move(in_q, tmp_q, in_q.size() - 1);
+          auto top = in_q.front();
+          in_q.pop();
+          move(tmp_q, in_q, tmp_q.size());
+          return top;
+      }
+
+      /** Get the top element. */
+      int top() {
+          queue<int> tmp_q;
+          move(in_q, tmp_q, in_q.size() - 1);
+          auto top = in_q.front();
+          tmp_q.push(top);
+          in_q.pop();
+          move(tmp_q, in_q, tmp_q.size());
+          return top;
+      }
+
+      /** Returns whether the stack is empty. */
+      bool empty() { return in_q.empty(); }
+
+      void move(queue<int> &s, queue<int> &t, size_t size) {
+          while (size) {
+              t.push(s.front());
+              s.pop();
+              size--;
+          }
+      }
+
+    private:
+      queue<int> in_q;
+  };
+#+END_SRC
+
+** Next Greater Element I
+[[https://leetcode-cn.com/problems/next-greater-element-i/][Next Greater Element I]]
+#+BEGIN_SRC C++
+  class Solution {
+  public:
+    vector<int> nextGreaterElement(vector<int> &nums1, vector<int> &nums2) {
+      stack<int> s;
+      map<int, int> hash;
+      auto nums2_size = nums2.size();
+      auto i = 0;
+      while (i < nums2_size) {
+        auto num2 = nums2[i];
+        if (s.empty() || num2 < s.top()) {
+          s.push(num2);
+          i++;
+        } else {
+          hash[s.top()] = num2;
+          s.pop();
+        }
+      }
+
+      auto nums1_size = nums1.size();
+      for (auto i = 0; i < nums1_size; ++i) {
+        auto v = hash.find(nums1[i]);
+        nums1[i] = v != hash.end() ? v->second : -1;
+      }
+      return nums1;
+    }
+  };
 #+END_SRC
 
 

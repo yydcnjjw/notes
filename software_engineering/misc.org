@@ -1,0 +1,22 @@
+* Logger
+
+* Cache
+ref:
+- [[https://en.wikipedia.org/wiki/Cache_replacement_policies][Cache replacement policies]]
+
+*TODO*:
+- [ ] Analysis of advantages and disadvantages
+- [ ] Suitable application
+
+
+* Memory Allocator
+ref:
+- [[https://github.com/mtrebi/memory-allocators][memory allocator impl]]
+
+** stack allocator
+** double-ended stack allocator
+** pool allocator
+
+
+
+
