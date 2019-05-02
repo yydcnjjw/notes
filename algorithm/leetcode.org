@@ -1,5 +1,4 @@
-* Stack
-** Valid Parentheses
+* Valid Parentheses
 [[https://leetcode-cn.com/problems/valid-parentheses/][Valid Parentheses]]
 
 #+BEGIN_SRC C++
@@ -31,7 +30,7 @@
       const map<char, char> parentheses_ = {{')', '('}, {']', '['}, {'}', '{'}};
   };
 #+END_SRC
-** Remove Outermost Parentheses
+* Remove Outermost Parentheses
 [[https://leetcode-cn.com/problems/remove-outermost-parentheses/][Remove Outermost Parentheses]]
 
 #+BEGIN_SRC C++
@@ -65,7 +64,7 @@
       stack<char> c_stack_;
   };
 #+END_SRC
-** Baseball Game
+* Baseball Game
 [[https://leetcode-cn.com/problems/baseball-game/][Baseball Game]]
 
 #+BEGIN_SRC C++
@@ -88,7 +87,7 @@
       }
   };
 #+END_SRC
-** Implement Stacks using Queue
+* Implement Stacks using Queue
 [[https://leetcode-cn.com/problems/implement-stack-using-queues/][Implement Stacks using Queue]]
 
 #+BEGIN_SRC C++
@@ -136,7 +135,7 @@
   };
 #+END_SRC
 
-** Implement Queue using Stacks
+* Implement Queue using Stacks
 [[https://leetcode-cn.com/problems/implement-queue-using-stacks/][Implement Queue using Stacks]]
 
 #+BEGIN_SRC C++
@@ -185,8 +184,11 @@
   };
 #+END_SRC
 
-** Next Greater Element I
+* Next Greater Element I
 [[https://leetcode-cn.com/problems/next-greater-element-i/][Next Greater Element I]]
+
+- *TODO* Monotone Stack
+
 #+BEGIN_SRC C++
   class Solution {
   public:
@@ -216,9 +218,177 @@
   };
 #+END_SRC
 
+* Min Stack
+[[https://leetcode-cn.com/problems/min-stack/][Min Stack]]
 
-* algorithms 
-** Two Sum
+#+BEGIN_SRC C++
+  class MinStack {
+    public:
+      /** initialize your data structure here. */
+      MinStack() {}
+
+      void push(int x) {
+          s_.push(x);
+          if (min_s_.empty() || x <= min_s_.top()) {
+              min_s_.push(x);
+          }
+      }
+
+      void pop() {
+          if (s_.top() == min_s_.top()) {
+              min_s_.pop();
+          }
+          s_.pop();
+      }
+
+      int top() { return s_.top(); }
+
+      int getMin() { return min_s_.top(); }
+
+    private:
+      stack<int> s_;
+      stack<int> min_s_;
+  };
+#+END_SRC
+* Backspace String Compare
+[[https://leetcode-cn.com/problems/backspace-string-compare/][Backspace String Compare]]
+
+#+BEGIN_SRC C++
+  class Solution {
+    public:
+      bool backspaceCompare(string S, string T) {
+          string S_actual;
+          string T_actual;
+          actual(S, S_actual);
+          actual(T, T_actual);
+          return !S_actual.compare(T_actual);
+      }
+
+    private:
+      void actual(const string &s, string &t) {
+          for (auto c : s) {
+              if (c == '#') {
+                  if (!t.empty()) {
+                      t.pop_back();
+                  }
+                  continue;
+              }
+              t.push_back(c);
+          }
+      }
+  };
+#+END_SRC
+* Binary Tree Inorder Traversal
+[[https://leetcode-cn.com/problems/binary-tree-inorder-traversal/][Binary Tree Inorder Traversal]]
+
+#+BEGIN_SRC C++
+  class Solution {
+    public:
+      vector<int> inorderTraversal(TreeNode *root) {
+          vector<int> result;
+          stack<TreeNode *> stack;
+          TreeNode *node = root;
+
+          while (node != nullptr || !stack.empty()) {
+              if (node != nullptr) {
+                  stack.push(node);
+                  node = node->left;
+              } else {
+                  node = stack.top();
+                  stack.pop();
+                  result.push_back(node->val);
+                  node = node->right;
+              }
+          }
+          return result;
+      }
+  };
+#+END_SRC
+* Minimum Add to Make Parentheses Valid
+[[https://leetcode-cn.com/problems/minimum-add-to-make-parentheses-valid/][Minimum Add to Make Parentheses Valid]]
+
+#+BEGIN_SRC C++
+  class Solution {
+    public:
+      int minAddToMakeValid(string S) {
+          stack<char> stack;
+          int result = 0;
+          for (auto c : S) {
+              if (c == '(') {
+                  stack.push(c);
+              }
+
+              if (c == ')') {
+                  if (!stack.empty()) {
+                      stack.pop();
+                  } else {
+                      result++;
+                  }
+              }
+          }
+
+          result += stack.size();
+          return result;
+      }
+  };
+#+END_SRC
+* Binary Search Tree Iterator
+[[https://leetcode-cn.com/problems/binary-search-tree-iterator/][Binary Search Tree Iterator]]
+
+#+BEGIN_SRC C++
+
+#+END_SRC
+* Binary Tree Preorder Traversal
+[[https://leetcode-cn.com/problems/binary-tree-preorder-traversal/][Binary Tree Preorder Traversal]]
+
+#+BEGIN_SRC C++
+  class Solution {
+    public:
+      vector<int> preorderTraversal(TreeNode *root) {
+          vector<int> result;
+          stack<TreeNode *> stack;
+          TreeNode *node = root;
+
+          while (node != nullptr || !stack.empty()) {
+              if (node != nullptr) {
+                  result.push_back(node->val);
+                  stack.push(node);
+                  node = node->left;
+              } else {
+                  node = stack.top();
+                  stack.pop();
+                  node = node->right;
+              }
+          }
+          return result;
+      }
+  };
+#+END_SRC
+* Daily Temperatures
+[[https://leetcode-cn.com/problems/daily-temperatures/][Daily Temperatures]]
+
+#+BEGIN_SRC C++
+  class Solution {
+    public:
+      vector<int> dailyTemperatures(vector<int> &T) {
+          stack<int> stack;
+          vector<int> result;
+          auto size = T.size();
+          result.assign(size, 0);
+          for (auto i = 0; i < size; ++i) {
+              while (!stack.empty() && T[stack.top()] < T[i]) {
+                  int cur_index = stack.top();
+                  stack.pop();
+                  result[cur_index] = i - cur_index;
+              }
+              stack.push(i);
+          }
+          return result;
+      }
+  };
+#+END_SRC
+
+* Two Sum
 给定一个整数数组和一个目标值，找出数组中和为目标值的两个数。
 你可以假设每个输入只对应一种答案，且同样的元素不能被重复利用。
 
@@ -273,7 +443,7 @@
 #+RESULTS:
 : 1 2
 
-** 两数相加
+* 两数相加
 给定两个非空链表来表示两个非负整数。位数按照逆序方式存储，它们的每个节点只存储单个数字。将两数相加返回一个新的链表。
 你可以假设除了数字 0 之外，这两个数字都不会以零开头。
 
@@ -366,7 +536,7 @@
 #+RESULTS:
 : 7 0 8
 
-** 无重复字串的最长子串
+* 无重复字串的最长子串
 给定一个字符串，找出不含有重复字符的最长子串的长度。
 
 使用 map 存储字符串的索引
@@ -406,7 +576,7 @@ int main(int argc, char *argv[]) {
 
 #+RESULTS:
 : 2
-** 两个排序数组的中位数
+* 两个排序数组的中位数
 给定两个大小为 m 和 n 的有序数组 nums1 和 nums2 。
 请找出这两个有序数组的中位数。要求算法的时间复杂度为 O(log (m+n)) 。
 你可以假设 nums1 和 nums2 不同时为空。
@@ -480,7 +650,7 @@ int main(int argc, char *argv[]) {
 
 #+RESULTS:
 : 2
-** 最长回文子串
+* 最长回文子串
 给定一个字符串 s，找到 s 中最长的回文子串。你可以假设 s 的最大长度为1000。
 
 #+BEGIN_EXAMPLE
@@ -555,7 +725,7 @@ int main(int argc, char *argv[]) {
 
 #+RESULTS:
 : bab
-** Z 字形变换
+* Z 字形变换
 将字符串 "PAYPALISHIRING" 以Z字形排列成给定的行数：
 
 #+BEGIN_EXAMPLE
@@ -620,7 +790,7 @@ int main(int argc, char *argv[]) {
 
 #+RESULTS:
 : PINALSIGYAHRPI
-** 反转整数
+* 反转整数
 给定一个 32 位有符号整数，将整数中的数字进行反转。
 
 #+BEGIN_EXAMPLE
@@ -661,7 +831,7 @@ int main(int argc, char *argv[]) {
 
 #+RESULTS:
 : 0
-** 字符串转整数(atoi)
+* 字符串转整数(atoi)
 
 #+BEGIN_SRC C++
   #include <ctype.h>
@@ -700,7 +870,7 @@ int main(int argc, char *argv[]) {
   }
 #+END_SRC
 
-** 回文数
+* 回文数
 判断一个整数是否是回文数。回文数是指正序 (从左向右) 和倒序 (从右向左) 读都是一样的整数。
 
 #+BEGIN_SRC C++
@@ -724,8 +894,8 @@ int main(int argc, char *argv[]) {
 
 #+RESULTS:
 : 1
-** 正则表达式匹配
-** container-with-most-water
+* 正则表达式匹配
+* container-with-most-water
 Given n non-negative integers a1, a2, ..., an , where each represents a point at coordinate (i, ai). n vertical lines are drawn such that the two endpoints of line i is at (i, ai) and (i, 0). Find two lines, which together with x-axis forms a container, such that the container contains the most water.
 
 Note: You may not slant the container and n is at least 2.
@@ -759,7 +929,8 @@ Output: 49
     return maxArea;
   }
 #+END_SRC  
-** [[https://leetcode-cn.com/problems/integer-to-roman/description/][integer_to_roman]]
+* integer to roman
+[[https://leetcode-cn.com/problems/integer-to-roman/][integer_to_roman]]
 #+BEGIN_SRC C++
   #include <iostream>
   #include <string>
