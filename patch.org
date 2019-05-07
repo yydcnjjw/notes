@@ -54,5 +54,10 @@
         }
     }
   #+END_SRC
+** godot
+#+BEGIN_SRC shell
+  # build depends gcc scons yasm
+  # depends libxcursor libxinerama libxi libxrandr mesa glu alsa-lib pulseaudio freetype2
+#+END_SRC
 
 * Test

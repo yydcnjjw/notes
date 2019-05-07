@@ -330,7 +330,40 @@
 [[https://leetcode-cn.com/problems/binary-search-tree-iterator/][Binary Search Tree Iterator]]
 
 #+BEGIN_SRC C++
+  class BSTIterator {
+    public:
+      BSTIterator(TreeNode *root) { traversal(root); }
+      // in order traversal
+      void traversal(TreeNode *root) {
+          stack<TreeNode *> stack;
+          TreeNode *node = root;
 
+          while (node != nullptr || !stack.empty()) {
+              if (node != nullptr) {
+                  stack.push(node);
+                  node = node->left;
+              } else {
+                  node = stack.top();
+                  stack.pop();
+                  mins_.push(node->val);
+                  node = node->right;
+              }
+          }
+      }
+
+      /** @return the next smallest number */
+      int next() {
+          auto front = mins_.front();
+          mins_.pop();
+          return front;
+      }
+
+      /** @return whether we have a next smallest number */
+      bool hasNext() { return !mins_.empty(); }
+
+    private:
+      queue<int> mins_;
+  };
 #+END_SRC
 * Binary Tree Preorder Traversal
 [[https://leetcode-cn.com/problems/binary-tree-preorder-traversal/][Binary Tree Preorder Traversal]]
@@ -462,7 +495,67 @@
       }
   };
 #+END_SRC
+* Check If Word Is Valid After Substitutions
+[[https://leetcode-cn.com/problems/check-if-word-is-valid-after-substitutions/][Check If Word Is Valid After Substitutions]]
 
+遇到 =c= 弹出栈顶是否为 =ba=
+
+#+BEGIN_SRC C++
+  class Solution {
+    public:
+      bool isValid(string S) {
+          stack<char> st;
+          for (char ch : S) {
+              if (ch == 'c') {
+                  if (st.empty() || st.top() != 'b') {
+                      return false;
+                  }
+                  st.pop();
+                  if (st.empty() || st.top() != 'a') {
+                      return false;
+                  }
+                  st.pop();
+              } else {
+                  st.push(ch);
+              }
+          }
+          return st.empty();
+      }
+  };
+#+END_SRC
+
+* Validate Stack Sequences
+[[https://leetcode-cn.com/problems/validate-stack-sequences/][Validate Stack Sequences]]
+
+用栈进行模拟
+
+#+BEGIN_SRC C++
+  class Solution {
+    public:
+      bool validateStackSequences(vector<int> &pushed, vector<int> &popped) {
+          stack<int> stack;
+          int index = 0;
+          for (auto value : pushed) {
+              stack.push(value);
+              while (!stack.empty()) {
+                  if (stack.top() != popped[index]) {
+                      break;
+                  }
+                  index++;
+                  stack.pop();
+              }
+          }
+          return stack.empty();
+      }
+  };
+#+END_SRC
+
+* Binary Tree Zigzag Level Order Traversal
+[[https://leetcode-cn.com/problems/binary-tree-zigzag-level-order-traversal/][Binary Tree Zigzag Level Order Traversal]]
+
+#+BEGIN_SRC C++
+
+#+END_SRC
 * Two Sum
 给定一个整数数组和一个目标值，找出数组中和为目标值的两个数。
 你可以假设每个输入只对应一种答案，且同样的元素不能被重复利用。
