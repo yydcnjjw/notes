@@ -181,7 +181,7 @@
 * Next Greater Element I
 [[https://leetcode-cn.com/problems/next-greater-element-i/][Next Greater Element I]]
 
-- *TODO* Monotone Stack
+- Monotone Stack
 
 #+BEGIN_SRC C++
   class Solution {
@@ -554,8 +554,125 @@
 [[https://leetcode-cn.com/problems/binary-tree-zigzag-level-order-traversal/][Binary Tree Zigzag Level Order Traversal]]
 
 #+BEGIN_SRC C++
+  class Solution {
+    public:
+      vector<vector<int>> zigzagLevelOrder(TreeNode *root) {
+          vector<vector<int>> result;
+
+          queue<TreeNode *> queue;
+          if (!root) {
+              return result;
+          }
+          queue.push(root);
+
+          TreeNode *node = nullptr;
+          int size = 0;
+          vector<int> level_result;
+          int direction = 0;
+          while (!queue.empty()) {
+              size = queue.size();
+              level_result.clear();
+
+              while (size--) {
+                  node = queue.front();
+                  level_result.push_back(node->val);
+                  queue.pop();
+                  if (node->left)
+                      queue.push(node->left);
+                  if (node->right)
+                      queue.push(node->right);
+              }
+            
+              if (direction) {
+                  reverse(level_result.begin(), level_result.end());
+              }
+            
+              result.push_back(level_result);                            
+              direction = 1 - direction;
+          }
+
+          return result;
+      }
+  };
+#+END_SRC
+
+* Next Greater Element II
+[[https://leetcode-cn.com/problems/next-greater-element-ii/][Next Greater Element II]]
+
+- 单调栈
+- 两次循环: 第一次需要入栈, 第二次不需要
+
+#+BEGIN_SRC C++
+  class Solution {
+    public:
+      vector<int> nextGreaterElements(vector<int> &nums) {
+          int len = nums.size();
+
+          vector<int> result;
+          result.assign(len, -1);
+
+          stack<int> stack;
+          int i = 0;
+        
+          for (int i = 0; i < len; i++) {
+              while (!stack.empty() && nums[stack.top()] < nums[i]) {
+                  result[stack.top()] = nums[i];
+                  stack.pop();
+              }
+              stack.push(i);
+          }
+
+          for (int i = 0; i < len; i++) {
+              while (!stack.empty() && nums[stack.top()] < nums[i]) {
+                  result[stack.top()] = nums[i];
+                  stack.pop();
+              }
+          }
+
+          return result;
+      }
+  };
+#+END_SRC
+
+* Evaluate Reverse Polish Notation
+[[https://leetcode-cn.com/problems/evaluate-reverse-polish-notation/][Evaluate Reverse Polish Notation]]
+
+#+BEGIN_SRC C++
+  class Solution {
+    public:
+      int evalRPN(vector<string> &tokens) {
+          stack<int> stack;
+          for (const auto &token : tokens) {
+              if (token != "+" && token != "-" && token != "*" && token != "/") {
+                  stack.push(::stoi(token));
+              } else {
+                  auto v1 = stack.top();
+                  stack.pop();
+                  auto v2 = stack.top();
+                  stack.pop();
+                  if (token == "+") {
+                      stack.push(v1 + v2);
+                  } else if (token == "-") {
+                      stack.push(v2 - v1);
+                  } else if (token == "*") {
+                      stack.push(v1 * v2);
+                  } else if (token == "/") {
+                      stack.push(v2 / v1);
+                  }
+              }
+          }
+          return stack.top();
+      }
+  };
+#+END_SRC
+
+* Exclusive Time of Functions
+[[https://leetcode-cn.com/problems/exclusive-time-of-functions/][Exclusive Time of Functions]]
+
+#+BEGIN_SRC C++
 
 #+END_SRC
+
 * Two Sum
 给定一个整数数组和一个目标值，找出数组中和为目标值的两个数。
 你可以假设每个输入只对应一种答案，且同样的元素不能被重复利用。
