@@ -670,7 +670,106 @@
 [[https://leetcode-cn.com/problems/exclusive-time-of-functions/][Exclusive Time of Functions]]
 
 #+BEGIN_SRC C++
+  class Solution {
+    public:
+      vector<int> exclusiveTime(int n, vector<string> &logs) {
+          stack<pair<int, int>> s;
+          vector<int> result;
+          result.assign(n, 0);
+          for (const auto &log : logs) {
+              std::stringstream ss(log);
+              std::string item;
+              vector<string> v;
+              while (std::getline(ss, item, ':')) {
+                  v.push_back(item);
+              }
 
+              auto id = ::stoi(v[0]);
+              auto status = v[1];
+              auto time = ::stoi(v[2]);
+
+              if (status == "start") {
+                  s.push({id, time});
+                  continue;
+              }
+
+              if (status == "end") {
+                  auto fun = s.top();
+                  s.pop();
+                  result[id] += time - fun.second + 1;
+                  if (!s.empty()) {
+                      result[s.top().first] -= time - fun.second + 1;
+                  }
+              }
+          }
+          return result;
+      }
+  };
+#+END_SRC
+
+* Decode String
+[[https://leetcode-cn.com/problems/decode-string/][Decode String]]
+
+#+BEGIN_SRC C++
+  class Solution {
+    public:
+      string decodeString(string s) {
+          stack<int> num_stack;
+          stack<string> str_stack;
+          int num = 0;
+          string cur;
+          for (auto ch : s) {
+              if ('0' <= ch && ch <= '9') {
+                  num = 10 * num + ch - '0';
+              } else if (ch == '[') {
+                  num_stack.push(num);
+                  num = 0;
+
+                  str_stack.push(cur);
+                  cur.clear();
+              } else if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')) {
+                  cur.push_back(ch);
+              } else if (ch == ']'){
+                  int n = num_stack.top();
+                  num_stack.pop();
+                  for (auto i = 0; i < n; ++i) {
+                      str_stack.top() += cur;
+                  }
+
+                  cur = str_stack.top();
+                  str_stack.pop();
+              }
+          }
+          return cur;
+      }
+  };
+#+END_SRC
+
+* Verify Preorder Serialization of a Binary Tree
+[[https://leetcode-cn.com/problems/verify-preorder-serialization-of-a-binary-tree/][Verify Preorder Serialization of a Binary Tree]]
+
+二叉树的NULL节点数 = 非NULL节点数 + 1,且前序遍历序列化后最后的字符一定为'#';
+
+#+BEGIN_SRC C++
+  class Solution {
+    public:
+      bool isValidSerialization(string preorder) {
+          int ans = 1;
+          string str;
+          istringstream is(preorder);
+          while (getline(is, str, ',')) {
+              if (ans == 0)
+                  return false;
+              if (str != "#") {
+                  ans++;
+              } else {
+                  ans--;
+              }
+          }
+
+          return ans == 0;
+      }
+  };
 #+END_SRC
 
 * Two Sum
