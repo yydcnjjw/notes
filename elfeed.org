@@ -1,0 +1,16 @@
+* feed                                                               :elfeed:
+** blog                                                               :blog:
+*** IT                                                                 :IT:
+**** [[https://manateelazycat.github.io/feed.xml][manateelazycat]]
+**** [[http://feeds.feedburner.com/ruanyifeng][ruanyifeng]]
+
+*** news                                                             :news:
+**** [[https://www.williamlong.info/rss.xml][williamlong]]
+** programming                                                 :programming:
+*** [[https://rsshub.app/zcfy/hot][zcfy]]
+
+** knowledge                                                     :knowledge:
+*** [[https://zhihu.com/rss][zhihu]]
+** news                                                               :news:
+*** [[http://www.people.com.cn/rss/world.xml][people world]]
+*** [[http://www.people.com.cn/rss/politics.xml][people politics]]
