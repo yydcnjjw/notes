@@ -1,5 +1,6 @@
 #+TITLE: Note Home
 
+- [[file:elfeed.org][elfeed]]
 - [[file:patch.org][patch]]
 - [[file:todo.org][todo]]
 - algorithm
