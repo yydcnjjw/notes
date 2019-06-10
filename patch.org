@@ -29,6 +29,9 @@
   https://deepzz.com/post/based-on-openssl-privateCA-issuer-cert.html
 - proxy
   - =dnsmasq=
+- nvidia
+  - 
+
 
 ** wine configure
 - galgame

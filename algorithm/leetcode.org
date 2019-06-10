@@ -772,6 +772,71 @@
   };
 #+END_SRC
 
+* Mini Parser
+[[https://leetcode-cn.com/problems/mini-parser/][Mini Parser]]
+
+#+BEGIN_SRC C++
+  class Solution {
+    public:
+      NestedInteger deserialize(string s) {
+          stack<NestedInteger *> stack;
+          NestedInteger *cur_nested = nullptr;
+          int cur_num = 0;
+          bool cur_num_sign = true; // true + false -
+          bool is_num_readed = true;
+          for (auto ch : s) {
+              if (ch == '-') {
+                  cur_num_sign = false;
+              } else if (ch >= '0' && ch <= '9') {
+                  cur_num = cur_num * 10 + ch - '0';
+                  is_num_readed = false;
+              } else if (ch == ',') {
+                  if (cur_num_sign == false) {
+                      cur_num = -cur_num;
+                  }
+                  if (!is_num_readed) {
+                      cur_nested->add(cur_num);
+                      is_num_readed = true;
+                  }
+
+                  cur_num_sign = true;
+                  cur_num = 0;
+              } else if (ch == '[') {
+                  if (cur_nested != nullptr) {
+                      stack.push(cur_nested);
+                  }
+                  cur_nested = new NestedInteger;
+              } else if (ch == ']') {
+                  if (!is_num_readed) {
+                      if (cur_num_sign == false) {
+                          cur_num = -cur_num;
+                      }
+                      cur_nested->add(cur_num);
+                      is_num_readed = true;
+                  }
+                  if (!stack.empty()) {
+                      auto prev_nested = stack.top();
+                      prev_nested->add(*cur_nested);
+                      delete cur_nested;
+                      cur_nested = prev_nested;
+                      stack.pop();
+                  }
+              }
+          }
+
+          // s = "number"
+          if (cur_nested == nullptr) {
+              if (cur_num_sign == false) {
+                  cur_num = -cur_num;
+              }
+              cur_nested = new NestedInteger(cur_num);
+          }
+
+          return *cur_nested;
+      }
+  };
+#+END_SRC
+
 * Two Sum
 给定一个整数数组和一个目标值，找出数组中和为目标值的两个数。
 你可以假设每个输入只对应一种答案，且同样的元素不能被重复利用。

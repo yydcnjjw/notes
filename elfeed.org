@@ -8,9 +8,7 @@
 **** [[https://www.williamlong.info/rss.xml][williamlong]]
 ** programming                                                 :programming:
 *** [[https://rsshub.app/zcfy/hot][zcfy]]
-
+*** [[https://rsshub.app/juejin/trending/all/weekly][juejin]]
 ** knowledge                                                     :knowledge:
 *** [[https://zhihu.com/rss][zhihu]]
 ** news                                                               :news:
-*** [[http://www.people.com.cn/rss/world.xml][people world]]
-*** [[http://www.people.com.cn/rss/politics.xml][people politics]]
