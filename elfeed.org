@@ -10,5 +10,4 @@
 *** [[https://rsshub.app/zcfy/hot][zcfy]]
 *** [[https://rsshub.app/juejin/trending/all/weekly][juejin]]
 ** knowledge                                                     :knowledge:
-*** [[https://zhihu.com/rss][zhihu]]
 ** news                                                               :news:

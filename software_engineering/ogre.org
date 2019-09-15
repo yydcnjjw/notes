@@ -1,0 +1,6 @@
+* Ogre::RenderSystem Class
+- api configuration option
+- HOQ(Hardware Occlusion Queries): A HOQ is the process of determining whether one or more rendered objects are visible on a per-pixel level (one or more occluder convex or concave can occlude it).
+- *TODO* DirectX static buffer
+- query the real capabilities of the GPU and driver(custom of the capabilities).
+- 

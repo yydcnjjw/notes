@@ -1,0 +1,2 @@
+=programming paradigms= 基于 =programming languages= 的特性进行分类的一种方式。
+

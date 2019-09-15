@@ -14,10 +14,12 @@
 - lang
   - [[file:lang/c++.org][c++]]
   - [[file:lang/gcc.org][gcc]]
+  - [[file:lang/programming_paradigm.org][programming_paradigm]]
   - jp
     - [[file:lang/jp/index.org][index]]
     - [[file:lang/jp/みんなの日本語.org][みんなの日本語]]
     - [[file:lang/jp/単語.org][単語]]
+    - [[file:lang/jp/文型辞書.org][文型辞書]]
     - [[file:lang/jp/文法.org][文法]]
 - mathematics
   - [[file:mathematics/math.org][math]]
@@ -34,4 +36,5 @@
   - [[file:software_engineering/design_pattern.org][design_pattern]]
   - [[file:software_engineering/godot.org][godot]]
   - [[file:software_engineering/misc.org][misc]]
+  - [[file:software_engineering/ogre.org][ogre]]
   - [[file:software_engineering/project_impl.org][project_impl]]
