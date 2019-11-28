@@ -9,5 +9,8 @@
 ** programming                                                 :programming:
 *** [[https://rsshub.app/zcfy/hot][zcfy]]
 *** [[https://rsshub.app/juejin/trending/all/weekly][juejin]]
+** os                                                                   :os:
+*** [[http://wiki.osdev.org/index.php?title=Special:Recentchanges&feed=rss][osdev.org]]
+
 ** knowledge                                                     :knowledge:
 ** news                                                               :news:
