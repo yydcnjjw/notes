@@ -46,10 +46,10 @@ Transform numeric ​​into similar orders of magnitude, It group the counts in
   #+END_SRC
 
   #+RESULTS:
-  :RESULTS:
-  # Out[18]:
+  :results:
+  # Out[12]:
   [[file:image/Log_Transform.png]]
-  :END:
+  :end:
 
 *** Feature Scaling or Normalization
 Feature scaling changes the scale of the feature.
@@ -152,15 +152,15 @@ Tf-Idf
   #+END_SRC
 
   #+RESULTS:
-  :RESULTS:
-  # Out[21]:
+  :results:
+  # Out[5]:
   #+BEGIN_EXAMPLE
     0_a  0_b  0_c
     0    1    0    0
     1    0    1    0
     2    0    0    1
   #+END_EXAMPLE
-  :END:
+  :end:
 - Dummy Coding
   #+BEGIN_SRC ipython :session :exports both :results raw drawer
     dummy_df = pd.get_dummies(df, drop_first=True)
@@ -210,10 +210,10 @@ Tf-Idf
 #+END_SRC
 
 #+RESULTS:
-:RESULTS:
-# Out[14]:
-: [2, 0, 1, 3, 1]
-:END:
+:results:
+# Out[2]:
+: [1, 5, 0, 1, 0]
+:end:
 
 *Space requirement*: $O(n)$ using the sparse matrix format, where $n$ is the number of data points.
 
@@ -273,9 +273,9 @@ Feature selection techniques fail into three classes:
 #+END_SRC
 
 #+RESULTS: import_package
-:RESULTS:
-# Out[1]:
-:END:
+:results:
+# Out[13]:
+:end:
 
 #+NAME: matplotlib_configure
 #+BEGIN_SRC ipython :session :exports both :results raw drawer
@@ -283,9 +283,9 @@ Feature selection techniques fail into three classes:
 #+END_SRC
 
 #+RESULTS: matplotlib_configure
-:RESULTS:
-# Out[2]:
-:END:
+:results:
+# Out[11]:
+:end:
 
 #+NAME: tool_function
 #+BEGIN_SRC ipython :session :exports both :results raw drawer
@@ -296,7 +296,6 @@ Feature selection techniques fail into three classes:
 
 #+NAME: startup
 #+BEGIN_SRC emacs-lisp
-  (venv-workon "python3")
   (setq-local my/org-babel-src-list
         '("import_package"
           "matplotlib_configure"

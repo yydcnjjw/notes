@@ -316,6 +316,13 @@
 |                    |              |                 |                 |                    |                    | (但是 comparing | (但是 hashing  |
 |                    |              |                 |                 |                    |                    | 不能抛出异常)   | 和 comparing   |
 |                    |              |                 |                 |                    |                    |                 | 不能抛出异常)  |
+
+
+** std::move
+#+DOWNLOADED: screenshot @ 2020-05-10 14:47:46
+[[file:image/std_c++/-2020-05-10-14-47-46screenshot.png]]
+
+
 * skill
 ** clip to range
 #+BEGIN_SRC C++

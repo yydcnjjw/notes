@@ -1,0 +1,21 @@
+#+LATEX_HEADER: \usepackage{xeCJK}
+#+LATEX_HEADER: \setCJKmainfont{Noto Sans CJK SC}
+#+LATEX_HEADER: \setCJKsansfont{Noto Serif CJK SC}
+#+LATEX_HEADER: \setCJKmonofont{Noto Sans Mono CJK SC}
+#+LATEX_HEADER: \usepackage{tikz}
+
+* 指数
+\begin{align}
+  X^{A}X^{B} &= X^{A+B}\\
+  \frac{X^{A}}{X^{B}} &= X^{A-B}\\
+  (X^{A})^{B} &= X^{AB}\\
+  X^{N} + X^{N} &= 2X^{N} \neq X^{2N}\\
+  2^{N} + 2^{N} &= 2^{N+1}
+\end{align}
+
+* 对数
+定义: $X^{A}=B$, 当且仅当 $\log_{X}B=A$
+定理1.1
+\begin{equation}
+  \log_{A}B=\frac{\log_{C}B}{\log_{C}A}; C>0
+\end{equation}

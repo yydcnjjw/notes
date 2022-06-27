@@ -8,7 +8,6 @@ ref:
 - [ ] Analysis of advantages and disadvantages
 - [ ] Suitable application
 
-
 * Memory Allocator
 ref:
 - [[https://github.com/mtrebi/memory-allocators][memory allocator impl]]

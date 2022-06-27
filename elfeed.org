@@ -14,3 +14,5 @@
 
 ** knowledge                                                     :knowledge:
 ** news                                                               :news:
+*** nhk
+**** [[https://www.nhk.or.jp/rss/news/cat0.xml][nhk 主要]]

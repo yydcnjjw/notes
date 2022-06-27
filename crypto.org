@@ -1,0 +1,6 @@
+* 对称加密
+- xor
+- DES(Data Encryption Standard)
+- 三重DES(triple-DES)
+- AES(Advanced Encryption Standard)
+

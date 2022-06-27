@@ -46,7 +46,6 @@
 ** Proxy
 [[https://en.wikipedia.org/wiki/Proxy_pattern][Proxy]]
 
-
 * Behavioral patterns
 ** Strategy
 [[https://en.wikipedia.org/wiki/Strategy_pattern][Strategy]]
